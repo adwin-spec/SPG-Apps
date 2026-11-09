@@ -27,12 +27,12 @@ _Last update: 2026-11-09 · branch `main`_
 `20261109081859_init`, `20261109090000_integrity_rules`, `20261109100000_document_sequences`
 
 ## Not yet verified in this environment (honest gaps)
-1. **Docker images / compose and the GitHub Actions workflow were written but not executed** – the build container has no Docker daemon and the repository has no remote yet. Compose/CI YAML is syntax-checked.
+1. ~~Docker / CI not executed~~ → **verified**: GitHub Actions run 42598477542 on `adwin-spec/SPG-Apps` is green (type-check, unit, API e2e, Playwright, perf, secret scan, and Docker builds of api/web/migrate). `docker compose up` on a real host is still to be done during deployment.
 2. **No public deployment URL** (Phase 7 acceptance) – needs your server/cloud account and domain; follow `infrastructure/deployment/DEPLOYMENT.md`.
 3. **Google Drive / Sheets / Vision** code paths are implemented but untested without a service account (OCR tested with `OCR_PROVIDER=none` = manual transcription).
 
 ## Known limitations / next tasks (priority order)
-1. Run CI + Docker build on GitHub; deploy staging; confirm all *simulation default* settings, KPI weights and real targets with management.
+1. Deploy staging (`docker compose --profile https up`); confirm all *simulation default* settings, KPI weights and real targets with management.
 2. Executive dashboard: pre-aggregate daily facts (materialised view refreshed by the worker) if data volume grows (> ~1 M lines) – currently p95 ≈ 1 s.
 3. Geographic view uses a coordinate scatter (no basemap) – choose a tile provider/licence before adding a map layer.
 4. UI gaps: editing custom-role permissions (API `PUT /roles/:id/permissions` exists), "create supervisor record" dialog (API exists), outlet assignment history shows SPG id not name, OCR review retailer picker capped at 200 per wholesaler.
