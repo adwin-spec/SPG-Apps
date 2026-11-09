@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+html, body { background: #f5f7fa; color: #111827; }
+body { font-feature-settings: 'tnum' 1; -webkit-font-smoothing: antialiased; }
+.num { font-variant-numeric: tabular-nums; }
+*:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+@media print { aside, header, .no-print { display: none !important; } }
