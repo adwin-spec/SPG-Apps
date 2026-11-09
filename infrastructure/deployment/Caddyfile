@@ -1,0 +1,11 @@
+# HTTPS termination with automatic certificates (Let's Encrypt) for SITE_DOMAIN.
+{$SITE_DOMAIN} {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		-Server
+	}
+	request_body { max_size 12MB }
+	reverse_proxy web:3000
+}

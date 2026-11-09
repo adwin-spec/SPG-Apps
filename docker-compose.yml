@@ -1,0 +1,103 @@
+# Tanda Tambah – full stack. Copy .env.example to .env and set every CHANGE_ME first.
+#   docker compose up -d --build                 # db, redis, minio, migrate, api, worker, web
+#   docker compose --profile https up -d         # + Caddy reverse proxy with automatic HTTPS
+name: tanda-tambah
+x-api-env: &api-env
+  NODE_ENV: production
+  DATABASE_URL: postgresql://${POSTGRES_USER:-tanda}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-tanda_tambah}?schema=public
+  REDIS_URL: redis://redis:6379
+  JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET}
+  CORS_ORIGINS: ${CORS_ORIGINS:-https://localhost}
+  COOKIE_SECURE: ${COOKIE_SECURE:-true}
+  STORAGE_DRIVER: s3
+  S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+  S3_REGION: ${S3_REGION:-ap-southeast-3}
+  S3_BUCKET: ${S3_BUCKET:-tanda-tambah}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?set S3_ACCESS_KEY_ID}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?set S3_SECRET_ACCESS_KEY}
+  S3_FORCE_PATH_STYLE: "true"
+  OCR_PROVIDER: ${OCR_PROVIDER:-none}
+  GOOGLE_SERVICE_ACCOUNT_JSON_BASE64: ${GOOGLE_SERVICE_ACCOUNT_JSON_BASE64:-}
+  GOOGLE_DRIVE_INBOX_FOLDER_ID: ${GOOGLE_DRIVE_INBOX_FOLDER_ID:-}
+  GOOGLE_SHEETS_SPREADSHEET_ID: ${GOOGLE_SHEETS_SPREADSHEET_ID:-}
+  QUEUES_ENABLED: "true"
+
+services:
+  db:
+    image: postgres:16.4-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tanda}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-tanda_tambah}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tanda}"], interval: 10s, retries: 10 }
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes: [redisdata:/data]
+    healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 10s, retries: 10 }
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    restart: unless-stopped
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:?set S3_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:?set S3_SECRET_ACCESS_KEY}
+    volumes: [miniodata:/data]
+    healthcheck: { test: ["CMD", "mc", "ready", "local"], interval: 10s, retries: 10 }
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+    depends_on: { minio: { condition: service_healthy } }
+    entrypoint: ["/bin/sh", "-c", "mc alias set s3 http://minio:9000 $$U $$P && mc mb --ignore-existing s3/${S3_BUCKET:-tanda-tambah} && mc anonymous set none s3/${S3_BUCKET:-tanda-tambah}"]
+    environment: { U: "${S3_ACCESS_KEY_ID}", P: "${S3_SECRET_ACCESS_KEY}" }
+
+  migrate:
+    build: { context: ., dockerfile: infrastructure/docker/migrate.Dockerfile }
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-tanda}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-tanda_tambah}?schema=public
+      SEED_SUPERADMIN_EMAIL: ${SEED_SUPERADMIN_EMAIL:-superadmin@tanda-tambah.local}
+      SEED_SUPERADMIN_PASSWORD: ${SEED_SUPERADMIN_PASSWORD:?set SEED_SUPERADMIN_PASSWORD}
+    restart: "no"
+
+  api:
+    build: { context: ., dockerfile: infrastructure/docker/api.Dockerfile }
+    restart: unless-stopped
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+      minio-init: { condition: service_completed_successfully }
+    environment: *api-env
+    expose: ["4000"]
+
+  worker:
+    build: { context: ., dockerfile: infrastructure/docker/api.Dockerfile }
+    restart: unless-stopped
+    command: ["node", "dist/main.worker.js"]
+    depends_on: { api: { condition: service_healthy } }
+    environment: *api-env
+
+  web:
+    build: { context: ., dockerfile: infrastructure/docker/web.Dockerfile }
+    restart: unless-stopped
+    depends_on: { api: { condition: service_healthy } }
+    environment: { API_INTERNAL_URL: http://api:4000 }
+    ports: ["${WEB_PORT:-3000}:3000"]
+
+  proxy:
+    profiles: ["https"]
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    depends_on: [web]
+    ports: ["80:80", "443:443"]
+    environment: { SITE_DOMAIN: "${SITE_DOMAIN:-localhost}" }
+    volumes:
+      - ./infrastructure/deployment/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+
+volumes: { pgdata: {}, redisdata: {}, miniodata: {}, caddydata: {} }

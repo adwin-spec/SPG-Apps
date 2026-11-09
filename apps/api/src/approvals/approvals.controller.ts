@@ -13,7 +13,7 @@ export class ApprovalsController {
   constructor(private readonly svc: ApprovalsService) {}
 
   @Get() @RequirePermissions(PERMISSIONS.APPROVAL_READ)
-  list(@Query(new ZodPipe(approvalListQuery)) q: z.infer<typeof approvalListQuery>) { return this.svc.list(q); }
+  list(@CurrentUser() u: AuthUser, @Query(new ZodPipe(approvalListQuery)) q: z.infer<typeof approvalListQuery>) { return this.svc.list(u, q); }
 
   @Post(':id/decision') @HttpCode(200) @RequirePermissions(PERMISSIONS.APPROVAL_DECIDE) @ApiZodBody(approvalDecisionSchema)
   decide(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(approvalDecisionSchema)) b: z.infer<typeof approvalDecisionSchema>) { return this.svc.decide(u, id, b.decision, b.note); }
