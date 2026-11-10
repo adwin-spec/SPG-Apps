@@ -17,7 +17,7 @@ for r in (auth.router, meta.router, users.router, photos.router, reports.router,
     app.include_router(r, prefix="/api/v1")
 
 
-@app.get("/api/v1/health")
+@app.api_route("/api/v1/health", methods=["GET", "HEAD"])  # HEAD dipakai load balancer / pemeriksa kesiapan
 def health():
     with SessionLocal() as db:
         db.execute(text("select 1"))
