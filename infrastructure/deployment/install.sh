@@ -19,8 +19,16 @@ echo "==> Server $IP · domain $DOMAIN"
 
 echo "==> Paket dasar, firewall, swap"
 apt-get update -qq
-DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git curl ufw openssl ca-certificates >/dev/null
-ufw allow OpenSSH >/dev/null; ufw allow 80/tcp >/dev/null; ufw allow 443/tcp >/dev/null; ufw --force enable >/dev/null
+DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git curl openssl ca-certificates >/dev/null
+if [ -f /etc/iptables/rules.v4 ] && grep -q InstanceServices /etc/iptables/rules.v4; then
+  # Oracle Cloud: image Ubuntu-nya sudah memakai iptables sendiri; Oracle menyarankan TIDAK memakai ufw.
+  # Buka 80/443 di iptables (port juga harus dibuka di Security List / NSG pada konsol Oracle).
+  for p in 443 80; do iptables -C INPUT -p tcp --dport $p -j ACCEPT 2>/dev/null || iptables -I INPUT 5 -p tcp -m state --state NEW --dport $p -j ACCEPT; done
+  netfilter-persistent save >/dev/null 2>&1 || true
+else
+  DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ufw >/dev/null
+  ufw allow OpenSSH >/dev/null; ufw allow 80/tcp >/dev/null; ufw allow 443/tcp >/dev/null; ufw --force enable >/dev/null
+fi
 # Build frontend butuh ±2 GB RAM; tambah swap bila RAM kecil.
 if [ "$(awk '/MemTotal/{print int($2/1024)}' /proc/meminfo)" -lt 3500 ] && ! swapon --show | grep -q /swapfile; then
   fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile >/dev/null && swapon /swapfile && echo '/swapfile none swap sw 0 0' >> /etc/fstab

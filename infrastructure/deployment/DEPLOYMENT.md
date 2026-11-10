@@ -3,6 +3,43 @@
 Total waktu ±30 menit. Yang perlu Anda siapkan sendiri (butuh akun & pembayaran atas nama perusahaan):
 **1 server VPS** dan **1 nama domain** (atau subdomain dari domain kantor yang sudah ada).
 
+## 0. Uji coba gratis (opsional)
+
+Penawaran gratis penyedia cloud sering berubah; periksa syaratnya saat mendaftar.
+
+**A. Laptop kantor + Cloudflare Tunnel** – tanpa kartu kredit, ±20 menit. Laptop harus tetap menyala dan
+tidak tidur selama uji coba; alamatnya berganti setiap tunnel dijalankan ulang. Cocok untuk uji 1–2 minggu dengan beberapa SPG.
+
+1. Pasang **Docker Desktop** dan **Git**, lalu ambil kode dan siapkan pengaturan:
+```bash
+git clone https://github.com/adwin-spec/SPG-Apps.git && cd SPG-Apps && cp .env.example .env
+```
+2. Buka `.env`, ganti semua `CHANGE_ME` (password bebas, `JWT_SECRET` minimal 32 karakter acak). Biarkan `COOKIE_SECURE=true`.
+3. Jalankan aplikasi (tanpa profil https):
+```bash
+docker compose up -d --build
+```
+4. Pasang **cloudflared** (unduh dari situs resmi Cloudflare), lalu buat alamat HTTPS publik sementara:
+```bash
+cloudflared tunnel --url http://localhost:3000
+```
+5. Bagikan alamat `https://….trycloudflare.com` yang muncul ke SPG dan supervisor.
+
+**B. Oracle Cloud *Always Free*** – server menyala 24 jam, gratis tanpa batas waktu (ARM, hingga 4 OCPU/24 GB),
+tetapi pendaftaran butuh verifikasi kartu kredit dan kapasitas di beberapa region sering penuh.
+
+1. Buat instance *Ampere A1* dengan image **Canonical Ubuntu 24.04**, 2 OCPU / 12 GB cukup.
+2. Di *Virtual Cloud Network → Security List*, tambah *Ingress Rule* TCP port **80** dan **443** dari `0.0.0.0/0`.
+3. SSH ke server lalu jalankan skrip di langkah 3 (tanpa domain: `sudo bash install.sh`, memakai `<ip>.nip.io`).
+   Skrip mengenali image Oracle dan membuka port lewat iptables, bukan ufw.
+
+**C. Kredit uji coba Google Cloud / AWS / Azure** – akun baru biasanya mendapat kredit untuk beberapa bulan
+(butuh kartu kredit). Pilih VM 2 vCPU/4 GB Ubuntu, buka port 80/443 di firewall penyedia, lalu jalankan skrip
+di langkah 3. Pasang pengingat sebelum kredit habis agar tidak tertagih.
+
+Yang tidak disarankan: layanan PaaS gratis (mis. Render/Railway) – database gratisnya terbatas waktu dan file
+foto hilang saat layanan restart.
+
 ## 1. Pilih server
 
 Spesifikasi minimum: **Ubuntu 24.04 (atau 22.04), 2 vCPU, 4 GB RAM, 40 GB disk** – cukup untuk ±100 SPG.
