@@ -21,10 +21,10 @@ export function PageHeader({ title, description, actions }: { title: string; des
 export function Skeleton({ className }: { className?: string }) {
   return <div className={cn('animate-pulse rounded bg-slate-200/70', className)} />;
 }
-export function Empty({ title = 'No data', hint }: { title?: string; hint?: string }) {
+export function Empty({ title = 'Belum ada data', hint }: { title?: string; hint?: string }) {
   return <div className="flex flex-col items-center justify-center py-10 text-center"><p className="text-sm font-medium text-ink-secondary">{title}</p>{hint && <p className="mt-1 max-w-sm text-xs text-ink-muted">{hint}</p>}</div>;
 }
 export function ErrorBox({ error }: { error: unknown }) {
-  const msg = error instanceof Error ? error.message : 'Something went wrong';
+  const msg = error instanceof Error ? error.message : 'Terjadi kesalahan';
   return <div role="alert" className="rounded-md border border-critical/30 bg-critical-soft px-3 py-2 text-sm text-critical-text">{msg}</div>;
 }

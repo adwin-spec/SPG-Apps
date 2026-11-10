@@ -9,8 +9,7 @@ const config: NextConfig = {
   // monorepo: trace workspace packages from the repository root
   outputFileTracingRoot: path.join(__dirname, '../..'),
   poweredByHeader: false,
-  transpilePackages: ['@tanda/shared'],
-  // Same-origin proxy keeps the httpOnly refresh cookie first-party (ADR D10).
+  // Proxy same-origin ke backend Python (FastAPI) agar cookie refresh tetap first-party.
   async rewrites() { return [{ source: '/api/v1/:path*', destination: `${api}/api/v1/:path*` }]; },
   async headers() {
     return [{ source: '/:path*', headers: [

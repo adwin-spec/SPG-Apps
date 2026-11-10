@@ -1,5 +1,5 @@
 'use client';
-import type { AuthUser, PageMeta } from '@tanda/shared';
+import type { AuthUser, PageMeta } from './types';
 
 /** Access token lives in memory only (never localStorage – ADR D10). */
 let accessToken: string | null = null;

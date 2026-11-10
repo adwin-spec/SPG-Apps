@@ -10,6 +10,8 @@ export default {
         border: '#e2e6ee',
         ink: { DEFAULT: '#111827', secondary: '#4b5563', muted: '#6b7280' },
         primary: { DEFAULT: '#2563eb', hover: '#1d4ed8', soft: '#eff4ff' },
+        tt: { DEFAULT: '#c2410c', soft: '#fdeee4' },
+        comp: { DEFAULT: '#475569', soft: '#e9edf2' },
         good: { DEFAULT: '#0ca30c', text: '#067a06', soft: '#ecf8ec' },
         warn: { DEFAULT: '#fab219', text: '#8a5a00', soft: '#fff7e6' },
         serious: { DEFAULT: '#ec835a', text: '#9a3f1b', soft: '#fdf0ea' },

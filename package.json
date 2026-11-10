@@ -1,24 +1,13 @@
 {
   "name": "tanda-tambah-spg-system",
   "private": true,
-  "version": "0.1.0",
+  "version": "2.0.0",
   "packageManager": "pnpm@10.28.0",
   "engines": { "node": ">=22" },
   "scripts": {
-    "build": "pnpm -r --filter @tanda/shared build && pnpm --filter @tanda/database generate && pnpm --filter @tanda/api build && pnpm --filter @tanda/web build",
-    "build:shared": "pnpm --filter @tanda/shared build",
-    "db:generate": "pnpm --filter @tanda/database generate",
-    "db:migrate": "pnpm --filter @tanda/database migrate:deploy",
-    "db:migrate:dev": "pnpm --filter @tanda/database migrate:dev",
-    "db:seed": "pnpm --filter @tanda/database seed",
-    "db:seed:demo": "pnpm --filter @tanda/database seed:demo",
-    "dev:api": "pnpm --filter @tanda/api dev",
-    "dev:worker": "pnpm --filter @tanda/api dev:worker",
     "dev:web": "pnpm --filter @tanda/web dev",
-    "test": "pnpm --filter @tanda/shared test && pnpm --filter @tanda/api test",
-    "test:e2e:api": "pnpm --filter @tanda/api test:e2e",
-    "test:e2e:web": "pnpm --filter @tanda/web test:e2e",
-    "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck"
+    "build:web": "pnpm --filter @tanda/web build",
+    "typecheck": "pnpm --filter @tanda/web typecheck",
+    "test:e2e:web": "pnpm --filter @tanda/web test:e2e"
   }
 }

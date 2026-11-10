@@ -1,13 +1,12 @@
 **/node_modules
 **/.next
-**/dist
-**/coverage
+**/__pycache__
+**/.pytest_cache
+**/.venv
 **/.env
 **/.env.*
 !.env.example
-storage
-apps/api/storage
+/apps/api/storage
 **/test-results
 **/playwright-report
-packages/database/generated
 .git

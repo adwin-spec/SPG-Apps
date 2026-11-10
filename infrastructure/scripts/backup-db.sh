@@ -6,7 +6,7 @@ set -euo pipefail
 BACKUP_DIR="${BACKUP_DIR:-./backups}"; RETENTION_DAYS="${RETENTION_DAYS:-30}"
 mkdir -p "$BACKUP_DIR"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"; FILE="$BACKUP_DIR/tanda_tambah_${STAMP}.dump"
-URL="${DATABASE_URL%%\?*}"
+URL="${DATABASE_URL%%\?*}"; URL="${URL/+psycopg/}"   # format SQLAlchemy → format pg_dump
 pg_dump --format=custom --compress=9 --no-owner --file="$FILE" "$URL"
 pg_restore --list "$FILE" > /dev/null   # verify the archive is readable
 sha256sum "$FILE" > "$FILE.sha256"

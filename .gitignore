@@ -1,5 +1,4 @@
 node_modules/
-dist/
 .next/
 out/
 coverage/
@@ -7,10 +6,11 @@ coverage/
 .env
 .env.*
 !.env.example
-packages/database/generated/
-/storage/
-apps/api/storage/
-test-results/
-playwright-report/
-*.tsbuildinfo
-.DS_Store
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+/apps/api/storage/
+apps/web/test-results/
+apps/web/playwright-report/

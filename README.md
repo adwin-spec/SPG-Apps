@@ -1,116 +1,59 @@
-# Tanda Tambah – SPG Performance & Market Intelligence System
+# Tanda Tambah – SPG Performance & Market Intelligence
 
-Centralised platform for **SPG Grosir, SPG HORECA and SPG Reguler**: field force management (attendance, GPS,
-visits, offline PWA), sales & transactions, competitor/market intelligence, a configurable KPI engine,
-BI dashboards with drill-down and exports, OCR of paper forms with human validation, data-quality governance
-and a full audit trail.
+Aplikasi lapangan dan dashboard untuk SPG rokok Tanda Tambah:
 
-| | |
-|---|---|
-| **Architecture** | Modular monolith – NestJS API + BullMQ worker, Next.js web (management UI + SPG PWA), PostgreSQL, Redis, S3 storage → [ADR](docs/architecture/ARCHITECTURE.md) |
-| **Database** | 65 tables, migrations, integrity triggers → [docs/database](docs/database/DATABASE.md) |
-| **API** | 151 endpoints under `/api/v1`, Swagger at `/api/docs` → [docs/api](docs/api/API.md) |
-| **Users** | [User guide](docs/user-guide/USER_GUIDE.md) |
-| **Ops** | [Deployment, backup & recovery, security](infrastructure/deployment/DEPLOYMENT.md) |
-| **Status** | [DEVELOPMENT_PROGRESS.md](DEVELOPMENT_PROGRESS.md) |
+* **SPG Grosir** – laporan harian pembeli di grosir, promo dan promotor kompetitor, merek terlaris.
+* **SPG Reguler** – kunjungan outlet: stok per varian, facing (share of shelf), POSM, order, kompetitor, foto rak.
+* **Survei HORECA** – responden perokok dewasa di venue, sampel, kesan, pembelian, **foto SPG bersama responden** (dengan persetujuan).
+* Satu SPG bisa memegang beberapa tugas (mis. SPG Grosir yang juga survei HORECA).
+* **Supervisor per wilayah**: laporan diarahkan otomatis ke supervisor yang memegang kecamatan lokasinya
+  (seluruh kab/kota atau per kecamatan); dibatasi di server. Wilayah tanpa supervisor ditangani admin pusat.
+* Laporan ditolak → dikerjakan ulang oleh SPG yang sama → dikirim ulang (riwayat revisi tercatat).
+* Dashboard hanya dari laporan yang **disetujui**; filter provinsi / kab/kota / kecamatan / tipe toko / SPG / supervisor; unduh CSV.
+* Master wilayah: 119 kab/kota dan 2.146 kecamatan Jawa + DKI (Kepmendagri No. 300.2.2-2138 Tahun 2025), bisa diedit.
 
-## Repository layout
+## Arsitektur singkat
 
-```
-apps/api            NestJS modular monolith (src/<module>), worker entry src/main.worker.ts, e2e tests in test/
-apps/web            Next.js 15 – management web (app/(management)/…) and SPG PWA (app/m + features/mobile)
-packages/shared     RBAC catalogue, configurable settings, KPI metric catalogue, Zod validation, utils (geo, time, math)
-packages/database   Prisma schema, migrations, reference seed, DEMO seed (dev only)
-infrastructure      Dockerfiles, Caddy (HTTPS), backup/restore & performance scripts
-docs                architecture, database, api, user guide
-```
+| Bagian | Teknologi | Folder |
+|---|---|---|
+| Backend & logika bisnis | **Python 3.13, FastAPI, SQLAlchemy, Alembic** | `apps/api` |
+| Database | PostgreSQL 16 | – |
+| Tampilan web & aplikasi HP (PWA) | Next.js 15 (TypeScript) | `apps/web` |
 
-> The brief proposed `packages/shared-types`, `packages/validation`, `packages/config`; they are folders inside
-> **one** `@tanda/shared` package (`src/types`, `src/validation`, `src/config`) so the API and web consume a single,
-> versioned build. Business modules live in `apps/api/src/<module>` as listed in the ADR.
+Definisi form (`apps/api/app/forms.py`) dan isi dashboard (`apps/api/app/services/dashboard.py`) ditulis di
+Python; frontend hanya menampilkannya. **Panduan mengedit sendiri: [docs/PANDUAN_PYTHON_ANTIGRAVITY.md](docs/PANDUAN_PYTHON_ANTIGRAVITY.md).**
 
-## Run locally (without Docker)
-
-Requirements: Node ≥ 22, pnpm 10, PostgreSQL 16, Redis 7.
+## Menjalankan cepat (Docker)
 
 ```bash
-pnpm install
+cp .env.example .env
 ```
 
-```bash
-cp .env.example apps/api/.env      # set DATABASE_URL, JWT_ACCESS_SECRET (≥32 chars), REDIS_URL
-```
-
-```bash
-cp .env.example packages/database/.env   # only DATABASE_URL is needed here
-```
-
-```bash
-pnpm build:shared && pnpm db:generate && pnpm db:migrate
-```
-
-```bash
-SEED_SUPERADMIN_PASSWORD='YourStrongPass1' pnpm db:seed      # roles, permissions, settings, simulation KPIs, super admin
-```
-
-```bash
-pnpm db:seed:demo        # OPTIONAL demo data (refuses to run when NODE_ENV=production)
-```
-
-Start the three processes (separate terminals):
-
-```bash
-pnpm dev:api        # http://localhost:4000  (Swagger: /api/docs)
-```
-
-```bash
-pnpm dev:worker     # BullMQ consumers + schedules (OCR, Drive polling, nightly KPI, DQ scan, notifications)
-```
-
-```bash
-echo 'API_INTERNAL_URL=http://localhost:4000' > apps/web/.env.local && pnpm dev:web   # http://localhost:3000
-```
-
-**Demo accounts** (demo seed only, password `Demo12345!`):
-`admin@demo.tanda-tambah.local`, `national@…`, `rm.jatim@…`, `am.sby@…`, `spv1.sby@…`, `analyst@…`, `viewer@…`,
-SPG: `demo-spg-001@…` (Grosir), `demo-spg-003@…` (HORECA), `demo-spg-005@…` (Reguler) – all `@demo.tanda-tambah.local`.
-SPG accounts land in the mobile app at `/m` (open on a phone or use the browser's device mode).
-
-## Run with Docker
-
-```bash
-cp .env.example .env   # set POSTGRES_PASSWORD, JWT_ACCESS_SECRET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, SEED_SUPERADMIN_PASSWORD
-```
+Isi semua `CHANGE_ME` di `.env`, lalu:
 
 ```bash
 docker compose up -d --build
 ```
 
-```bash
-SITE_DOMAIN=spg.example.co.id docker compose --profile https up -d   # Caddy with automatic HTTPS
-```
+Buka http://localhost:3000 dan masuk dengan `ADMIN_USERNAME` / `ADMIN_PASSWORD`. Untuk domain + HTTPS lihat
+[infrastructure/deployment/DEPLOYMENT.md](infrastructure/deployment/DEPLOYMENT.md).
 
-## Tests
+## Pengembangan lokal tanpa Docker
 
-```bash
-pnpm test                 # unit: shared utils/validation + KPI scoring + OCR parser
-```
+Lihat [panduan](docs/PANDUAN_PYTHON_ANTIGRAVITY.md) bagian 1–2. Ringkasnya: backend `uvicorn app.main:app --reload --port 4000`
+di `apps/api`, frontend `pnpm dev:web` di root.
 
-```bash
-pnpm test:e2e:api         # 23 API e2e tests incl. the 12 mandatory scenarios (needs DB "tanda_tambah_test")
-```
+## Tes
 
-```bash
-pnpm test:e2e:web         # Playwright: role menus, every page renders, exports, offline SPG flow (API+web running)
-```
+* Backend: `cd apps/api && python -m pytest -q tests` (database `tanda_test`, dibuat otomatis)
+* Web end-to-end: jalankan API + web, lalu `pnpm test:e2e:web`
 
-```bash
-node infrastructure/scripts/perf-test.mjs http://localhost:4000/api/v1 20 200   # load test
-```
+## Dokumentasi
 
-## Configurable business rules
+* [Panduan edit dengan Python / Antigravity](docs/PANDUAN_PYTHON_ANTIGRAVITY.md)
+* [Panduan pengguna](docs/user-guide/USER_GUIDE.md)
+* [Arsitektur](docs/architecture/ARCHITECTURE.md) · [Database](docs/database/DATABASE.md) · [API](docs/api/API.md)
+* [Deployment](infrastructure/deployment/DEPLOYMENT.md) · [Status pengembangan](DEVELOPMENT_PROGRESS.md)
 
-Nothing undecided is hard-coded. KPI definitions, formulas, weights, caps and targets are managed in
-**KPI & Performance**; operational rules (geofence radius, deadlines, final statuses, missing-data policy,
-duplicate threshold, notification routing, Google Sheet/column mapping) are in **System Settings** and are
-flagged *simulation default* until an administrator confirms them. See ADR §1.1.
+Versi sebelumnya (backend NestJS/TypeScript dengan modul KPI, OCR kertas, absensi GPS) disimpan di tag git
+`v1-typescript`.

@@ -1,35 +1,26 @@
 {
   "name": "@tanda/web",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
-    "lint": "next lint",
     "test:e2e": "playwright test --trace off"
   },
   "dependencies": {
-    "@hookform/resolvers": "^5.2.1",
     "@radix-ui/react-dialog": "^1.1.14",
-    "@radix-ui/react-tabs": "^1.1.12",
-    "@radix-ui/react-tooltip": "^1.2.7",
     "@radix-ui/react-slot": "^1.2.3",
-    "@tanda/shared": "workspace:*",
+    "@radix-ui/react-tabs": "^1.1.12",
     "@tanstack/react-query": "^5.83.0",
-    "@tanstack/react-table": "^8.21.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "echarts": "^5.6.0",
-    "idb": "^8.0.3",
     "lucide-react": "^0.525.0",
     "next": "15.5.4",
     "react": "19.1.1",
     "react-dom": "19.1.1",
-    "react-hook-form": "^7.60.0",
-    "tailwind-merge": "^3.3.1",
-    "zod": "^4.1.12"
+    "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

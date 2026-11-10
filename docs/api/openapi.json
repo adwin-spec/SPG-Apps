@@ -1,1 +1,1826 @@
-{"openapi":"3.0.0","paths":{"/api/v1/health/live":{"get":{"operationId":"HealthController_live_v1","parameters":[],"responses":{"200":{"description":""}},"tags":["Health"]}},"/api/v1/health/ready":{"get":{"operationId":"HealthController_ready_v1","parameters":[],"responses":{"200":{"description":""}},"tags":["Health"]}},"/api/v1/auth/login":{"post":{"operationId":"AuthController_login_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"email":{"type":"string","maxLength":254,"format":"email","pattern":"^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"},"password":{"type":"string","minLength":1,"maxLength":200}},"required":["email","password"]}}}},"responses":{"200":{"description":""}},"tags":["Auth"]}},"/api/v1/auth/refresh":{"post":{"operationId":"AuthController_refresh_v1","parameters":[],"responses":{"200":{"description":""}},"tags":["Auth"]}},"/api/v1/auth/logout":{"post":{"operationId":"AuthController_logout_v1","parameters":[],"responses":{"200":{"description":""}},"tags":["Auth"]}},"/api/v1/auth/me":{"get":{"operationId":"AuthController_me_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Auth"]}},"/api/v1/auth/change-password":{"post":{"operationId":"AuthController_changePassword_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"currentPassword":{"type":"string","minLength":1},"newPassword":{"type":"string","minLength":10,"maxLength":128,"allOf":[{"type":"string","pattern":"[A-Z]"},{"type":"string","pattern":"[a-z]"},{"type":"string","pattern":"\\d"}]}},"required":["currentPassword","newPassword"]}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Auth"]}},"/api/v1/users":{"get":{"operationId":"UsersController_list_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Users"]},"post":{"operationId":"UsersController_create_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"email":{"type":"string","maxLength":254,"format":"email","pattern":"^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"},"fullName":{"type":"string","minLength":1,"maxLength":160},"phone":{"nullable":true,"type":"string","maxLength":32},"password":{"type":"string","minLength":10,"maxLength":128,"allOf":[{"type":"string","pattern":"[A-Z]"},{"type":"string","pattern":"[a-z]"},{"type":"string","pattern":"\\d"}]},"roleCodes":{"minItems":1,"type":"array","items":{"type":"string"}},"regionId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"areaId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"}},"required":["email","fullName","password","roleCodes"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Users"]}},"/api/v1/users/{id}":{"get":{"operationId":"UsersController_get_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Users"]},"patch":{"operationId":"UsersController_update_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"fullName":{"type":"string","minLength":1,"maxLength":160},"phone":{"nullable":true,"type":"string","maxLength":32},"roleCodes":{"minItems":1,"type":"array","items":{"type":"string"}},"regionId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"areaId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"isActive":{"type":"boolean"}}}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Users"]}},"/api/v1/users/{id}/reset-password":{"post":{"operationId":"UsersController_reset_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"password":{"type":"string","minLength":10,"maxLength":128,"allOf":[{"type":"string","pattern":"[A-Z]"},{"type":"string","pattern":"[a-z]"},{"type":"string","pattern":"\\d"}]}},"required":["password"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Users"]}},"/api/v1/roles":{"get":{"operationId":"RolesController_list_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Roles"]},"post":{"operationId":"RolesController_create_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"code":{"type":"string","pattern":"^[A-Z_]{3,48}$"},"name":{"type":"string","minLength":2,"maxLength":120},"description":{"type":"string","maxLength":500},"permissionCodes":{"default":[],"type":"array","items":{"type":"string"}}},"required":["code","name"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Roles"]}},"/api/v1/roles/permissions":{"get":{"operationId":"RolesController_permissions_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Roles"]}},"/api/v1/roles/{id}/permissions":{"put":{"operationId":"RolesController_setPermissions_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"permissionCodes":{"type":"array","items":{"type":"string"}}},"required":["permissionCodes"]}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Roles"]}},"/api/v1/organization/tree":{"get":{"operationId":"OrganizationController_tree_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Organization"]}},"/api/v1/organization/regions":{"get":{"operationId":"OrganizationController_regions_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Organization"]},"post":{"operationId":"OrganizationController_createRegion_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"code":{"type":"string","minLength":1,"maxLength":32,"pattern":"^[A-Z0-9_-]+$"},"name":{"type":"string","minLength":1,"maxLength":120},"companyId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"}},"required":["code","name"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Organization"]}},"/api/v1/organization/regions/{id}":{"patch":{"operationId":"OrganizationController_updateRegion_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"name":{"type":"string","minLength":1,"maxLength":120},"status":{"type":"string","enum":["ACTIVE","INACTIVE"]}}}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Organization"]}},"/api/v1/organization/areas":{"get":{"operationId":"OrganizationController_areas_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Organization"]},"post":{"operationId":"OrganizationController_createArea_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"code":{"type":"string","minLength":1,"maxLength":32,"pattern":"^[A-Z0-9_-]+$"},"name":{"type":"string","minLength":1,"maxLength":120},"regionId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"}},"required":["code","name","regionId"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Organization"]}},"/api/v1/organization/areas/{id}":{"patch":{"operationId":"OrganizationController_updateArea_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"name":{"type":"string","minLength":1,"maxLength":120},"status":{"type":"string","enum":["ACTIVE","INACTIVE"]}}}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Organization"]}},"/api/v1/organization/districts":{"get":{"operationId":"OrganizationController_districts_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Organization"]},"post":{"operationId":"OrganizationController_createDistrict_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"code":{"type":"string","minLength":1,"maxLength":32,"pattern":"^[A-Z0-9_-]+$"},"name":{"type":"string","minLength":1,"maxLength":120},"areaId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"}},"required":["code","name","areaId"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Organization"]}},"/api/v1/organization/subdistricts":{"get":{"operationId":"OrganizationController_subdistricts_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Organization"]},"post":{"operationId":"OrganizationController_createSubdistrict_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"code":{"type":"string","minLength":1,"maxLength":32,"pattern":"^[A-Z0-9_-]+$"},"name":{"type":"string","minLength":1,"maxLength":120},"districtId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"}},"required":["code","name","districtId"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Organization"]}},"/api/v1/organization/territories":{"get":{"operationId":"OrganizationController_territories_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Organization"]},"post":{"operationId":"OrganizationController_createTerritory_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"code":{"type":"string","minLength":1,"maxLength":32,"pattern":"^[A-Z0-9_-]+$"},"name":{"type":"string","minLength":1,"maxLength":120},"areaId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"description":{"nullable":true,"type":"string","maxLength":500}},"required":["code","name","areaId"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Organization"]}},"/api/v1/organization/supervisors":{"get":{"operationId":"OrganizationController_supervisors_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Organization"]},"post":{"operationId":"OrganizationController_createSupervisor_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"userId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"areaId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"}},"required":["userId","areaId"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Organization"]}},"/api/v1/spgs":{"get":{"operationId":"SpgsController_list_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG"]},"post":{"operationId":"SpgsController_create_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"employeeCode":{"type":"string","minLength":1,"maxLength":32,"pattern":"^[A-Z0-9_-]+$"},"fullName":{"type":"string","minLength":1,"maxLength":160},"phone":{"nullable":true,"type":"string","maxLength":32},"category":{"type":"string","enum":["GROSIR","HORECA","REGULER"]},"joinDate":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"areaId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"territoryId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"supervisorId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"login":{"type":"object","properties":{"email":{"type":"string","format":"email","pattern":"^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"},"password":{"type":"string","minLength":10,"maxLength":128}},"required":["email","password"]}},"required":["employeeCode","fullName","category","joinDate","areaId"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG"]}},"/api/v1/spgs/{id}":{"get":{"operationId":"SpgsController_get_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG"]},"patch":{"operationId":"SpgsController_update_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"expectedVersion":{"type":"integer","minimum":0,"exclusiveMinimum":true,"maximum":9007199254740991},"fullName":{"type":"string","minLength":1,"maxLength":160},"phone":{"nullable":true,"type":"string","maxLength":32},"status":{"type":"string","enum":["ACTIVE","INACTIVE","ON_LEAVE","RESIGNED"]},"category":{"type":"string","enum":["GROSIR","HORECA","REGULER"]},"endDate":{"nullable":true,"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"reason":{"type":"string","minLength":3,"maxLength":500}},"required":["expectedVersion","reason"]}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG"]}},"/api/v1/spgs/{id}/assignments":{"post":{"operationId":"SpgsController_assign_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"areaId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"territoryId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"supervisorId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"effectiveFrom":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"reason":{"type":"string","minLength":3,"maxLength":500}},"required":["areaId","effectiveFrom","reason"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG"]}},"/api/v1/outlets":{"get":{"operationId":"OutletsController_list_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Outlets"]},"post":{"operationId":"OutletsController_create_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"name":{"type":"string","minLength":1,"maxLength":200},"channel":{"type":"string","enum":["WHOLESALER","RETAILER","HORECA","REGULAR"]},"categoryId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"address":{"nullable":true,"type":"string","maxLength":500},"districtId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"subdistrictId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"latitude":{"nullable":true,"type":"number","minimum":-90,"maximum":90},"longitude":{"nullable":true,"type":"number","minimum":-180,"maximum":180},"geofenceRadiusM":{"nullable":true,"type":"integer","minimum":10,"maximum":5000},"picName":{"nullable":true,"type":"string","maxLength":120},"phone":{"nullable":true,"type":"string","maxLength":32},"potentialClass":{"nullable":true,"type":"string","maxLength":16},"status":{"default":"ACTIVE","type":"string","enum":["PROSPECT","ACTIVE","INACTIVE","CLOSED"]},"assignedSpgId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"code":{"type":"string","minLength":1,"maxLength":32,"pattern":"^[A-Z0-9_-]+$"},"primaryWholesalerId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"alternativeWholesalerIds":{"maxItems":10,"type":"array","items":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"}},"confirmNotDuplicate":{"type":"boolean"}},"required":["name","channel","districtId"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Outlets"]}},"/api/v1/outlets/duplicates":{"get":{"operationId":"OutletsController_duplicates_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Outlets"]}},"/api/v1/outlets/{id}":{"get":{"operationId":"OutletsController_get_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Outlets"]},"patch":{"operationId":"OutletsController_update_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"name":{"type":"string","minLength":1,"maxLength":200},"channel":{"type":"string","enum":["WHOLESALER","RETAILER","HORECA","REGULAR"]},"categoryId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"address":{"nullable":true,"type":"string","maxLength":500},"districtId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"subdistrictId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"latitude":{"nullable":true,"type":"number","minimum":-90,"maximum":90},"longitude":{"nullable":true,"type":"number","minimum":-180,"maximum":180},"geofenceRadiusM":{"nullable":true,"type":"integer","minimum":10,"maximum":5000},"picName":{"nullable":true,"type":"string","maxLength":120},"phone":{"nullable":true,"type":"string","maxLength":32},"potentialClass":{"nullable":true,"type":"string","maxLength":16},"status":{"default":"ACTIVE","type":"string","enum":["PROSPECT","ACTIVE","INACTIVE","CLOSED"]},"assignedSpgId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"expectedVersion":{"type":"integer","minimum":0,"exclusiveMinimum":true,"maximum":9007199254740991},"reason":{"type":"string","maxLength":500}},"required":["expectedVersion"]}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Outlets"]}},"/api/v1/outlets/{id}/wholesalers":{"post":{"operationId":"OutletsController_link_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"wholesalerOutletId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"relationType":{"type":"string","enum":["PRIMARY","ALTERNATIVE"]}},"required":["wholesalerOutletId","relationType"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Outlets"]}},"/api/v1/outlets/{id}/wholesalers/{linkId}":{"delete":{"operationId":"OutletsController_unlink_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}},{"name":"linkId","required":true,"in":"path","schema":{"type":"string"}}],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Outlets"]}},"/api/v1/lookups":{"get":{"operationId":"ProductsController_lookups_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Products & Competitors"]}},"/api/v1/product-variants":{"get":{"operationId":"ProductsController_variants_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Products & Competitors"]},"post":{"operationId":"ProductsController_createVariant_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"productId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"sku":{"type":"string","minLength":1,"maxLength":60},"name":{"type":"string","minLength":1,"maxLength":200},"size":{"nullable":true,"type":"string","maxLength":40},"unit":{"type":"string","minLength":1,"maxLength":20},"packSize":{"nullable":true,"type":"integer","minimum":0,"exclusiveMinimum":true,"maximum":9007199254740991},"listPrice":{"nullable":true,"type":"number","minimum":0,"maximum":10000000000000}},"required":["productId","sku","name","unit"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Products & Competitors"]}},"/api/v1/products":{"get":{"operationId":"ProductsController_products_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Products & Competitors"]},"post":{"operationId":"ProductsController_createProduct_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"code":{"type":"string","minLength":1,"maxLength":32,"pattern":"^[A-Z0-9_-]+$"},"name":{"type":"string","minLength":1,"maxLength":200},"brandId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"category":{"nullable":true,"type":"string","maxLength":80}},"required":["code","name","brandId"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Products & Competitors"]}},"/api/v1/product-variants/{id}":{"patch":{"operationId":"ProductsController_updateVariant_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"isActive":{"type":"boolean"},"name":{"type":"string","minLength":1,"maxLength":200},"listPrice":{"nullable":true,"type":"number","minimum":0}},"required":["isActive"]}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Products & Competitors"]}},"/api/v1/brands":{"post":{"operationId":"ProductsController_createBrand_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"code":{"type":"string","minLength":1,"maxLength":32,"pattern":"^[A-Z0-9_-]+$"},"name":{"type":"string","minLength":1,"maxLength":120},"owner":{"type":"string","enum":["COMPANY","COMPETITOR"]},"competitorId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"}},"required":["code","name","owner"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Products & Competitors"]}},"/api/v1/competitors":{"get":{"operationId":"ProductsController_competitors_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Products & Competitors"]},"post":{"operationId":"ProductsController_createCompetitor_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"code":{"type":"string","minLength":1,"maxLength":32,"pattern":"^[A-Z0-9_-]+$"},"name":{"type":"string","minLength":1,"maxLength":160}},"required":["code","name"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Products & Competitors"]}},"/api/v1/competitor-products":{"post":{"operationId":"ProductsController_createCompetitorProduct_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"competitorId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"brandId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"sku":{"nullable":true,"type":"string","maxLength":60},"name":{"type":"string","minLength":1,"maxLength":200},"variant":{"nullable":true,"type":"string","maxLength":80},"unit":{"nullable":true,"type":"string","maxLength":20}},"required":["competitorId","brandId","name"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Products & Competitors"]}},"/api/v1/files":{"post":{"operationId":"FilesController_upload_v1","parameters":[],"requestBody":{"required":true,"content":{"multipart/form-data":{"schema":{"type":"object","properties":{"file":{"type":"string","format":"binary"}}}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Files"]}},"/api/v1/files/{id}/content":{"get":{"operationId":"FilesController_content_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Files"]}},"/api/v1/attendance/check-in":{"post":{"operationId":"AttendanceController_checkIn_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"clientId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"clientRecordedAt":{"type":"string","format":"date-time","pattern":"^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"},"gps":{"nullable":true,"type":"object","properties":{"lat":{"type":"number","minimum":-90,"maximum":90},"lng":{"type":"number","minimum":-180,"maximum":180},"accuracyM":{"nullable":true,"type":"integer","minimum":0,"maximum":100000}},"required":["lat","lng"]},"photoFileId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"note":{"nullable":true,"type":"string","maxLength":500}},"required":["clientId"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Attendance"]}},"/api/v1/attendance/check-out":{"post":{"operationId":"AttendanceController_checkOut_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"clientRecordedAt":{"type":"string","format":"date-time","pattern":"^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"},"gps":{"nullable":true,"type":"object","properties":{"lat":{"type":"number","minimum":-90,"maximum":90},"lng":{"type":"number","minimum":-180,"maximum":180},"accuracyM":{"nullable":true,"type":"integer","minimum":0,"maximum":100000}},"required":["lat","lng"]},"note":{"nullable":true,"type":"string","maxLength":500}}}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Attendance"]}},"/api/v1/attendance/today":{"get":{"operationId":"AttendanceController_today_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Attendance"]}},"/api/v1/attendance":{"get":{"operationId":"AttendanceController_list_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Attendance"]}},"/api/v1/attendance/missing":{"get":{"operationId":"AttendanceController_missing_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Attendance"]}},"/api/v1/attendance/override":{"post":{"operationId":"AttendanceController_override_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"spgId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"workDate":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"status":{"type":"string","enum":["CHECKED_IN","CHECKED_OUT","ABSENT","LEAVE"]},"checkInAt":{"type":"string","format":"date-time","pattern":"^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"},"checkOutAt":{"type":"string","format":"date-time","pattern":"^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"},"reason":{"type":"string","minLength":5,"maxLength":500}},"required":["spgId","workDate","status","reason"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Attendance"]}},"/api/v1/visits/check-in":{"post":{"operationId":"VisitsController_checkIn_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"clientId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"clientRecordedAt":{"type":"string","format":"date-time","pattern":"^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"},"outletId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"visitPlanId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"gps":{"nullable":true,"type":"object","properties":{"lat":{"type":"number","minimum":-90,"maximum":90},"lng":{"type":"number","minimum":-180,"maximum":180},"accuracyM":{"nullable":true,"type":"integer","minimum":0,"maximum":100000}},"required":["lat","lng"]},"purpose":{"nullable":true,"type":"string","maxLength":300}},"required":["clientId","outletId"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Visits"]}},"/api/v1/visits/{id}/check-out":{"post":{"operationId":"VisitsController_checkOut_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"clientRecordedAt":{"type":"string","format":"date-time","pattern":"^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"},"gps":{"nullable":true,"type":"object","properties":{"lat":{"type":"number","minimum":-90,"maximum":90},"lng":{"type":"number","minimum":-180,"maximum":180},"accuracyM":{"nullable":true,"type":"integer","minimum":0,"maximum":100000}},"required":["lat","lng"]},"outcome":{"nullable":true,"type":"string","maxLength":2000},"notes":{"nullable":true,"type":"string","maxLength":2000},"picMet":{"nullable":true,"type":"string","maxLength":120},"followUpAction":{"nullable":true,"type":"string","maxLength":1000},"orderStatus":{"nullable":true,"type":"string","enum":["NO_ORDER","ORDERED","CONFIRMED","DELIVERED","CANCELLED"]}}}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Visits"]}},"/api/v1/visits/{id}/evidence":{"post":{"operationId":"VisitsController_evidence_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"fileId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"evidenceType":{"type":"string","enum":["OUTLET_FRONT","SHELF","DISPLAY","POSM","COMPETITOR","RECEIPT","FORM","OTHER"]},"caption":{"nullable":true,"type":"string","maxLength":300},"gps":{"nullable":true,"type":"object","properties":{"lat":{"type":"number","minimum":-90,"maximum":90},"lng":{"type":"number","minimum":-180,"maximum":180},"accuracyM":{"nullable":true,"type":"integer","minimum":0,"maximum":100000}},"required":["lat","lng"]}},"required":["fileId","evidenceType"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Visits"]}},"/api/v1/visits":{"get":{"operationId":"VisitsController_list_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Visits"]}},"/api/v1/visits/{id}":{"get":{"operationId":"VisitsController_get_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Visits"]}},"/api/v1/visits/{id}/override":{"post":{"operationId":"VisitsController_override_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"geofenceStatus":{"type":"string","enum":["INSIDE","OUTSIDE","UNKNOWN"]},"status":{"type":"string","enum":["IN_PROGRESS","COMPLETED","CANCELLED"]},"reason":{"type":"string","minLength":5,"maxLength":500}},"required":["reason"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Visits"]}},"/api/v1/visit-plans":{"get":{"operationId":"VisitsController_plans_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Visits"]},"post":{"operationId":"VisitsController_createPlans_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"spgId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"items":{"minItems":1,"maxItems":500,"type":"array","items":{"type":"object","properties":{"outletId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"plannedDate":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"note":{"nullable":true,"type":"string","maxLength":300}},"required":["outletId","plannedDate"]}}},"required":["spgId","items"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Visits"]}},"/api/v1/visit-plans/{id}/cancel":{"post":{"operationId":"VisitsController_cancelPlan_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"reason":{"type":"string","minLength":3,"maxLength":500}},"required":["reason"]}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Visits"]}},"/api/v1/daily-reports":{"post":{"operationId":"DailyReportsController_upsert_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"oneOf":[{"type":"object","properties":{"clientId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"clientRecordedAt":{"type":"string","format":"date-time","pattern":"^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"},"reportDate":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"summary":{"nullable":true,"type":"string","maxLength":4000},"issues":{"nullable":true,"type":"string","maxLength":4000},"submit":{"default":true,"type":"boolean"},"channel":{"type":"string","enum":["WHOLESALER"]},"content":{"type":"object","properties":{"wholesalersVisited":{"type":"integer","minimum":0,"maximum":9007199254740991},"retailersRecorded":{"type":"integer","minimum":0,"maximum":9007199254740991},"marketHighlights":{"nullable":true,"type":"string","maxLength":2000},"competitorHighlights":{"nullable":true,"type":"string","maxLength":2000},"stockIssues":{"nullable":true,"type":"string","maxLength":2000}},"required":["wholesalersVisited","retailersRecorded"]}},"required":["clientId","reportDate","channel","content"]},{"type":"object","properties":{"clientId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"clientRecordedAt":{"type":"string","format":"date-time","pattern":"^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"},"reportDate":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"summary":{"nullable":true,"type":"string","maxLength":4000},"issues":{"nullable":true,"type":"string","maxLength":4000},"submit":{"default":true,"type":"boolean"},"channel":{"type":"string","enum":["HORECA"]},"content":{"type":"object","properties":{"outletsVisited":{"type":"integer","minimum":0,"maximum":9007199254740991},"newOutletsApproached":{"type":"integer","minimum":0,"maximum":9007199254740991},"programsExecuted":{"type":"integer","minimum":0,"maximum":9007199254740991},"keyAccountNotes":{"nullable":true,"type":"string","maxLength":2000},"competitorHighlights":{"nullable":true,"type":"string","maxLength":2000}},"required":["outletsVisited","newOutletsApproached","programsExecuted"]}},"required":["clientId","reportDate","channel","content"]},{"type":"object","properties":{"clientId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"clientRecordedAt":{"type":"string","format":"date-time","pattern":"^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"},"reportDate":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"summary":{"nullable":true,"type":"string","maxLength":4000},"issues":{"nullable":true,"type":"string","maxLength":4000},"submit":{"default":true,"type":"boolean"},"channel":{"type":"string","enum":["REGULAR"]},"content":{"type":"object","properties":{"outletsVisited":{"type":"integer","minimum":0,"maximum":9007199254740991},"ordersTaken":{"type":"integer","minimum":0,"maximum":9007199254740991},"oosFindings":{"nullable":true,"type":"string","maxLength":2000},"displayNotes":{"nullable":true,"type":"string","maxLength":2000},"competitorHighlights":{"nullable":true,"type":"string","maxLength":2000}},"required":["outletsVisited","ordersTaken"]}},"required":["clientId","reportDate","channel","content"]}]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Daily Reports"]},"get":{"operationId":"DailyReportsController_list_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Daily Reports"]}},"/api/v1/daily-reports/{id}/review":{"post":{"operationId":"DailyReportsController_review_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"decision":{"type":"string","enum":["APPROVED","REVISION_REQUIRED"]},"note":{"nullable":true,"type":"string","maxLength":1000}},"required":["decision"]}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Daily Reports"]}},"/api/v1/field/bootstrap":{"get":{"operationId":"FieldController_bootstrap_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Field (SPG mobile)"]}},"/api/v1/approvals":{"get":{"operationId":"ApprovalsController_list_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Approvals"]}},"/api/v1/approvals/{id}/decision":{"post":{"operationId":"ApprovalsController_decide_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"decision":{"type":"string","enum":["APPROVED","REJECTED"]},"note":{"nullable":true,"type":"string","maxLength":1000}},"required":["decision"]}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Approvals"]}},"/api/v1/retailer-transactions":{"post":{"operationId":"TransactionsController_create_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"clientId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"clientRecordedAt":{"type":"string","format":"date-time","pattern":"^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"},"retailerOutletId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"wholesalerOutletId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"visitId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"transactionDate":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"dataNature":{"default":"ACTUAL","type":"string","enum":["ACTUAL","ESTIMATE","OBSERVATION"]},"evidenceFileId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"notes":{"nullable":true,"type":"string","maxLength":1000},"items":{"minItems":1,"maxItems":100,"type":"array","items":{"type":"object","properties":{"productOwner":{"type":"string","enum":["COMPANY","COMPETITOR"]},"productVariantId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"competitorProductId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"brandText":{"nullable":true,"type":"string","maxLength":120},"skuText":{"nullable":true,"type":"string","maxLength":120},"productText":{"nullable":true,"type":"string","maxLength":200},"quantity":{"type":"number","minimum":0,"exclusiveMinimum":true,"maximum":1000000000},"unit":{"type":"string","minLength":1,"maxLength":20},"unitPrice":{"nullable":true,"type":"number","minimum":0,"maximum":10000000000000}},"required":["productOwner","quantity","unit"]}}},"required":["clientId","retailerOutletId","transactionDate","items"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG Grosir – Retailer Transactions"]},"get":{"operationId":"TransactionsController_list_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG Grosir – Retailer Transactions"]}},"/api/v1/retailer-transactions/{id}":{"get":{"operationId":"TransactionsController_get_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG Grosir – Retailer Transactions"]}},"/api/v1/retailer-transactions/{id}/decision":{"post":{"operationId":"TransactionsController_decide_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"decision":{"type":"string","enum":["APPROVED","REJECTED"]},"note":{"nullable":true,"type":"string","maxLength":500}},"required":["decision"]}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG Grosir – Retailer Transactions"]}},"/api/v1/retailer-transactions/{id}/corrections":{"post":{"operationId":"TransactionsController_correct_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"clientId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"reason":{"type":"string","minLength":5,"maxLength":500},"transactionDate":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"wholesalerOutletId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"dataNature":{"type":"string","enum":["ACTUAL","ESTIMATE","OBSERVATION"]},"items":{"minItems":1,"maxItems":100,"type":"array","items":{"type":"object","properties":{"productOwner":{"type":"string","enum":["COMPANY","COMPETITOR"]},"productVariantId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"competitorProductId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"brandText":{"nullable":true,"type":"string","maxLength":120},"skuText":{"nullable":true,"type":"string","maxLength":120},"productText":{"nullable":true,"type":"string","maxLength":200},"quantity":{"type":"number","minimum":0,"exclusiveMinimum":true,"maximum":1000000000},"unit":{"type":"string","minLength":1,"maxLength":20},"unitPrice":{"nullable":true,"type":"number","minimum":0,"maximum":10000000000000}},"required":["productOwner","quantity","unit"]}}},"required":["clientId","reason","items"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG Grosir – Retailer Transactions"]}},"/api/v1/retailer-transactions/{id}/reversal-requests":{"post":{"operationId":"TransactionsController_reverse_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"reason":{"type":"string","minLength":5,"maxLength":500}},"required":["reason"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG Grosir – Retailer Transactions"]}},"/api/v1/competitor-observations":{"post":{"operationId":"CompetitorsController_create_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"clientId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"clientRecordedAt":{"type":"string","format":"date-time","pattern":"^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"},"outletId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"wholesalerOutletId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"visitId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"brandId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"competitorProductId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"brandText":{"nullable":true,"type":"string","maxLength":120},"skuText":{"nullable":true,"type":"string","maxLength":120},"variant":{"nullable":true,"type":"string","maxLength":80},"observationDate":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"quantityPurchased":{"nullable":true,"type":"number","minimum":0},"purchasePrice":{"nullable":true,"type":"number","minimum":0,"maximum":10000000000000},"sellingPrice":{"nullable":true,"type":"number","minimum":0,"maximum":10000000000000},"stockAvailability":{"default":"UNKNOWN","type":"string","enum":["IN_STOCK","LOW_STOCK","OUT_OF_STOCK","UNKNOWN"]},"purchaseFrequency":{"nullable":true,"type":"string","maxLength":40},"facing":{"nullable":true,"type":"integer","minimum":0,"maximum":9007199254740991},"hasPosm":{"nullable":true,"type":"boolean"},"hasPromotion":{"nullable":true,"type":"boolean"},"promotionDetail":{"nullable":true,"type":"string","maxLength":1000},"activityDetail":{"nullable":true,"type":"string","maxLength":1000},"visibilityNote":{"nullable":true,"type":"string","maxLength":1000},"photoFileId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"dataNature":{"default":"OBSERVATION","type":"string","enum":["ACTUAL","ESTIMATE","OBSERVATION"]}},"required":["clientId","outletId","observationDate"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["Competitor Intelligence"]},"get":{"operationId":"CompetitorsController_list_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Competitor Intelligence"]}},"/api/v1/wholesale/observations":{"post":{"operationId":"WholesaleController_observe_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"clientId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"clientRecordedAt":{"type":"string","format":"date-time","pattern":"^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"},"wholesalerOutletId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"visitId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"productVariantId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"observationDate":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"stockQuantity":{"nullable":true,"type":"number","minimum":0},"stockAvailability":{"default":"UNKNOWN","type":"string","enum":["IN_STOCK","LOW_STOCK","OUT_OF_STOCK","UNKNOWN"]},"buyPrice":{"nullable":true,"type":"number","minimum":0,"maximum":10000000000000},"sellPrice":{"nullable":true,"type":"number","minimum":0,"maximum":10000000000000},"restockFrequency":{"nullable":true,"type":"string","maxLength":40},"lastRestockDate":{"nullable":true,"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"notes":{"nullable":true,"type":"string","maxLength":1000}},"required":["clientId","wholesalerOutletId","productVariantId","observationDate"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG Grosir – Wholesale"]}},"/api/v1/wholesale/reports":{"post":{"operationId":"WholesaleController_report_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"visitId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"reportedRetailerCount":{"nullable":true,"type":"integer","minimum":0,"maximum":9007199254740991},"stockNotes":{"nullable":true,"type":"string","maxLength":2000},"marketNotes":{"nullable":true,"type":"string","maxLength":2000}},"required":["visitId"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG Grosir – Wholesale"]}},"/api/v1/wholesale/wholesalers/{id}/intelligence":{"get":{"operationId":"WholesaleController_intelligence_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG Grosir – Wholesale"]}},"/api/v1/wholesale/retailers/{id}/history":{"get":{"operationId":"WholesaleController_history_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG Grosir – Wholesale"]}},"/api/v1/horeca/visit-details":{"post":{"operationId":"HorecaController_visitDetail_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"visitId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"picRole":{"nullable":true,"type":"string","maxLength":80},"visitPurpose":{"type":"string","enum":["SALES","FOLLOW_UP","PROGRAM","NEW_OUTLET","COMPLAINT","RELATIONSHIP","OTHER"]},"result":{"nullable":true,"type":"string","maxLength":2000},"nextFollowUpDate":{"nullable":true,"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"}},"required":["visitId","visitPurpose"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG HORECA"]}},"/api/v1/horeca/sales":{"post":{"operationId":"HorecaController_sale_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"clientId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"clientRecordedAt":{"type":"string","format":"date-time","pattern":"^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"},"outletId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"visitId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"saleDate":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"productVariantId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"quantity":{"type":"number","minimum":0,"exclusiveMinimum":true,"maximum":1000000000},"unit":{"type":"string","minLength":1,"maxLength":20},"unitPrice":{"nullable":true,"type":"number","minimum":0,"maximum":10000000000000},"isOrder":{"default":true,"type":"boolean"},"stockQuantity":{"nullable":true,"type":"number","minimum":0},"restockFrequency":{"nullable":true,"type":"string","maxLength":40},"dataNature":{"default":"ACTUAL","type":"string","enum":["ACTUAL","ESTIMATE","OBSERVATION"]}},"required":["clientId","outletId","saleDate","productVariantId","quantity","unit"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG HORECA"]},"get":{"operationId":"HorecaController_sales_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG HORECA"]}},"/api/v1/posm-records":{"post":{"operationId":"HorecaController_posm_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"clientId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"clientRecordedAt":{"type":"string","format":"date-time","pattern":"^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"},"outletId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"visitId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"recordDate":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"posmType":{"type":"string","enum":["BANNER","POSTER","SHELF_TALKER","WOBBLER","DISPLAY_RACK","CHILLER","MENU_BRANDING","TABLE_TENT","OTHER"]},"status":{"type":"string","enum":["INSTALLED","MISSING","DAMAGED","NOT_APPLICABLE"]},"quantity":{"nullable":true,"type":"integer","minimum":0,"maximum":9007199254740991},"notes":{"nullable":true,"type":"string","maxLength":1000},"photoFileId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"}},"required":["clientId","outletId","recordDate","posmType","status"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG HORECA"]}},"/api/v1/horeca/programs":{"get":{"operationId":"HorecaController_programs_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG HORECA"]},"post":{"operationId":"HorecaController_createProgram_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"code":{"type":"string","minLength":1,"maxLength":40},"name":{"type":"string","minLength":1,"maxLength":200},"programType":{"type":"string","enum":["POSM","DISPLAY","BRANDING","PROMOTION","EVENT","SAMPLING","OTHER"]},"description":{"nullable":true,"type":"string","maxLength":2000},"startDate":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"endDate":{"nullable":true,"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"budget":{"nullable":true,"type":"number","minimum":0,"maximum":10000000000000},"status":{"default":"DRAFT","type":"string","enum":["DRAFT","ACTIVE","CLOSED"]}},"required":["code","name","programType","startDate"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG HORECA"]}},"/api/v1/horeca/programs/{id}/status":{"patch":{"operationId":"HorecaController_programStatus_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"status":{"type":"string","enum":["DRAFT","ACTIVE","CLOSED"]}},"required":["status"]}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG HORECA"]}},"/api/v1/horeca/programs/{id}/performance":{"get":{"operationId":"HorecaController_programPerformance_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG HORECA"]}},"/api/v1/horeca/program-implementations":{"post":{"operationId":"HorecaController_implement_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"clientId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"clientRecordedAt":{"type":"string","format":"date-time","pattern":"^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"},"programId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"outletId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"visitId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"implementationDate":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"status":{"type":"string","enum":["PLANNED","EXECUTED","PARTIAL","NOT_EXECUTED"]},"actualCost":{"nullable":true,"type":"number","minimum":0,"maximum":10000000000000},"realizationNote":{"nullable":true,"type":"string","maxLength":2000},"effectivenessNote":{"nullable":true,"type":"string","maxLength":2000},"photoFileId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"}},"required":["clientId","programId","outletId","implementationDate","status"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG HORECA"]}},"/api/v1/regular/availability":{"post":{"operationId":"RegularController_availability_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"outletId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"visitId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"recordDate":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"items":{"minItems":1,"maxItems":300,"type":"array","items":{"type":"object","properties":{"clientId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"productVariantId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"isAvailable":{"type":"boolean"},"stockQuantity":{"nullable":true,"type":"number","minimum":0},"oosReason":{"nullable":true,"type":"string","maxLength":120},"lastRestockDate":{"nullable":true,"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"}},"required":["clientId","productVariantId","isAvailable"]}}},"required":["outletId","recordDate","items"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG Reguler"]},"get":{"operationId":"RegularController_availabilityList_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG Reguler"]}},"/api/v1/regular/visibility":{"post":{"operationId":"RegularController_visibility_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"clientId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"clientRecordedAt":{"type":"string","format":"date-time","pattern":"^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"},"outletId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"visitId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"recordDate":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"companyFacing":{"type":"integer","minimum":0,"maximum":9007199254740991},"competitorFacing":{"type":"integer","minimum":0,"maximum":9007199254740991},"totalCategoryFacing":{"type":"integer","minimum":0,"maximum":9007199254740991},"hasDisplay":{"default":false,"type":"boolean"},"displayType":{"nullable":true,"type":"string","maxLength":60},"hasPromotion":{"default":false,"type":"boolean"},"promotionDetail":{"nullable":true,"type":"string","maxLength":1000},"notes":{"nullable":true,"type":"string","maxLength":1000},"photoFileId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"}},"required":["clientId","outletId","recordDate","companyFacing","competitorFacing","totalCategoryFacing"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG Reguler"]},"get":{"operationId":"RegularController_visibilityList_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG Reguler"]}},"/api/v1/regular/orders":{"post":{"operationId":"RegularController_order_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"clientId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"clientRecordedAt":{"type":"string","format":"date-time","pattern":"^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"},"outletId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"visitId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"orderDate":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"status":{"default":"ORDERED","type":"string","enum":["ORDERED","CONFIRMED","DELIVERED","CANCELLED"]},"isRestock":{"default":false,"type":"boolean"},"notes":{"nullable":true,"type":"string","maxLength":1000},"items":{"minItems":1,"maxItems":100,"type":"array","items":{"type":"object","properties":{"productVariantId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"quantity":{"type":"number","minimum":0,"exclusiveMinimum":true,"maximum":1000000000},"unit":{"type":"string","minLength":1,"maxLength":20},"unitPrice":{"type":"number","minimum":0,"maximum":10000000000000}},"required":["productVariantId","quantity","unit","unitPrice"]}}},"required":["clientId","outletId","orderDate","items"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG Reguler"]},"get":{"operationId":"RegularController_orders_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["SPG Reguler"]}},"/api/v1/review-queue/summary":{"get":{"operationId":"ReviewController_summary_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Review Queue"]}},"/api/v1/review-queue/{type}":{"get":{"operationId":"ReviewController_list_v1","parameters":[{"name":"type","required":true,"in":"path","schema":{"type":"string"}}],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Review Queue"]}},"/api/v1/review-queue/{type}/decision":{"post":{"operationId":"ReviewController_decide_v1","parameters":[{"name":"type","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"ids":{"minItems":1,"maxItems":500,"type":"array","items":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"}},"decision":{"type":"string","enum":["APPROVED","REJECTED"]},"note":{"nullable":true,"type":"string","maxLength":500}},"required":["ids","decision"]}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Review Queue"]}},"/api/v1/kpi/metrics":{"get":{"operationId":"KpiController_metrics_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["KPI Configuration"]}},"/api/v1/kpi/definitions":{"get":{"operationId":"KpiController_list_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["KPI Configuration"]},"post":{"operationId":"KpiController_create_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"code":{"type":"string","minLength":2,"maxLength":60,"pattern":"^[A-Z0-9_]+$"},"name":{"type":"string","minLength":2,"maxLength":160},"description":{"nullable":true,"type":"string","maxLength":1000},"category":{"type":"string","enum":["GROSIR","HORECA","REGULER"]},"dimension":{"type":"string","enum":["PRODUCTIVITY","COVERAGE","COMMERCIAL","EXECUTION","INTELLIGENCE","DATA_QUALITY","REPORTING_COMPLIANCE"]},"unit":{"type":"string","minLength":1,"maxLength":20},"direction":{"default":"HIGHER_IS_BETTER","type":"string","enum":["HIGHER_IS_BETTER","LOWER_IS_BETTER"]},"isActivity":{"type":"boolean"},"dataSource":{"nullable":true,"type":"string","maxLength":500},"displayOrder":{"default":0,"type":"integer","minimum":0,"maximum":999},"metricKey":{"type":"string"},"params":{"default":{},"type":"object","additionalProperties":{}},"achievementCapPct":{"default":null,"nullable":true,"type":"number","minimum":0,"maximum":1000},"thresholds":{"nullable":true,"type":"object","properties":{"good":{"type":"number","minimum":0,"maximum":1000},"watch":{"type":"number","minimum":0,"maximum":1000}},"required":["good","watch"]},"weightPct":{"type":"number","minimum":0,"maximum":100},"effectiveFrom":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"}},"required":["code","name","category","dimension","unit","isActivity","metricKey","weightPct","effectiveFrom"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["KPI Configuration"]}},"/api/v1/kpi/definitions/{id}":{"patch":{"operationId":"KpiController_update_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"name":{"type":"string","minLength":2,"maxLength":160},"description":{"nullable":true,"type":"string","maxLength":1000},"dimension":{"type":"string","enum":["PRODUCTIVITY","COVERAGE","COMMERCIAL","EXECUTION","INTELLIGENCE","DATA_QUALITY","REPORTING_COMPLIANCE"]},"isActive":{"type":"boolean"},"displayOrder":{"type":"integer","minimum":0,"maximum":999},"dataSource":{"nullable":true,"type":"string","maxLength":500}}}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["KPI Configuration"]}},"/api/v1/kpi/definitions/{id}/formulas":{"post":{"operationId":"KpiController_formula_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"metricKey":{"type":"string"},"params":{"default":{},"type":"object","additionalProperties":{}},"achievementCapPct":{"nullable":true,"type":"number","minimum":0,"maximum":1000},"thresholds":{"nullable":true,"type":"object","properties":{"good":{"type":"number","minimum":0,"maximum":1000},"watch":{"type":"number","minimum":0,"maximum":1000}},"required":["good","watch"]},"effectiveFrom":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"}},"required":["metricKey","achievementCapPct","effectiveFrom"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["KPI Configuration"]}},"/api/v1/kpi/definitions/{id}/weights":{"post":{"operationId":"KpiController_weight_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"weightPct":{"type":"number","minimum":0,"maximum":100},"effectiveFrom":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"reason":{"type":"string","minLength":3,"maxLength":500}},"required":["weightPct","effectiveFrom","reason"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["KPI Configuration"]}},"/api/v1/kpi/definitions/{id}/history":{"get":{"operationId":"KpiController_history_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["KPI Configuration"]}},"/api/v1/kpi/targets":{"get":{"operationId":"KpiController_targets_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["KPI Configuration"]},"put":{"operationId":"KpiController_upsertTargets_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"items":{"minItems":1,"maxItems":2000,"type":"array","items":{"type":"object","properties":{"kpiDefinitionId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"period":{"type":"string","pattern":"^\\d{4}-\\d{2}$"},"value":{"nullable":true,"type":"number","minimum":0,"maximum":1000000000000000},"spgId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"reason":{"type":"string","minLength":3,"maxLength":500}},"required":["kpiDefinitionId","period","value","reason"]}}},"required":["items"]}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["KPI Configuration"]}},"/api/v1/performance":{"get":{"operationId":"PerformanceController_list_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["KPI & Performance"]}},"/api/v1/performance/me":{"get":{"operationId":"PerformanceController_me_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["KPI & Performance"]}},"/api/v1/performance/spgs/{id}":{"get":{"operationId":"PerformanceController_detail_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["KPI & Performance"]}},"/api/v1/performance/recalculate":{"post":{"operationId":"PerformanceController_recalc_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"period":{"type":"string","pattern":"^\\d{4}-\\d{2}$"},"category":{"type":"string","enum":["GROSIR","HORECA","REGULER"]},"spgId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"}},"required":["period"]}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["KPI & Performance"]}},"/api/v1/performance/lock":{"post":{"operationId":"PerformanceController_lock_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"period":{"type":"string","pattern":"^\\d{4}-\\d{2}$"},"category":{"type":"string","enum":["GROSIR","HORECA","REGULER"]}},"required":["period"]}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["KPI & Performance"]}},"/api/v1/analytics/executive":{"get":{"operationId":"AnalyticsController_executive_v1","parameters":[{"name":"from","required":false,"in":"query","schema":{}},{"name":"to","required":false,"in":"query","schema":{}},{"name":"category","required":false,"in":"query","schema":{}},{"name":"regionId","required":false,"in":"query","schema":{}},{"name":"areaId","required":false,"in":"query","schema":{}},{"name":"districtId","required":false,"in":"query","schema":{}},{"name":"subdistrictId","required":false,"in":"query","schema":{}},{"name":"supervisorId","required":false,"in":"query","schema":{}},{"name":"spgId","required":false,"in":"query","schema":{}},{"name":"outletId","required":false,"in":"query","schema":{}},{"name":"productId","required":false,"in":"query","schema":{}},{"name":"productVariantId","required":false,"in":"query","schema":{}},{"name":"competitorId","required":false,"in":"query","schema":{}},{"name":"brandId","required":false,"in":"query","schema":{}}],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Analytics & Dashboards"]}},"/api/v1/analytics/drilldown":{"get":{"operationId":"AnalyticsController_drilldown_v1","parameters":[{"name":"from","required":false,"in":"query","schema":{}},{"name":"to","required":false,"in":"query","schema":{}},{"name":"category","required":false,"in":"query","schema":{}},{"name":"regionId","required":false,"in":"query","schema":{}},{"name":"areaId","required":false,"in":"query","schema":{}},{"name":"districtId","required":false,"in":"query","schema":{}},{"name":"subdistrictId","required":false,"in":"query","schema":{}},{"name":"supervisorId","required":false,"in":"query","schema":{}},{"name":"spgId","required":false,"in":"query","schema":{}},{"name":"outletId","required":false,"in":"query","schema":{}},{"name":"productId","required":false,"in":"query","schema":{}},{"name":"productVariantId","required":false,"in":"query","schema":{}},{"name":"competitorId","required":false,"in":"query","schema":{}},{"name":"brandId","required":false,"in":"query","schema":{}},{"name":"level","required":false,"in":"query","schema":{}}],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Analytics & Dashboards"]}},"/api/v1/analytics/market":{"get":{"operationId":"AnalyticsController_market_v1","parameters":[{"name":"from","required":false,"in":"query","schema":{}},{"name":"to","required":false,"in":"query","schema":{}},{"name":"category","required":false,"in":"query","schema":{}},{"name":"regionId","required":false,"in":"query","schema":{}},{"name":"areaId","required":false,"in":"query","schema":{}},{"name":"districtId","required":false,"in":"query","schema":{}},{"name":"subdistrictId","required":false,"in":"query","schema":{}},{"name":"supervisorId","required":false,"in":"query","schema":{}},{"name":"spgId","required":false,"in":"query","schema":{}},{"name":"outletId","required":false,"in":"query","schema":{}},{"name":"productId","required":false,"in":"query","schema":{}},{"name":"productVariantId","required":false,"in":"query","schema":{}},{"name":"competitorId","required":false,"in":"query","schema":{}},{"name":"brandId","required":false,"in":"query","schema":{}}],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Analytics & Dashboards"]}},"/api/v1/analytics/operational":{"get":{"operationId":"AnalyticsController_operational_v1","parameters":[{"name":"from","required":false,"in":"query","schema":{}},{"name":"to","required":false,"in":"query","schema":{}},{"name":"category","required":false,"in":"query","schema":{}},{"name":"regionId","required":false,"in":"query","schema":{}},{"name":"areaId","required":false,"in":"query","schema":{}},{"name":"districtId","required":false,"in":"query","schema":{}},{"name":"subdistrictId","required":false,"in":"query","schema":{}},{"name":"supervisorId","required":false,"in":"query","schema":{}},{"name":"spgId","required":false,"in":"query","schema":{}},{"name":"outletId","required":false,"in":"query","schema":{}},{"name":"productId","required":false,"in":"query","schema":{}},{"name":"productVariantId","required":false,"in":"query","schema":{}},{"name":"competitorId","required":false,"in":"query","schema":{}},{"name":"brandId","required":false,"in":"query","schema":{}},{"name":"date","required":false,"in":"query","schema":{}}],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Analytics & Dashboards"]}},"/api/v1/reports":{"get":{"operationId":"ReportsController_catalog_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Reports & Export"]}},"/api/v1/reports/{type}":{"get":{"operationId":"ReportsController_preview_v1","parameters":[{"name":"type","required":true,"in":"path","schema":{"type":"string"}},{"name":"from","required":false,"in":"query","schema":{}},{"name":"to","required":false,"in":"query","schema":{}},{"name":"category","required":false,"in":"query","schema":{}},{"name":"regionId","required":false,"in":"query","schema":{}},{"name":"areaId","required":false,"in":"query","schema":{}},{"name":"districtId","required":false,"in":"query","schema":{}},{"name":"subdistrictId","required":false,"in":"query","schema":{}},{"name":"supervisorId","required":false,"in":"query","schema":{}},{"name":"spgId","required":false,"in":"query","schema":{}},{"name":"outletId","required":false,"in":"query","schema":{}},{"name":"productId","required":false,"in":"query","schema":{}},{"name":"productVariantId","required":false,"in":"query","schema":{}},{"name":"competitorId","required":false,"in":"query","schema":{}},{"name":"brandId","required":false,"in":"query","schema":{}}],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Reports & Export"]}},"/api/v1/reports/{type}/export":{"get":{"operationId":"ReportsController_export_v1","parameters":[{"name":"type","required":true,"in":"path","schema":{"type":"string"}},{"name":"from","required":false,"in":"query","schema":{}},{"name":"to","required":false,"in":"query","schema":{}},{"name":"category","required":false,"in":"query","schema":{}},{"name":"regionId","required":false,"in":"query","schema":{}},{"name":"areaId","required":false,"in":"query","schema":{}},{"name":"districtId","required":false,"in":"query","schema":{}},{"name":"subdistrictId","required":false,"in":"query","schema":{}},{"name":"supervisorId","required":false,"in":"query","schema":{}},{"name":"spgId","required":false,"in":"query","schema":{}},{"name":"outletId","required":false,"in":"query","schema":{}},{"name":"productId","required":false,"in":"query","schema":{}},{"name":"productVariantId","required":false,"in":"query","schema":{}},{"name":"competitorId","required":false,"in":"query","schema":{}},{"name":"brandId","required":false,"in":"query","schema":{}},{"name":"format","required":false,"in":"query","schema":{}}],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Reports & Export"]}},"/api/v1/data-quality/summary":{"get":{"operationId":"DataQualityController_summary_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Data Quality"]}},"/api/v1/data-quality/issues":{"get":{"operationId":"DataQualityController_issues_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Data Quality"]}},"/api/v1/data-quality/issues/{id}":{"patch":{"operationId":"DataQualityController_update_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"status":{"type":"string","enum":["RESOLVED","IGNORED","OPEN"]},"note":{"nullable":true,"type":"string","maxLength":500}},"required":["status"]}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Data Quality"]}},"/api/v1/data-quality/scan":{"post":{"operationId":"DataQualityController_scan_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Data Quality"]}},"/api/v1/notifications":{"get":{"operationId":"NotificationsController_list_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Notifications"]}},"/api/v1/notifications/unread-count":{"get":{"operationId":"NotificationsController_count_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Notifications"]}},"/api/v1/notifications/read":{"post":{"operationId":"NotificationsController_read_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Notifications"]}},"/api/v1/notifications/scan":{"post":{"operationId":"NotificationsController_scan_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Notifications"]}},"/api/v1/settings":{"get":{"operationId":"SettingsController_list_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["System Settings"]}},"/api/v1/settings/{key}":{"put":{"operationId":"SettingsController_update_v1","parameters":[{"name":"key","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"value":{},"confirmProductionValue":{"default":false,"type":"boolean"}},"required":["value"]}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["System Settings"]}},"/api/v1/audit-logs":{"get":{"operationId":"AuditController_list_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Audit"]}},"/api/v1/ocr/uploads":{"post":{"operationId":"OcrController_upload_v1","parameters":[],"requestBody":{"required":true,"content":{"multipart/form-data":{"schema":{"type":"object","properties":{"file":{"type":"string","format":"binary"},"formId":{"type":"string"},"spgId":{"type":"string"},"wholesalerOutletId":{"type":"string"},"reportDate":{"type":"string"},"correctionOfFileLogId":{"type":"string"}}}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["OCR – Paper forms"]}},"/api/v1/ocr/file-logs":{"get":{"operationId":"OcrController_list_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["OCR – Paper forms"]}},"/api/v1/ocr/file-logs/status-counts":{"get":{"operationId":"OcrController_counts_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["OCR – Paper forms"]}},"/api/v1/ocr/file-logs/{id}":{"get":{"operationId":"OcrController_get_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["OCR – Paper forms"]}},"/api/v1/ocr/file-logs/{id}/retry":{"post":{"operationId":"OcrController_retry_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["OCR – Paper forms"]}},"/api/v1/ocr/file-logs/{id}/reviews":{"post":{"operationId":"OcrController_review_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"final":{"type":"object","properties":{"retailerOutletId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"wholesalerOutletId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"spgId":{"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"transactionDate":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},"items":{"minItems":1,"type":"array","items":{"type":"object","properties":{"productOwner":{"type":"string","enum":["COMPANY","COMPETITOR"]},"productVariantId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"competitorProductId":{"nullable":true,"type":"string","format":"uuid","pattern":"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"},"brandText":{"nullable":true,"type":"string","maxLength":120},"skuText":{"nullable":true,"type":"string","maxLength":120},"quantity":{"type":"number","minimum":0,"exclusiveMinimum":true},"unit":{"type":"string","minLength":1,"maxLength":20},"unitPrice":{"nullable":true,"type":"number","minimum":0}},"required":["productOwner","quantity","unit"]}}},"required":["retailerOutletId","spgId","transactionDate","items"]},"corrections":{"default":[],"type":"array","items":{"type":"object","properties":{"path":{"type":"string","maxLength":120},"originalValue":{},"correctedValue":{},"reason":{"type":"string","maxLength":300}},"required":["path","originalValue","correctedValue"]}}},"required":["final"]}}}},"responses":{"201":{"description":""}},"security":[{"bearer":[]}],"tags":["OCR – Paper forms"]}},"/api/v1/ocr/file-logs/{id}/reject":{"post":{"operationId":"OcrController_reject_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"reason":{"type":"string","minLength":3,"maxLength":500}},"required":["reason"]}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["OCR – Paper forms"]}},"/api/v1/ocr/reviews/{id}/decision":{"post":{"operationId":"OcrController_decide_v1","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"decision":{"type":"string","enum":["APPROVED","REJECTED"]},"note":{"nullable":true,"type":"string","maxLength":1000}},"required":["decision"]}}}},"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["OCR – Paper forms"]}},"/api/v1/integrations/status":{"get":{"operationId":"IntegrationsController_status_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Integrations (Google Drive / Sheets)"]}},"/api/v1/integrations/drive/sync":{"post":{"operationId":"IntegrationsController_drive_v1","parameters":[],"responses":{"202":{"description":""}},"security":[{"bearer":[]}],"tags":["Integrations (Google Drive / Sheets)"]}},"/api/v1/integrations/sheets/sync":{"post":{"operationId":"IntegrationsController_sheets_v1","parameters":[],"responses":{"202":{"description":""}},"security":[{"bearer":[]}],"tags":["Integrations (Google Drive / Sheets)"]}},"/api/v1/integrations/sync-jobs":{"get":{"operationId":"IntegrationsController_jobs_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Integrations (Google Drive / Sheets)"]}},"/api/v1/integrations/logs":{"get":{"operationId":"IntegrationsController_logs_v1","parameters":[],"responses":{"200":{"description":""}},"security":[{"bearer":[]}],"tags":["Integrations (Google Drive / Sheets)"]}}},"info":{"title":"Tanda Tambah – SPG Performance & Market Intelligence API","description":"Modular monolith API. All endpoints are versioned under /api/v1. Responses use the envelope { data, meta? }; errors use { statusCode, error: { code, message, details? } }.","version":"1.0","contact":{}},"tags":[],"servers":[],"components":{"securitySchemes":{"bearer":{"scheme":"bearer","bearerFormat":"JWT","type":"http"}},"schemas":{}}}
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "Tanda Tambah SPG API",
+  "version": "2.0.0"
+ },
+ "paths": {
+  "/api/v1/auth/login": {
+   "post": {
+    "tags": [
+     "auth"
+    ],
+    "summary": "Login",
+    "operationId": "login_api_v1_auth_login_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/LoginIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/refresh": {
+   "post": {
+    "tags": [
+     "auth"
+    ],
+    "summary": "Refresh",
+    "operationId": "refresh_api_v1_auth_refresh_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/logout": {
+   "post": {
+    "tags": [
+     "auth"
+    ],
+    "summary": "Logout",
+    "operationId": "logout_api_v1_auth_logout_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/me": {
+   "get": {
+    "tags": [
+     "auth"
+    ],
+    "summary": "Me",
+    "operationId": "me_api_v1_auth_me_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/forms": {
+   "get": {
+    "tags": [
+     "master"
+    ],
+    "summary": "Forms",
+    "operationId": "forms_api_v1_forms_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/settings": {
+   "get": {
+    "tags": [
+     "master"
+    ],
+    "summary": "Get Settings",
+    "operationId": "get_settings_api_v1_settings_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "tags": [
+     "master"
+    ],
+    "summary": "Put Settings",
+    "operationId": "put_settings_api_v1_settings_put",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SettingsIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/wilayah": {
+   "get": {
+    "tags": [
+     "master"
+    ],
+    "summary": "Wilayah",
+    "operationId": "wilayah_api_v1_wilayah_get",
+    "parameters": [
+     {
+      "name": "include_inactive",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Include Inactive"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/wilayah/kabupaten": {
+   "post": {
+    "tags": [
+     "master"
+    ],
+    "summary": "Add Kab",
+    "operationId": "add_kab_api_v1_wilayah_kabupaten_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/KabIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/wilayah/kecamatan": {
+   "post": {
+    "tags": [
+     "master"
+    ],
+    "summary": "Add Kec",
+    "operationId": "add_kec_api_v1_wilayah_kecamatan_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/KecIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/wilayah/kecamatan/{kode}": {
+   "patch": {
+    "tags": [
+     "master"
+    ],
+    "summary": "Patch Kec",
+    "operationId": "patch_kec_api_v1_wilayah_kecamatan__kode__patch",
+    "parameters": [
+     {
+      "name": "kode",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Kode"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/KecPatch"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/users": {
+   "get": {
+    "tags": [
+     "users"
+    ],
+    "summary": "List Users",
+    "operationId": "list_users_api_v1_users_get",
+    "parameters": [
+     {
+      "name": "role",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Role"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "users"
+    ],
+    "summary": "Create User",
+    "operationId": "create_user_api_v1_users_post",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/UserIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/users/{uid}": {
+   "patch": {
+    "tags": [
+     "users"
+    ],
+    "summary": "Patch User",
+    "operationId": "patch_user_api_v1_users__uid__patch",
+    "parameters": [
+     {
+      "name": "uid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Uid"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/UserPatch"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/users/{uid}/coverage": {
+   "post": {
+    "tags": [
+     "users"
+    ],
+    "summary": "Add Coverage",
+    "operationId": "add_coverage_api_v1_users__uid__coverage_post",
+    "parameters": [
+     {
+      "name": "uid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Uid"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CoverageIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/users/{uid}/coverage/{cid}": {
+   "delete": {
+    "tags": [
+     "users"
+    ],
+    "summary": "Remove Coverage",
+    "operationId": "remove_coverage_api_v1_users__uid__coverage__cid__delete",
+    "parameters": [
+     {
+      "name": "uid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Uid"
+      }
+     },
+     {
+      "name": "cid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Cid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/photos": {
+   "post": {
+    "tags": [
+     "photos"
+    ],
+    "summary": "Upload",
+    "operationId": "upload_api_v1_photos_post",
+    "requestBody": {
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_upload_api_v1_photos_post"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/photos/{pid}": {
+   "get": {
+    "tags": [
+     "photos"
+    ],
+    "summary": "Get Photo",
+    "operationId": "get_photo_api_v1_photos__pid__get",
+    "parameters": [
+     {
+      "name": "pid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Pid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/reports/mine": {
+   "get": {
+    "tags": [
+     "reports"
+    ],
+    "summary": "Mine",
+    "operationId": "mine_api_v1_reports_mine_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/reports/{rid}": {
+   "put": {
+    "tags": [
+     "reports"
+    ],
+    "summary": "Save",
+    "description": "Simpan draf (buat baru atau perbarui). Aman diulang: id laporan dibuat di HP.",
+    "operationId": "save_api_v1_reports__rid__put",
+    "parameters": [
+     {
+      "name": "rid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Rid"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReportIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "reports"
+    ],
+    "summary": "Delete Draft",
+    "operationId": "delete_draft_api_v1_reports__rid__delete",
+    "parameters": [
+     {
+      "name": "rid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Rid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/reports/{rid}/submit": {
+   "post": {
+    "tags": [
+     "reports"
+    ],
+    "summary": "Submit",
+    "operationId": "submit_api_v1_reports__rid__submit_post",
+    "parameters": [
+     {
+      "name": "rid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Rid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/reports/{rid}/rework": {
+   "post": {
+    "tags": [
+     "reports"
+    ],
+    "summary": "Rework",
+    "operationId": "rework_api_v1_reports__rid__rework_post",
+    "parameters": [
+     {
+      "name": "rid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Rid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/review": {
+   "get": {
+    "tags": [
+     "review"
+    ],
+    "summary": "Queue",
+    "operationId": "queue_api_v1_review_get",
+    "parameters": [
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "SUBMITTED",
+       "title": "Status"
+      }
+     },
+     {
+      "name": "scope",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "mine",
+       "title": "Scope"
+      }
+     },
+     {
+      "name": "spv",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Spv"
+      }
+     },
+     {
+      "name": "type",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Type"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 500,
+       "default": 200,
+       "title": "Limit"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/review/{rid}": {
+   "get": {
+    "tags": [
+     "review"
+    ],
+    "summary": "Detail",
+    "operationId": "detail_api_v1_review__rid__get",
+    "parameters": [
+     {
+      "name": "rid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Rid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/review/{rid}/approve": {
+   "post": {
+    "tags": [
+     "review"
+    ],
+    "summary": "Approve",
+    "operationId": "approve_api_v1_review__rid__approve_post",
+    "parameters": [
+     {
+      "name": "rid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Rid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/review/{rid}/reject": {
+   "post": {
+    "tags": [
+     "review"
+    ],
+    "summary": "Reject",
+    "operationId": "reject_api_v1_review__rid__reject_post",
+    "parameters": [
+     {
+      "name": "rid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Rid"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RejectIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/dashboard": {
+   "get": {
+    "tags": [
+     "dashboard"
+    ],
+    "summary": "Dashboard",
+    "operationId": "dashboard_api_v1_dashboard_get",
+    "parameters": [
+     {
+      "name": "type",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "pattern": "^(GROSIR|HORECA|REGULER)$",
+       "default": "GROSIR",
+       "title": "Type"
+      }
+     },
+     {
+      "name": "days",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 366,
+       "minimum": 1,
+       "default": 30,
+       "title": "Days"
+      }
+     },
+     {
+      "name": "spg",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Spg"
+      }
+     },
+     {
+      "name": "spv",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Spv"
+      }
+     },
+     {
+      "name": "prov",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Prov"
+      }
+     },
+     {
+      "name": "kab",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Kab"
+      }
+     },
+     {
+      "name": "kec",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Kec"
+      }
+     },
+     {
+      "name": "tipe",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Tipe"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/dashboard/export": {
+   "get": {
+    "tags": [
+     "dashboard"
+    ],
+    "summary": "Export",
+    "operationId": "export_api_v1_dashboard_export_get",
+    "parameters": [
+     {
+      "name": "type",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "pattern": "^(GROSIR|HORECA|REGULER)$",
+       "default": "GROSIR",
+       "title": "Type"
+      }
+     },
+     {
+      "name": "days",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 366,
+       "minimum": 1,
+       "default": 30,
+       "title": "Days"
+      }
+     },
+     {
+      "name": "spg",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Spg"
+      }
+     },
+     {
+      "name": "spv",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Spv"
+      }
+     },
+     {
+      "name": "prov",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Prov"
+      }
+     },
+     {
+      "name": "kab",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Kab"
+      }
+     },
+     {
+      "name": "kec",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Kec"
+      }
+     },
+     {
+      "name": "tipe",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Tipe"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/admin/samples": {
+   "post": {
+    "tags": [
+     "admin"
+    ],
+    "summary": "Load Samples",
+    "description": "Laporan contoh bernama fiktif, langsung berstatus disetujui dan ditandai `sample` agar bisa dihapus.",
+    "operationId": "load_samples_api_v1_admin_samples_post",
+    "parameters": [
+     {
+      "name": "n",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 600,
+       "minimum": 3,
+       "default": 60,
+       "title": "N"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "admin"
+    ],
+    "summary": "Clear Samples",
+    "operationId": "clear_samples_api_v1_admin_samples_delete",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/admin/audit": {
+   "get": {
+    "tags": [
+     "admin"
+    ],
+    "summary": "Audit Log",
+    "operationId": "audit_log_api_v1_admin_audit_get",
+    "parameters": [
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 1000,
+       "default": 200,
+       "title": "Limit"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/health": {
+   "get": {
+    "summary": "Health",
+    "operationId": "health_api_v1_health_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Body_upload_api_v1_photos_post": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file"
+    ],
+    "title": "Body_upload_api_v1_photos_post"
+   },
+   "CoverageIn": {
+    "properties": {
+     "level": {
+      "type": "string",
+      "pattern": "^(KAB|KEC)$",
+      "title": "Level"
+     },
+     "kode": {
+      "type": "string",
+      "maxLength": 32,
+      "minLength": 2,
+      "title": "Kode"
+     }
+    },
+    "type": "object",
+    "required": [
+     "level",
+     "kode"
+    ],
+    "title": "CoverageIn"
+   },
+   "HTTPValidationError": {
+    "properties": {
+     "detail": {
+      "items": {
+       "$ref": "#/components/schemas/ValidationError"
+      },
+      "type": "array",
+      "title": "Detail"
+     }
+    },
+    "type": "object",
+    "title": "HTTPValidationError"
+   },
+   "KabIn": {
+    "properties": {
+     "prov_kode": {
+      "type": "string",
+      "maxLength": 8,
+      "minLength": 2,
+      "title": "Prov Kode"
+     },
+     "nama": {
+      "type": "string",
+      "maxLength": 120,
+      "minLength": 3,
+      "title": "Nama"
+     }
+    },
+    "type": "object",
+    "required": [
+     "prov_kode",
+     "nama"
+    ],
+    "title": "KabIn"
+   },
+   "KecIn": {
+    "properties": {
+     "kab_kode": {
+      "type": "string",
+      "title": "Kab Kode"
+     },
+     "nama": {
+      "type": "string",
+      "maxLength": 120,
+      "minLength": 3,
+      "title": "Nama"
+     }
+    },
+    "type": "object",
+    "required": [
+     "kab_kode",
+     "nama"
+    ],
+    "title": "KecIn"
+   },
+   "KecPatch": {
+    "properties": {
+     "nama": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120,
+        "minLength": 3
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Nama"
+     },
+     "active": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Active"
+     }
+    },
+    "type": "object",
+    "title": "KecPatch"
+   },
+   "LoginIn": {
+    "properties": {
+     "username": {
+      "type": "string",
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Username"
+     },
+     "password": {
+      "type": "string",
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Password"
+     }
+    },
+    "type": "object",
+    "required": [
+     "username",
+     "password"
+    ],
+    "title": "LoginIn"
+   },
+   "RejectIn": {
+    "properties": {
+     "note": {
+      "type": "string",
+      "maxLength": 500,
+      "minLength": 5,
+      "title": "Note"
+     }
+    },
+    "type": "object",
+    "required": [
+     "note"
+    ],
+    "title": "RejectIn"
+   },
+   "ReportIn": {
+    "properties": {
+     "type": {
+      "type": "string",
+      "pattern": "^(GROSIR|HORECA|REGULER)$",
+      "title": "Type"
+     },
+     "header": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Header"
+     },
+     "entries": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "maxItems": 300,
+      "title": "Entries"
+     },
+     "sections": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Sections"
+     },
+     "closing": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Closing"
+     },
+     "version": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Version"
+     }
+    },
+    "type": "object",
+    "required": [
+     "type"
+    ],
+    "title": "ReportIn"
+   },
+   "SettingsIn": {
+    "properties": {
+     "brand": {
+      "type": "string",
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Brand"
+     },
+     "variants": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "maxItems": 20,
+      "minItems": 1,
+      "title": "Variants"
+     },
+     "grosirs": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "maxItems": 2000,
+      "title": "Grosirs"
+     }
+    },
+    "type": "object",
+    "required": [
+     "brand",
+     "variants"
+    ],
+    "title": "SettingsIn"
+   },
+   "UserIn": {
+    "properties": {
+     "username": {
+      "type": "string",
+      "maxLength": 40,
+      "minLength": 3,
+      "title": "Username"
+     },
+     "name": {
+      "type": "string",
+      "maxLength": 120,
+      "minLength": 3,
+      "title": "Name"
+     },
+     "password": {
+      "type": "string",
+      "maxLength": 200,
+      "minLength": 8,
+      "title": "Password"
+     },
+     "role": {
+      "type": "string",
+      "pattern": "^(ADMIN|SPV|SPG)$",
+      "title": "Role"
+     },
+     "tugas": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Tugas"
+     },
+     "area": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Area"
+     }
+    },
+    "type": "object",
+    "required": [
+     "username",
+     "name",
+     "password",
+     "role"
+    ],
+    "title": "UserIn"
+   },
+   "UserPatch": {
+    "properties": {
+     "name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120,
+        "minLength": 3
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "tugas": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tugas"
+     },
+     "area": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Area"
+     },
+     "active": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Active"
+     },
+     "password": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 200,
+        "minLength": 8
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Password"
+     }
+    },
+    "type": "object",
+    "title": "UserPatch"
+   },
+   "ValidationError": {
+    "properties": {
+     "loc": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        }
+       ]
+      },
+      "type": "array",
+      "title": "Location"
+     },
+     "msg": {
+      "type": "string",
+      "title": "Message"
+     },
+     "type": {
+      "type": "string",
+      "title": "Error Type"
+     },
+     "input": {
+      "title": "Input"
+     },
+     "ctx": {
+      "type": "object",
+      "title": "Context"
+     }
+    },
+    "type": "object",
+    "required": [
+     "loc",
+     "msg",
+     "type"
+    ],
+    "title": "ValidationError"
+   }
+  }
+ }
+}

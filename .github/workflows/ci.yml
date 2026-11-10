@@ -17,55 +17,43 @@ jobs:
         env: { POSTGRES_USER: tanda, POSTGRES_PASSWORD: tanda_ci_pw, POSTGRES_DB: tanda_tambah }
         ports: ["5432:5432"]
         options: --health-cmd "pg_isready -U tanda" --health-interval 5s --health-retries 20
-      redis:
-        image: redis:7
-        ports: ["6379:6379"]
-        options: --health-cmd "redis-cli ping" --health-interval 5s --health-retries 20
     env:
-      DATABASE_URL: postgresql://tanda:tanda_ci_pw@localhost:5432/tanda_tambah?schema=public
-      TEST_DATABASE_URL: postgresql://tanda:tanda_ci_pw@localhost:5432/tanda_tambah_test?schema=public
-      REDIS_URL: redis://localhost:6379
-      JWT_ACCESS_SECRET: ci-only-secret-ci-only-secret-ci-only-secret-0123
-      SEED_SUPERADMIN_PASSWORD: CiAdmin12345!
+      DATABASE_URL: postgresql+psycopg://tanda:tanda_ci_pw@localhost:5432/tanda_tambah
+      JWT_SECRET: ci-only-secret-ci-only-secret-ci-only-secret-0123
+      ADMIN_PASSWORD: CiAdmin12345!
       LOGIN_RATE_LIMIT_MAX: "500"
-      QUEUES_ENABLED: "false"
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13", cache: pip, cache-dependency-path: apps/api/requirements-dev.txt }
       - uses: pnpm/action-setup@v4
         with: { version: 10.28.0 }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
-      - run: sudo apt-get update && sudo apt-get install -y redis-tools postgresql-client
-      - run: pnpm install --frozen-lockfile
-      - name: Create test database
-        run: PGPASSWORD=tanda_ci_pw psql -h localhost -U tanda -d tanda_tambah -c "CREATE DATABASE tanda_tambah_test"
-      - name: Build shared & generate Prisma client
-        run: pnpm --filter @tanda/shared build && pnpm --filter @tanda/database generate
-      - name: Migrate & seed (demo data for E2E only)
-        run: pnpm db:migrate && pnpm db:seed && pnpm db:seed:demo
-      - name: Type-check
-        run: pnpm --filter @tanda/api typecheck && pnpm --filter @tanda/web typecheck
-      - name: Unit tests (shared + API)
-        run: pnpm test
-      - name: API end-to-end tests (12 mandatory scenarios)
-        run: pnpm test:e2e:api
-      - name: Build API & web
-        run: pnpm --filter @tanda/api build && pnpm --filter @tanda/web build
-      - name: Start API, worker & web
+      - name: Install Python dependencies
+        run: pip install -r apps/api/requirements-dev.txt
+      - name: Backend tests (pytest, database tanda_tambah_test)
+        working-directory: apps/api
+        env: { DATABASE_URL: "postgresql+psycopg://tanda:tanda_ci_pw@localhost:5432/tanda_tambah_test" }
+        run: python -m pytest -q tests
+      - name: Migrate & seed
+        working-directory: apps/api
+        run: alembic upgrade head && python -m app.seed
+      - name: Install web dependencies, type-check & build
+        run: pnpm install --frozen-lockfile && pnpm typecheck && pnpm build:web
+      - name: Start API & web
         run: |
-          (cd apps/api && nohup node dist/main.js > ../../api.log 2>&1 &)
-          (cd apps/web && API_INTERNAL_URL=http://localhost:4000 nohup npx next start -p 3000 > ../../web.log 2>&1 &)
-          npx --yes wait-on@8.0.1 -t 60000 http://localhost:4000/api/v1/health/ready http://localhost:3000/login
+          (cd apps/api && STORAGE_DIR=/tmp/storage nohup uvicorn app.main:app --port 4000 > ../../api.log 2>&1 &)
+          (cd apps/web && nohup npx next start -p 3000 > ../../web.log 2>&1 &)
+          npx --yes wait-on@8.0.1 -t 60000 http://localhost:4000/api/v1/health http://localhost:3000/login
       - name: Install Playwright browser
         run: pnpm --filter @tanda/web exec playwright install --with-deps chromium
       - name: Web end-to-end tests
         run: pnpm test:e2e:web
-      - name: API performance smoke test
-        run: node infrastructure/scripts/perf-test.mjs http://localhost:4000/api/v1 10 100
-        env: { DEMO_PASSWORD: Demo12345! }
+        env: { E2E_ADMIN_PASSWORD: CiAdmin12345! }
       - name: Secret scan (no credentials committed)
         run: |
-          ! git grep -nE "(BEGIN (RSA|EC|OPENSSH) PRIVATE KEY|AKIA[0-9A-Z]{16}|\"private_key\":)" -- ':!*.md'
+          ! git grep -nE "(BEGIN (RSA|EC|OPENSSH) PRIVATE KEY|AKIA[0-9A-Z]{16}|\"private_key\":|ghp_[A-Za-z0-9]{30,})" -- ':!*.md'
       - if: failure()
         run: tail -n 200 api.log web.log || true
 
@@ -77,4 +65,3 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - run: docker build -f infrastructure/docker/api.Dockerfile -t tanda-api .
       - run: docker build -f infrastructure/docker/web.Dockerfile -t tanda-web .
-      - run: docker build -f infrastructure/docker/migrate.Dockerfile -t tanda-migrate .
