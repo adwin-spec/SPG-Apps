@@ -4,8 +4,8 @@ import { humanize } from '@/lib/format';
 
 type Tone = 'neutral' | 'info' | 'good' | 'warn' | 'serious' | 'critical';
 const tones: Record<Tone, string> = {
-  neutral: 'bg-slate-100 text-slate-700 border-slate-200',
-  info: 'bg-primary-soft text-primary border-blue-200',
+  neutral: 'bg-paper-deep text-ink-secondary border-ink/20',
+  info: 'bg-primary-soft text-ink border-ink/20',
   good: 'bg-good-soft text-good-text border-green-200',
   warn: 'bg-warn-soft text-warn-text border-amber-200',
   serious: 'bg-serious-soft text-serious-text border-orange-200',

@@ -9,8 +9,8 @@ import { uploadPhoto } from './photo';
 
 export interface QCtx { variants: string[]; kec: KecIndex; suggest: (k: string) => string[]; preferKab?: string; stamp: () => string; spvFor?: (k: Kec) => string }
 
-const chip = 'relative inline-flex min-h-10 cursor-pointer select-none items-center rounded-full border border-border bg-white px-3.5 py-2 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary has-[:checked]:font-semibold has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary';
-const inputCls = 'h-11 w-full min-w-0 rounded-lg border border-border bg-white px-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
+const chip = 'relative inline-flex min-h-10 cursor-pointer select-none items-center rounded-full border-2 border-ink/70 bg-paper-card px-3.5 py-2 text-sm font-medium transition-colors hover:border-ink has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:font-bold has-[:checked]:text-paper-card has-[:checked]:shadow-hard-red has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-tt';
+const inputCls = 'h-11 w-full min-w-0 rounded-md border-2 border-ink bg-paper-card px-3 text-base focus:border-tt focus:outline-none';
 
 /** Menampilkan pertanyaan dari definisi backend. Setiap perubahan langsung membersihkan jawaban yang tidak lagi relevan. */
 export function Questions({ qs, value, onChange, errors, ctx, idPrefix = 'q' }: { qs: Question[]; value: Answers; onChange: (a: Answers) => void; errors: Record<string, string>; ctx: QCtx; idPrefix?: string }) {
@@ -18,8 +18,8 @@ export function Questions({ qs, value, onChange, errors, ctx, idPrefix = 'q' }: 
   const set = (id: string, v: unknown) => onChange(visible(qs, { ...value, [id]: v }, ctx.variants).clean);
   return <div className="grid gap-3">{shown.map((q) => {
     const err = errors[q.id]; const v = clean[q.id]; const hid = `${idPrefix}_${q.id}`;
-    return <div key={q.id} data-qid={q.id} className={cn('grid gap-2 rounded-xl border bg-white p-3.5', err ? 'border-critical' : 'border-border')} role="group" aria-labelledby={hid}>
-      <div id={hid} className="font-semibold">{q.label}{!q.required && <span className="ml-1 text-xs font-normal text-ink-muted">(opsional)</span>}</div>
+    return <div key={q.id} data-qid={q.id} className={cn('grid gap-2 rounded-md border-2 bg-paper-card p-3.5', err ? 'border-tt shadow-hard-red' : 'border-ink/25')} role="group" aria-labelledby={hid}>
+      <div id={hid} className="font-bold">{q.label}{!q.required && <span className="ml-1 text-xs font-normal text-ink-muted">(opsional)</span>}</div>
       {q.hint && <div className="-mt-1 text-xs text-ink-muted">{q.hint}</div>}
       <Control q={q} v={v} a={clean} set={(x) => set(q.id, x)} ctx={ctx} />
       {err && <div role="alert" className="text-xs text-critical-text">{err}</div>}
@@ -51,9 +51,9 @@ function Control({ q, v, a, set, ctx }: { q: Question; v: any; a: Answers; set: 
         return <div key={k} className="flex items-center justify-between gap-3 border-t border-border py-1.5 first:border-t-0">
           <span>{k} <span className="text-xs text-ink-muted">bks</span></span>
           <div className="flex items-center gap-1.5">
-            <button type="button" className="grid h-10 w-10 place-items-center rounded-lg border border-border" onClick={() => put(n - 1)} aria-label={`Kurangi ${k}`}><Minus className="h-4 w-4" /></button>
-            <input className="h-10 w-16 rounded-lg border border-border text-center" type="number" min={0} inputMode="numeric" value={n} aria-label={k} onChange={(e) => put(Math.round(Number(e.target.value) || 0))} />
-            <button type="button" className="grid h-10 w-10 place-items-center rounded-lg border border-border" onClick={() => put(n + 1)} aria-label={`Tambah ${k}`}><Plus className="h-4 w-4" /></button>
+            <button type="button" className="grid h-10 w-10 place-items-center rounded-md border-2 border-ink bg-paper-card" onClick={() => put(n - 1)} aria-label={`Kurangi ${k}`}><Minus className="h-4 w-4" /></button>
+            <input className="h-10 w-16 rounded-md border-2 border-ink bg-paper-card text-center font-bold" type="number" min={0} inputMode="numeric" value={n} aria-label={k} onChange={(e) => put(Math.round(Number(e.target.value) || 0))} />
+            <button type="button" className="grid h-10 w-10 place-items-center rounded-md border-2 border-ink bg-paper-card" onClick={() => put(n + 1)} aria-label={`Tambah ${k}`}><Plus className="h-4 w-4" /></button>
           </div></div>; })}
         <div className="pt-1 text-right text-xs text-ink-muted">Total {sumVariants(v)} bks</div></div>;
     case 'stok':
@@ -78,14 +78,14 @@ function Control({ q, v, a, set, ctx }: { q: Question; v: any; a: Answers; set: 
 function KecPicker({ q, v, set, ctx }: { q: Question; v: any; set: (v: unknown) => void; ctx: QCtx }) {
   const [term, setTerm] = useState('');
   if (v && typeof v === 'object') return <div className="grid gap-1.5">
-    <div className="flex items-center justify-between gap-3 rounded-lg bg-primary-soft px-3 py-2"><span><b>{v.nama}</b><div className="text-xs text-ink-muted">{v.kab} · {v.prov}</div></span>
-      <button type="button" className="rounded-md border border-border bg-white px-3 py-1.5 text-sm" onClick={() => set(undefined)}>Ganti</button></div>
+    <div className="flex items-center justify-between gap-3 rounded-md border-2 border-ink bg-paper-deep px-3 py-2"><span><b>{v.nama}</b><div className="text-xs text-ink-muted">{v.kab} · {v.prov}</div></span>
+      <button type="button" className="rounded-md border-2 border-ink bg-paper-card px-3 py-1.5 text-sm font-semibold" onClick={() => set(undefined)}>Ganti</button></div>
     {q.location && ctx.spvFor && <div className="text-xs text-ink-secondary">Disetujui oleh: <b>{ctx.spvFor(v)}</b></div>}</div>;
   const res = searchKec(ctx.kec, term, ctx.preferKab);
   return <div className="grid gap-1.5">
     <input className={inputCls} value={term} onChange={(e) => setTerm(e.target.value)} placeholder="Ketik nama kecamatan, contoh: Sokaraja" autoComplete="off" aria-label={q.label} data-kecq={q.id} />
-    {!!res.length && <div role="listbox" className="max-h-64 overflow-y-auto rounded-lg border border-border">{res.map((c) =>
-      <button key={c.kode} type="button" role="option" aria-selected={false} className="block w-full border-t border-border px-3 py-2 text-left first:border-t-0 hover:bg-primary-soft" onClick={() => { set(c); setTerm(''); }}>
+    {!!res.length && <div role="listbox" className="max-h-64 overflow-y-auto rounded-md border-2 border-ink bg-paper-card">{res.map((c) =>
+      <button key={c.kode} type="button" role="option" aria-selected={false} className="block w-full border-t border-border px-3 py-2 text-left first:border-t-0 hover:bg-tt-soft" onClick={() => { set(c); setTerm(''); }}>
         <b>{c.nama}</b> <span className="text-xs text-ink-muted">{shortKab(c.kab)} · {c.prov}</span></button>)}</div>}
     {term.trim().length >= 2 && !res.length && <p className="text-xs text-ink-muted">Tidak ditemukan. Kecamatan baru bisa ditambahkan admin pusat di menu Wilayah.</p>}
   </div>;
@@ -102,9 +102,9 @@ function PhotoInput({ q, v, set, ctx }: { q: Question; v: any; set: (v: unknown)
   const input = <input type="file" accept="image/*" capture={q.capture ?? 'environment'} className="absolute h-px w-px opacity-0" data-photo={q.id} onChange={(e) => pick(e.target.files?.[0])} />;
   return <div className="grid gap-2">
     {v ? <div className="flex flex-wrap items-center gap-3"><Photo value={v} alt={q.label} className="h-28 w-28" />
-      <label className="relative inline-flex h-10 cursor-pointer items-center rounded-lg border border-border px-3 text-sm has-[:focus-visible]:ring-2">Ganti foto{input}</label>
+      <label className="relative inline-flex h-10 cursor-pointer items-center rounded-md border-2 border-ink px-3 text-sm font-semibold has-[:focus-visible]:ring-2">Ganti foto{input}</label>
       <button type="button" className="h-10 rounded-lg px-3 text-sm text-critical-text" onClick={() => set(undefined)}>Hapus foto</button></div>
-      : <label className="relative flex h-14 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/40 font-semibold text-primary has-[:focus-visible]:ring-2">
+      : <label className="relative flex h-14 cursor-pointer items-center justify-center gap-2 rounded-md border-2 border-dashed border-ink bg-paper-card font-bold text-ink hover:bg-tt-soft has-[:focus-visible]:ring-2">
         <Camera className="h-5 w-5" />{busy ? 'Mengunggah foto…' : 'Ambil foto'}{input}</label>}
     {err && <div role="alert" className="text-xs text-critical-text">{err}</div>}
   </div>;

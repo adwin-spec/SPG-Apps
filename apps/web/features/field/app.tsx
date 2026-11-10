@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/toast';
 import { Photo } from '@/components/photo';
 import { type Answers, type FormDef, type FormsPayload, type KecIndex, indexKec, kecFull, labelOfStatus, sumVariants, titleCase, validate } from './engine';
 import { Questions, type QCtx } from './questions';
+import { Logo, Marker } from '@/components/brand';
 
 interface Report {
   id: string; type: ReportType; status: string; version?: number; header: Answers; entries: Answers[]; sections: Record<string, { none?: boolean; items: Answers[] }>; closing: Answers;
@@ -88,18 +89,18 @@ export function FieldApp() {
     spvFor: (k) => [...new Set(forms.supervisors.filter((s) => s.cover.some((c) => (c.level === 'KAB' ? c.kode === k.kabKode : c.kode === k.kode))).map((s) => s.name))].join(', ') || 'Admin pusat',
   } : null;
 
-  const head = <header className="sticky top-0 z-20 flex items-center gap-3 bg-navy-900 px-4 py-2.5 text-white">
-    <div className="grid h-8 w-8 place-items-center rounded-md bg-tt text-sm font-bold">T+</div>
-    <div className="mr-auto min-w-0 leading-tight"><div className="truncate text-sm font-semibold">{user!.name}</div><div className="text-2xs text-slate-300">SPG {user!.tugas.map((t) => TYPE_LABEL[t]).join(' + ')} · {fmtDate(new Date())}</div></div>
+  const head = <header className="sticky top-0 z-20 flex items-center gap-3 border-b-2 border-tt bg-ink px-4 py-2.5 text-paper-card">
+    <Logo className="h-9 w-9 shrink-0" />
+    <div className="mr-auto min-w-0 leading-tight"><div className="truncate text-sm font-bold">{user!.name}</div><div className="text-2xs text-comp-light">SPG {user!.tugas.map((t) => TYPE_LABEL[t]).join(' + ')} · {fmtDate(new Date())}</div></div>
     {(!online || offline || open?.dirty) && <span className="flex items-center gap-1 rounded-full bg-warn px-2 py-0.5 text-2xs font-semibold text-navy-950"><WifiOff className="h-3 w-3" />{open?.dirty ? 'Belum terkirim' : 'Offline'}</span>}
-    <button onClick={load} className="rounded-md p-2 hover:bg-navy-800" aria-label="Muat ulang"><RefreshCw className="h-4 w-4" /></button>
-    <button onClick={logout} className="rounded-md p-2 hover:bg-navy-800" aria-label="Keluar"><LogOut className="h-4 w-4" /></button>
+    <button onClick={load} className="rounded-md p-2 hover:bg-ink-soft" aria-label="Muat ulang"><RefreshCw className="h-4 w-4" /></button>
+    <button onClick={logout} className="rounded-md p-2 hover:bg-ink-soft" aria-label="Keluar"><LogOut className="h-4 w-4" /></button>
   </header>;
   if (!forms || !ctx) return <>{head}<p className="p-6 text-center text-sm text-ink-muted">{online ? 'Memuat form…' : 'Butuh sinyal untuk membuka aplikasi pertama kali.'}</p></>;
   if (!user!.tugas.length) return <>{head}<p className="p-6 text-center text-sm text-ink-muted">Akun Anda belum diberi tugas. Hubungi admin pusat.</p></>;
 
   const F: FormDef | null = open ? forms.forms[open.type] : null;
-  const btn = 'h-12 w-full rounded-xl text-base font-semibold disabled:opacity-50';
+  const btn = 'h-12 w-full rounded-md border-2 border-ink text-base font-bold shadow-hard transition-transform active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50';
   let content: React.ReactNode;
 
   if (open && F && screen.k === 'entry') {
@@ -114,7 +115,7 @@ export function FieldApp() {
     };
     content = <>
       <Card title={`${screen.idx == null ? 'Tambah' : 'Ubah'} ${F.entry_word}`} sub={F.entry_hint}><Questions qs={F.entry} value={draft} onChange={(a) => { setDraft(a); setErrs({}); }} errors={errs} ctx={ctx} idPrefix="entry" /></Card>
-      <Sticky><button className={cn(btn, 'bg-primary text-white')} disabled={busy} onClick={save}>Simpan</button><button className="h-10 text-sm" onClick={() => { setScreen({ k: 'home' }); setDraft({}); }}>Batal</button></Sticky></>;
+      <Sticky><button className={cn(btn, 'bg-ink text-paper-card')} disabled={busy} onClick={save}>Simpan</button><button className="h-10 text-sm" onClick={() => { setScreen({ k: 'home' }); setDraft({}); }}>Batal</button></Sticky></>;
   } else if (open && F && screen.k === 'section') {
     const sec = F.sections.find((s) => s.key === screen.key)!;
     const save = async () => {
@@ -123,7 +124,7 @@ export function FieldApp() {
       if (await persist({ ...open, sections: { ...open.sections, [sec.key]: { none: false, items: [...(cur.items ?? []), draft] } } })) { setScreen({ k: 'home' }); setDraft({}); }
     };
     content = <><Card title={sec.title}><Questions qs={sec.questions} value={draft} onChange={(a) => { setDraft(a); setErrs({}); }} errors={errs} ctx={ctx} idPrefix={sec.key} /></Card>
-      <Sticky><button className={cn(btn, 'bg-primary text-white')} onClick={save}>Simpan</button><button className="h-10 text-sm" onClick={() => setScreen({ k: 'home' })}>Batal</button></Sticky></>;
+      <Sticky><button className={cn(btn, 'bg-ink text-paper-card')} onClick={save}>Simpan</button><button className="h-10 text-sm" onClick={() => setScreen({ k: 'home' })}>Batal</button></Sticky></>;
   } else if (open && F) {
     const packs = open.entries.reduce((a, e) => a + sumVariants(e.beli), 0);
     const submit = async () => {
@@ -143,13 +144,13 @@ export function FieldApp() {
       finally { setBusy(false); }
     };
     content = <>
-      {open.status === 'REVISION' && <div className="rounded-r-lg border-l-4 border-critical bg-critical-soft px-3 py-2 text-sm"><b>Revisi</b> – alasan ditolak{open.reviewedBy ? ` oleh ${open.reviewedBy}` : ''}: {open.reviewNote}<div className="text-xs text-ink-muted">Perbaiki isian yang diminta, lalu tekan Kirim ulang.</div></div>}
+      {open.status === 'REVISION' && <div className="rounded-r-md border-l-4 border-tt bg-tt-soft px-3 py-2 text-sm"><b>Revisi</b> – alasan ditolak{open.reviewedBy ? ` oleh ${open.reviewedBy}` : ''}: {open.reviewNote}<div className="text-xs text-ink-muted">Perbaiki isian yang diminta, lalu tekan Kirim ulang.</div></div>}
       <Card title={reportTitle(open, F)} sub={`${kecFull(open.header[F.location_field])} · mulai ${fmtTime(open.startedAt)}`} badge={`${fmtNum(packs)} bks TT ${open.type === 'REGULER' ? 'diorder' : 'terjual'}`}>
         <div className="text-xs text-ink-secondary">Disetujui oleh: <b>{open.spvNames?.length ? [...new Set(open.spvNames)].join(', ') : ctx.spvFor!(open.header[F.location_field])}</b></div>
         <div className="mt-2 divide-y divide-border">{open.entries.map((e, i) => <div key={i} className="flex items-center gap-2 py-2">
           <div className="min-w-0 flex-1"><div className="truncate font-medium">{entryTitle(open.type, e, i)}</div><div className="truncate text-xs text-ink-muted">{entrySub(open.type, e, forms)}</div></div>
           {(e.foto || e.fotoDisplay) && <Photo value={e.foto || e.fotoDisplay} alt="Foto" className="h-10 w-10" />}
-          <button className="rounded-md px-2 py-1 text-sm text-primary" onClick={() => { setDraft(structuredClone(e)); setErrs({}); setScreen({ k: 'entry', idx: i }); scrollTo(0, 0); }}>Ubah</button>
+          <button className="rounded-md px-2 py-1 text-sm font-semibold underline decoration-tt decoration-2 underline-offset-4" onClick={() => { setDraft(structuredClone(e)); setErrs({}); setScreen({ k: 'entry', idx: i }); scrollTo(0, 0); }}>Ubah</button>
           <button className="rounded-md px-2 py-1 text-sm text-critical-text" onClick={() => persist({ ...open, entries: open.entries.filter((_, j) => j !== i) })} aria-label={`Hapus ${entryTitle(open.type, e, i)}`}>Hapus</button></div>)}</div>
         {!open.entries.length && <p className="py-2 text-sm text-ink-muted">Belum ada {F.entry_word}.</p>}
         <button className={cn(btn, 'mt-2 bg-tt text-white')} onClick={() => { setDraft({}); setErrs({}); setScreen({ k: 'entry', idx: null }); scrollTo(0, 0); }}>+ Tambah {F.entry_word}</button>
@@ -157,14 +158,14 @@ export function FieldApp() {
       {F.sections.map((s) => { const x = open.sections[s.key] ?? { items: [] }; return <Card key={s.key} title={s.title}>
         {(x.items ?? []).map((it, i) => <div key={i} className="flex items-center justify-between gap-2 border-b border-border py-1.5 text-sm"><span>{Object.values(it).filter((v) => typeof v !== 'object').join(' · ')}</span>
           <button className="text-critical-text" onClick={() => persist({ ...open, sections: { ...open.sections, [s.key]: { none: false, items: x.items.filter((_, j) => j !== i) } } })}>Hapus</button></div>)}
-        {!x.items?.length && <label className="relative mt-1 inline-flex min-h-10 cursor-pointer items-center rounded-full border border-border px-3.5 has-[:checked]:border-primary has-[:checked]:bg-primary has-[:checked]:text-white">
+        {!x.items?.length && <label className="relative mt-1 inline-flex min-h-10 cursor-pointer items-center rounded-full border-2 border-ink/70 px-3.5 has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-paper-card">
           <input type="checkbox" className="absolute opacity-0" data-none={s.key} checked={!!x.none} onChange={(e) => persist({ ...open, sections: { ...open.sections, [s.key]: { none: e.target.checked, items: [] } } })} />{s.none_label}</label>}
-        {!x.none && <button className="mt-2 h-10 rounded-lg border border-border px-3 text-sm" onClick={() => { setDraft({}); setErrs({}); setScreen({ k: 'section', key: s.key }); scrollTo(0, 0); }}>+ Tambah</button>}
+        {!x.none && <button className="mt-2 h-10 rounded-md border-2 border-ink bg-paper-card px-3 text-sm font-semibold shadow-hard-sm" onClick={() => { setDraft({}); setErrs({}); setScreen({ k: 'section', key: s.key }); scrollTo(0, 0); }}>+ Tambah</button>}
       </Card>; })}
       <Card title={open.type === 'REGULER' ? 'Penutup rute' : 'Penutup laporan'}>
         <Questions qs={F.closing} value={open.closing} onChange={(a) => { setOpen({ ...open, closing: a, dirty: true }); setErrs({}); }} errors={errs} ctx={ctx} idPrefix="closing" />
       </Card>
-      <Sticky><button className={cn(btn, 'bg-good-text text-white')} disabled={busy} onClick={submit}>{open.status === 'REVISION' ? 'Kirim ulang' : 'Kirim laporan'}</button>
+      <Sticky><button className={cn(btn, 'bg-tt text-white')} disabled={busy} onClick={submit}>{open.status === 'REVISION' ? 'Kirim ulang' : 'Kirim laporan'}</button>
         <button className="h-10 text-sm" disabled={busy} onClick={async () => { if (await persist(open)) toast('success', online ? 'Disimpan' : 'Disimpan di HP'); }}>Simpan sementara</button></Sticky></>;
   } else {
     const rejected = mine.filter((r) => r.status === 'REJECTED'); const done = mine.filter((r) => !OPEN.includes(r.status) && r.status !== 'REJECTED').slice(0, 8);
@@ -180,29 +181,29 @@ export function FieldApp() {
     content = <>
       {!!rejected.length && <Card title={`Perlu diperbaiki (${rejected.length})`} sub="Ditolak · kerjakan ulang lalu kirim lagi">{rejected.map((r) => <div key={r.id} className="flex items-center gap-3 border-t border-border py-2 first:border-t-0">
         <div className="min-w-0 flex-1"><b>{r.title}</b> <span className="text-xs text-ink-muted">{TYPE_LABEL[r.type]} · {fmtDate(r.startedAt)}{r.revision ? ` · revisi ke-${r.revision}` : ''}</span>
-          <div className="mt-1 rounded-r-md border-l-4 border-critical bg-critical-soft px-2 py-1 text-sm"><b>Alasan{r.reviewedBy ? ` (${r.reviewedBy})` : ''}:</b> {r.reviewNote}</div></div>
-        <button className="h-10 rounded-lg bg-tt px-3 text-sm font-semibold text-white" data-rework={r.id} onClick={async () => {
+          <div className="mt-1 rounded-r-md border-l-4 border-tt bg-tt-soft px-2 py-1 text-sm"><b>Alasan{r.reviewedBy ? ` (${r.reviewedBy})` : ''}:</b> {r.reviewNote}</div></div>
+        <button className="h-10 rounded-md border-2 border-ink bg-tt px-3 text-sm font-bold text-white shadow-hard-sm" data-rework={r.id} onClick={async () => {
           try { setOpen(fromServer(await api<any>(`/reports/${r.id}/rework`, { method: 'POST' }))); toast('success', 'Laporan dibuka kembali untuk diperbaiki'); await load(); } catch (e) { toast('error', (e as Error).message); } }}>Perbaiki</button></div>)}</Card>}
       {user!.tugas.length > 1 && <Card title="Tugas hari ini" sub={`Anda ditugaskan untuk ${user!.tugas.map((t) => TYPE_LABEL[t]).join(', ')}. Pilih satu untuk laporan ini.`}>
-        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Tugas">{user!.tugas.map((t) => <label key={t} className="relative inline-flex min-h-10 cursor-pointer items-center rounded-full border border-border px-3.5 has-[:checked]:border-primary has-[:checked]:bg-primary has-[:checked]:font-semibold has-[:checked]:text-white">
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Tugas">{user!.tugas.map((t) => <label key={t} className="relative inline-flex min-h-10 cursor-pointer items-center rounded-full border-2 border-ink/70 bg-paper-card px-3.5 font-medium has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:font-bold has-[:checked]:text-paper-card has-[:checked]:shadow-hard-red">
           <input type="radio" name="tugasPick" className="absolute opacity-0" checked={tugas === t} onChange={() => { setTugas(t); setDraft({}); setErrs({}); }} />{t === 'HORECA' ? 'Survei HORECA' : `SPG ${TYPE_LABEL[t]}`}</label>)}</div></Card>}
       {SF && <Card title={SF.start_title} sub="Jam mulai tercatat otomatis"><Questions qs={SF.start} value={draft} onChange={(a) => { setDraft(a); setErrs({}); }} errors={errs} ctx={ctx} idPrefix="start" />
-        <button className={cn(btn, 'mt-3 bg-primary text-white')} disabled={busy} onClick={start}>Mulai</button></Card>}
+        <button className={cn(btn, 'mt-3 bg-ink text-paper-card')} disabled={busy} onClick={start}>Mulai</button></Card>}
       <Card title="Laporan terakhir">{done.length ? done.map((r) => <div key={r.id} className="flex items-center justify-between gap-2 border-t border-border py-2 first:border-t-0">
         <div className="min-w-0"><div className="truncate font-medium">{r.title}</div><div className="text-xs text-ink-muted">{TYPE_LABEL[r.type]} · {fmtDate(r.startedAt)} · {r.entryCount} {forms.forms[r.type].entry_word}</div></div>
         <span className="shrink-0 text-xs font-semibold">{labelOfStatus(r.status)}</span></div>) : <p className="py-3 text-center text-sm text-ink-muted">Belum ada laporan.</p>}</Card></>;
   }
-  return <div className="min-h-screen bg-surface">{head}<main className="mx-auto grid max-w-xl grid-cols-[minmax(0,1fr)] gap-3 p-3 pb-10">
-    {open && F && screen.k === 'home' && <h1 className="px-1 pt-1 text-lg font-semibold">{F.title}</h1>}{content}</main></div>;
+  return <div className="min-h-screen">{head}<main className="mx-auto grid max-w-xl grid-cols-[minmax(0,1fr)] gap-3 p-3 pb-10">
+    {open && F && screen.k === 'home' && <div className="px-1 pt-2"><Marker className="text-2xl">{F.title}</Marker></div>}{content}</main></div>;
 }
 
 function Card({ title, sub, badge, children }: { title: string; sub?: string; badge?: string; children: React.ReactNode }) {
-  return <section className="rounded-xl border border-border bg-white"><div className="flex items-start justify-between gap-2 border-b border-border px-3.5 py-2.5">
+  return <section className="rounded-md border-2 border-ink bg-paper-card shadow-hard"><div className="flex items-start justify-between gap-2 border-b border-border px-3.5 py-2.5">
     <div className="min-w-0"><h2 className="font-semibold">{title}</h2>{sub && <p className="text-xs text-ink-muted">{sub}</p>}</div>
     {badge && <span className="shrink-0 rounded-full bg-tt-soft px-2 py-0.5 text-2xs font-semibold text-tt">{badge}</span>}</div><div className="p-3.5">{children}</div></section>;
 }
 function Sticky({ children }: { children: React.ReactNode }) {
-  return <div className="sticky bottom-0 grid gap-1 bg-gradient-to-t from-surface from-70% to-transparent pt-4">{children}</div>;
+  return <div className="sticky bottom-0 grid gap-1 bg-gradient-to-t from-paper from-70% to-transparent pt-4">{children}</div>;
 }
 function reportTitle(r: Report, F: FormDef) { return r.type === 'REGULER' ? r.header.rute || `Rute ${r.header.kecRute?.nama ?? ''}` : r.header[F.title_field] ?? '–'; }
 function entryTitle(t: ReportType, e: Answers, i: number) { return t === 'GROSIR' ? e.namaToko || e.namaPembeli || 'Konsumen' : t === 'HORECA' ? `Responden ${i + 1}` : e.namaOutlet; }

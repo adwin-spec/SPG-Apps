@@ -3,8 +3,14 @@
 @tailwind utilities;
 
 :root { color-scheme: light; }
-html, body { background: #f5f7fa; color: #111827; }
-body { font-feature-settings: 'tnum' 1; -webkit-font-smoothing: antialiased; }
+html, body { background: #f3efe6; color: #141210; }
+body { font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+/* butiran kertas yang sangat halus di latar */
+body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: .35;
+  background-image: radial-gradient(rgba(20,18,16,.06) 1px, transparent 1px); background-size: 3px 3px; }
+body > * { position: relative; z-index: 1; }
 .num { font-variant-numeric: tabular-nums; }
-*:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
-@media print { aside, header, .no-print { display: none !important; } }
+*:focus-visible { outline: 2px solid #d42a1f; outline-offset: 2px; }
+a { text-underline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+@media print { aside, header, .no-print { display: none !important; } body::before { display: none; } }

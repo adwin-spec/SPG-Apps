@@ -171,7 +171,8 @@ def test_excel_export(admin, make_user):
     r = admin.get("/dashboard/export.xlsx?type=GROSIR&spg=Excel Uji")
     assert r.status_code == 200 and r.headers["content-type"].startswith("application/vnd.openxmlformats")
     wb = load_workbook(io.BytesIO(r.content))
-    assert wb.sheetnames[:3] == ["Ringkasan", "Laporan", "Detail pembeli"] and len(wb.sheetnames) == 5
+    assert wb.sheetnames[:5] == ["Ringkasan", "Analisis", "Tren harian", "Laporan", "Detail pembeli"] and len(wb.sheetnames) == 7
+    assert len(wb["Analisis"]._charts) >= 5 and len(wb["Tren harian"]._charts) >= 2
     det = wb["Detail pembeli"]; head = [c.value for c in det[1]]; row = [c.value for c in det[2]]
     assert "Tanda Tambah yang dibeli – Original" in head and row[head.index("Tanda Tambah yang dibeli – Original")] == 3
     assert row[head.index("Status Tanda Tambah sebelum ditawari hari ini")] == "Sudah jual TT"      # label, bukan kode
@@ -180,4 +181,9 @@ def test_excel_export(admin, make_user):
     lap = wb["Laporan"]; lh = [c.value for c in lap[1]]
     assert lap.cell(row=2, column=lh.index("Nama grosir") + 1).value == "Grosir Excel"
     assert lap.cell(row=2, column=1).is_date                                                      # tanggal asli, bukan teks
-    assert wb.sheetnames[3].startswith("Promo") and wb[wb.sheetnames[3]].max_row == 2
+    assert wb.sheetnames[5].startswith("Promo") and wb[wb.sheetnames[5]].max_row == 2
+    import zipfile
+    z = zipfile.ZipFile(io.BytesIO(admin.get("/dashboard/export-all.zip?days=30").content))
+    assert sorted(z.namelist()) == ["tanda-tambah-grosir-30hari.xlsx", "tanda-tambah-horeca-30hari.xlsx", "tanda-tambah-reguler-30hari.xlsx"]
+    for n in z.namelist():
+        load_workbook(io.BytesIO(z.read(n)))  # setiap file valid

@@ -4,15 +4,15 @@ import { forwardRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const button = cva('inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50', {
+const button = cva('inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md text-sm font-semibold transition-all active:translate-x-px active:translate-y-px disabled:pointer-events-none disabled:opacity-50', {
   variants: {
     variant: {
-      primary: 'bg-primary text-white hover:bg-primary-hover',
-      secondary: 'border border-border bg-white text-ink hover:bg-surface',
+      primary: 'border-2 border-ink bg-ink text-paper-card shadow-hard-red hover:bg-tt hover:border-tt hover:shadow-hard',
+      secondary: 'border-2 border-ink bg-paper-card text-ink shadow-hard-sm hover:bg-paper-deep',
       ghost: 'text-ink-secondary hover:bg-surface hover:text-ink',
-      danger: 'bg-critical text-white hover:bg-critical-text',
-      success: 'bg-good-text text-white hover:opacity-90',
-      link: 'text-primary underline-offset-2 hover:underline px-0',
+      danger: 'border-2 border-tt bg-tt text-white shadow-hard-sm hover:bg-tt-dark',
+      success: 'border-2 border-ink bg-ink text-paper-card shadow-hard-sm hover:bg-good-text hover:border-good-text',
+      link: 'text-ink underline decoration-tt decoration-2 underline-offset-4 hover:text-tt px-0',
     },
     size: { sm: 'h-8 px-2.5 text-xs', md: 'h-9 px-3.5', lg: 'h-11 px-5 text-base', icon: 'h-8 w-8' },
   },

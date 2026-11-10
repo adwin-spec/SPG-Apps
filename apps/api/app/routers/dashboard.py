@@ -9,7 +9,7 @@ from ..db import get_db
 from ..deps import ok, require
 from ..models import User
 from ..services.dashboard import Filters, build, export_rows
-from ..services.excel import build_xlsx
+from ..services.excel import build_xlsx, build_zip
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -49,3 +49,12 @@ def export_xlsx(f: Filters = Depends(_f), me: User = Depends(require("ADMIN", "S
     name = f"tanda-tambah-{f.type.lower()}-{f.days}hari.xlsx"
     return StreamingResponse(iter([build_xlsx(db, me, f)]), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                              headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+@router.get("/export-all.zip")
+def export_all(f: Filters = Depends(_f), me: User = Depends(require("ADMIN", "SPV")), db: Session = Depends(get_db)):
+    """Tiga file Excel (Grosir, HORECA, Reguler) dalam satu ZIP, dengan filter periode/wilayah/SPG yang sama."""
+    if me.role != "ADMIN":
+        f.spv = ""
+    return StreamingResponse(iter([build_zip(db, me, f)]), media_type="application/zip",
+                             headers={"Content-Disposition": f'attachment; filename="tanda-tambah-semua-{f.days}hari.zip"'})

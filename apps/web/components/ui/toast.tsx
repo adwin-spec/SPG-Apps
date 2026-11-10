@@ -16,8 +16,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <div aria-live="polite" className="pointer-events-none fixed bottom-4 right-4 z-[60] flex w-[min(92vw,380px)] flex-col gap-2">
       {items.map((t) => {
         const Icon = t.tone === 'success' ? CheckCircle2 : t.tone === 'error' ? AlertOctagon : Info;
-        return <div key={t.id} className="pointer-events-auto flex items-start gap-2 rounded-md border border-border bg-white px-3 py-2.5 text-sm shadow-lg">
-          <Icon className={t.tone === 'success' ? 'h-4 w-4 text-good-text' : t.tone === 'error' ? 'h-4 w-4 text-critical' : 'h-4 w-4 text-primary'} aria-hidden />
+        return <div key={t.id} className="pointer-events-auto flex items-start gap-2 rounded-md border-2 border-ink bg-paper-card px-3 py-2.5 text-sm font-medium shadow-hard">
+          <Icon className={t.tone === 'success' ? 'h-4 w-4 text-good-text' : t.tone === 'error' ? 'h-4 w-4 text-critical' : 'h-4 w-4 text-ink'} aria-hidden />
           <span>{t.message}</span></div>;
       })}
     </div>

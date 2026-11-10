@@ -5,6 +5,7 @@ import { homeFor, useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/input';
 import { ErrorBox } from '@/components/ui/card';
+import { Brush, Logo } from '@/components/brand';
 
 function LoginForm() {
   const { login } = useAuth(); const router = useRouter(); const sp = useSearchParams();
@@ -19,23 +20,27 @@ function LoginForm() {
   };
   return <form onSubmit={submit} className="space-y-4" noValidate>
     {!!error && <ErrorBox error={error} />}
-    <Field label="Username" htmlFor="username"><Input id="username" autoComplete="username" autoCapitalize="none" value={username} onChange={(e) => setUsername(e.target.value)} /></Field>
-    <Field label="Password" htmlFor="password"><Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
+    <Field label="Username" htmlFor="username"><Input id="username" className="h-11" autoComplete="username" autoCapitalize="none" value={username} onChange={(e) => setUsername(e.target.value)} /></Field>
+    <Field label="Password" htmlFor="password"><Input id="password" className="h-11" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
     <Button type="submit" className="w-full" size="lg" loading={busy}>Masuk</Button>
   </form>;
 }
 
 export default function LoginPage() {
-  return <div className="flex min-h-screen">
-    <div className="hidden w-[42%] flex-col justify-between bg-navy-900 p-10 text-white lg:flex">
-      <div className="flex items-center gap-2"><div className="flex h-8 w-8 items-center justify-center rounded bg-tt font-bold">T+</div><span className="font-semibold">Tanda Tambah</span></div>
-      <div><h1 className="text-3xl font-semibold leading-tight">SPG Performance &amp;<br />Market Intelligence</h1>
-        <p className="mt-3 max-w-md text-sm text-slate-300">Laporan SPG Grosir, kunjungan outlet Reguler, dan survei konsumen HORECA langsung dari HP. Disetujui supervisor wilayah, lalu masuk dashboard.</p></div>
-      <p className="text-xs text-slate-500">Sistem internal · Setiap akses tercatat</p>
+  return <div className="flex min-h-screen flex-col lg:flex-row">
+    <div className="relative flex flex-col justify-between overflow-hidden bg-ink px-6 py-8 text-paper-card lg:w-[46%] lg:p-12">
+      {/* tanda "+" raksasa di latar */}
+      <svg viewBox="0 0 100 100" className="pointer-events-none absolute -right-16 -top-10 h-[130%] opacity-[0.07] lg:-right-24" aria-hidden><path d="M38 0h24v38h38v24H62v38H38V62H0V38h38z" fill="#fffdf8" /></svg>
+      <div className="relative flex items-center gap-3"><Logo className="h-12 w-12" /><span className="font-marker text-2xl">Tanda Tambah</span></div>
+      <div className="relative my-10 lg:my-0">
+        <h1 className="font-marker text-4xl leading-[1.1] lg:text-6xl">Catat di lapangan.<br /><span className="relative inline-block">Lihat hasilnya.<Brush className="absolute -bottom-2 left-0 h-4" /></span></h1>
+        <p className="mt-6 max-w-md text-sm text-comp-light">Laporan SPG Grosir, kunjungan outlet Reguler, dan survei HORECA langsung dari HP. Disetujui supervisor wilayah, lalu masuk dashboard.</p>
+      </div>
+      <p className="relative hidden text-xs uppercase tracking-[0.2em] text-ink-secondary lg:block">Sistem internal · setiap akses tercatat</p>
     </div>
     <div className="flex flex-1 items-center justify-center p-6">
-      <div className="w-full max-w-sm">
-        <h2 className="mb-1 text-xl font-semibold">Masuk</h2><p className="mb-6 text-sm text-ink-secondary">Gunakan akun dari admin pusat.</p>
+      <div className="w-full max-w-sm rounded-md border-2 border-ink bg-paper-card p-6 shadow-hard">
+        <h2 className="font-marker text-2xl">Masuk</h2><p className="mb-6 mt-1 text-sm text-ink-secondary">Gunakan akun dari admin pusat.</p>
         <Suspense><LoginForm /></Suspense>
       </div>
     </div>

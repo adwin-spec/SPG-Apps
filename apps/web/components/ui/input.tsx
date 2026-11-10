@@ -1,7 +1,7 @@
 import { forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 
-const base = 'w-full rounded-md border border-border bg-white px-2.5 text-sm text-ink placeholder:text-ink-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:bg-surface disabled:text-ink-muted aria-[invalid=true]:border-critical';
+const base = 'w-full rounded-md border-2 border-ink bg-paper-card px-2.5 text-sm text-ink placeholder:text-ink-muted focus:border-tt focus:outline-none disabled:bg-paper-deep disabled:text-ink-muted aria-[invalid=true]:border-tt';
 
 export const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(({ className, ...p }, ref) =>
   <input ref={ref} className={cn(base, 'h-9', className)} {...p} />);
@@ -16,7 +16,7 @@ export const Select = forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<H
 Select.displayName = 'Select';
 
 export function Label({ className, ...p }: React.LabelHTMLAttributes<HTMLLabelElement>) {
-  return <label className={cn('mb-1 block text-xs font-medium text-ink-secondary', className)} {...p} />;
+  return <label className={cn('mb-1 block text-xs font-bold uppercase tracking-wide text-ink-secondary', className)} {...p} />;
 }
 
 /** Form field wrapper: label + control + error/hint (errors are announced to screen readers). */

@@ -31,7 +31,7 @@ export function UsersView() {
           <tbody>{spgs.map((u) => <tr key={u.id} className="border-t border-border"><td className="px-3 py-2 font-medium">{u.name}</td><td className="px-3 py-2 text-ink-muted">{u.username}</td>
             <td className="px-3 py-2"><div className="flex flex-wrap gap-1">{TYPES.map((t) => { const on = u.tugas.includes(t);
               return admin ? <button key={t} aria-pressed={on} onClick={() => call(() => api(`/users/${u.id}`, { method: 'PATCH', body: { tugas: on ? u.tugas.filter((x) => x !== t) : [...u.tugas, t] } }), 'Tugas diperbarui')}
-                className={cn('h-7 rounded-full border px-2.5 text-xs', on ? 'border-primary bg-primary text-white' : 'border-border')}>{TYPE_LABEL[t]}</button> : on && <Badge key={t}>{TYPE_LABEL[t]}</Badge>; })}</div></td>
+                className={cn('h-7 rounded-full border-2 px-2.5 text-xs font-bold', on ? 'border-ink bg-ink text-paper-card' : 'border-ink/40 bg-paper-card')}>{TYPE_LABEL[t]}</button> : on && <Badge key={t}>{TYPE_LABEL[t]}</Badge>; })}</div></td>
             <td className="px-3 py-2">{u.area ?? '–'}</td><td className="px-3 py-2">{u.active ? <Badge tone="good">Aktif</Badge> : <Badge tone="critical">Nonaktif</Badge>}</td>
             {admin && <td className="px-3 py-2"><RowActions u={u} call={call} /></td>}</tr>)}</tbody></table></div></Panel>
       {admin && <Panel><PanelHeader title={`Supervisor & wilayah (${spvs.length})`} subtitle="Wilayah bisa seluruh kab/kota atau per kecamatan. Wilayah yang dilepas tetap tercatat dalam riwayat, jadi persetujuan lama tetap sah." />
@@ -72,11 +72,11 @@ function SpvBlock({ u, call }: { u: AuthUser; call: (fn: () => Promise<unknown>,
   const ix = wil.data ? indexKec(wil.data) : null; const res = ix ? searchKec(ix, term) : [];
   const provs = [...new Map((wil.data ?? []).map((k) => [k.provKode, k.provinsi])).entries()];
   const add = (level: 'KAB' | 'KEC', kode: string) => call(() => api(`/users/${u.id}/coverage`, { method: 'POST', body: { level, kode } }), 'Wilayah ditambahkan');
-  return <div className="grid gap-2 rounded-lg border border-border p-3" data-spv={u.username}>
+  return <div className="grid gap-2 rounded-md border-2 border-ink/30 bg-paper p-3" data-spv={u.username}>
     <div className="flex flex-wrap items-center justify-between gap-2"><div><b>{u.name}</b> <span className="text-xs text-ink-muted">{u.username}</span> {u.active ? <Badge tone="good">Aktif</Badge> : <Badge tone="critical">Nonaktif</Badge>}</div><RowActions u={u} call={call} /></div>
-    <div className="flex flex-wrap gap-1.5">{u.coverage.map((c) => <span key={c.id} className="inline-flex items-center gap-1 rounded-full bg-primary-soft py-0.5 pl-2.5 pr-1 text-xs">{c.label}
+    <div className="flex flex-wrap gap-1.5">{u.coverage.map((c) => <span key={c.id} className="inline-flex items-center gap-1 rounded-full border-2 border-ink bg-paper-card py-0.5 pl-2.5 pr-1 text-xs font-semibold">{c.label}
       {u.overlaps?.[c.id] && <span className="text-warn-text" title="Juga dipegang supervisor lain">⚠ juga {u.overlaps[c.id].join(', ')}</span>}
-      <button className="grid h-6 w-6 place-items-center rounded-full hover:bg-white" aria-label={`Lepas ${c.label}`} onClick={() => call(() => api(`/users/${u.id}/coverage/${c.id}`, { method: 'DELETE' }), 'Wilayah dilepas')}><X className="h-3 w-3" /></button></span>)}
+      <button className="grid h-6 w-6 place-items-center rounded-full hover:bg-tt-soft" aria-label={`Lepas ${c.label}`} onClick={() => call(() => api(`/users/${u.id}/coverage/${c.id}`, { method: 'DELETE' }), 'Wilayah dilepas')}><X className="h-3 w-3" /></button></span>)}
       {!u.coverage.length && <span className="text-xs text-ink-muted">Belum ada wilayah – laporan belum diarahkan ke supervisor ini.</span>}</div>
     <div className="flex flex-wrap gap-2"><select aria-label={`Kabupaten/kota untuk ${u.name}`} className={selectCls} value={kab} onChange={(e) => setKab(e.target.value)}><option value="">Pilih kab/kota…</option>
       {provs.map(([pk, pn]) => <optgroup key={pk} label={pn}>{wil.data!.filter((k) => k.provKode === pk).map((k) => <option key={k.kode} value={k.kode}>{shortKab(k.nama)}</option>)}</optgroup>)}</select>

@@ -10,10 +10,22 @@
 5. **Persetujuan**: admin melihat semua wilayah; filter "Tanpa SPV" untuk laporan yang belum punya supervisor.
 
 ## Mengunduh hasil ke Excel
-Di **Dashboard**, atur filter (kategori Grosir/HORECA/Reguler, periode, wilayah, tipe toko, SPG), lalu klik **Unduh Excel**.
-File berisi lembar *Ringkasan*, *Laporan* (satu baris per laporan), *Detail* (satu baris per pembeli/responden/outlet),
-dan untuk Grosir lembar *Promo* dan *Promotor*. Hanya laporan yang sudah disetujui yang ikut. Supervisor hanya
-mendapat data wilayahnya. Unduh per kategori (tiga kali) untuk mendapatkan semua jenis laporan.
+Di **Dashboard**, atur periode, wilayah, dan SPG, lalu di kotak **Unduh Excel** pilih **SPG Grosir**, **Survei HORECA**,
+atau **SPG Reguler** (satu file per jenis), atau **Ketiganya (.zip)**. Setiap file berisi:
+
+* **Ringkasan** – angka utama dan filter yang dipakai
+* **Analisis** – setiap grafik dashboard sebagai tabel kecil + grafik Excel asli (bisa diedit atau disalin ke slide)
+* **Tren harian** – angka per hari + grafik garis
+* **Laporan** – satu baris per laporan; **Detail** – satu baris per pembeli/responden/outlet
+* Grosir saja: **Promo** dan **Promotor** kompetitor
+
+Hanya laporan yang sudah disetujui yang ikut. Supervisor hanya mendapat data wilayahnya.
+
+## Membaca grafik dashboard
+* **Merah** = Tanda Tambah atau hal yang perlu diperhatikan; **abu-abu** = kompetitor/pembanding.
+* **Batang bersegmen** = satu keseluruhan dibagi beberapa bagian (makin gelap = tahap lebih lanjut).
+* **Corong** = setiap tahap adalah bagian dari tahap sebelumnya, dengan persentase lolos per tahap.
+* Arahkan kursor ke grafik untuk melihat angka; tombol **Tabel** menampilkan angka lengkapnya.
 
 ## Supervisor
 * **Persetujuan** menampilkan laporan di wilayah Anda. Buka *Detail* (termasuk foto), lalu *Setujui* atau *Tolak*

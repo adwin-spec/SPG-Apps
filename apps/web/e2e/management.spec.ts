@@ -11,8 +11,15 @@ test('admin: semua halaman tampil tanpa error, data contoh mengisi ketiga dashbo
   }
   await expect(page.getByText('Share of shelf').first()).toBeVisible();
   await page.screenshot({ path: 'test-results/admin-dashboard-reguler.png', fullPage: true });
-  const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Unduh Excel' }).click()]);
-  expect(dl.suggestedFilename()).toMatch(/^tanda-tambah-reguler-30hari\.xlsx$/);
+  const files = page.getByRole('region', { name: 'Unduh Excel' });
+  for (const [btn, name] of [['SPG Grosir', 'grosir'], ['Survei HORECA', 'horeca'], ['SPG Reguler', 'reguler']]) {
+    const [dl] = await Promise.all([page.waitForEvent('download'), files.getByRole('button', { name: btn }).click()]);
+    expect(dl.suggestedFilename()).toBe(`tanda-tambah-${name}-30hari.xlsx`);
+  }
+  const [zip] = await Promise.all([page.waitForEvent('download'), files.getByRole('button', { name: /Ketiganya/ }).click()]);
+  expect(zip.suggestedFilename()).toBe('tanda-tambah-semua-30hari.zip');
+  await page.getByRole('button', { name: 'Tabel' }).first().click();                       // setiap grafik punya tampilan tabel
+  await expect(page.locator('table').first()).toBeVisible();
   await page.getByRole('button', { name: /Kab\. Banyumas|Kab\. Cilacap|Kab\. Purbalingga|Kab\. Banjarnegara/ }).first().click();  // drill-down wilayah
   await expect(page.getByLabel('Kecamatan')).toBeEnabled();
   const spv = await makeUser('SPV', 'Rudi Hartono');

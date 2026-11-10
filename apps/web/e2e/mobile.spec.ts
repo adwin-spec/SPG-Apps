@@ -44,7 +44,7 @@ test('SPG Grosir+HORECA mengisi survei dengan foto → SPV wilayah menyetujui �
   await expect(s.getByRole('button', { name: /Perbesar Foto SPG bersama responden/ })).toBeVisible();
   await row.getByRole('button', { name: 'Setujui' }).click();
   await expect(s.getByText('Disetujui – masuk ke dashboard')).toBeVisible();
-  await s.goto('/dashboard'); await s.getByRole('button', { name: 'HORECA' }).click();
+  await s.goto('/dashboard'); await s.getByRole('button', { name: 'HORECA', exact: true }).click();
   await expect(s.getByText('Responden difoto')).toBeVisible();
   await expect(s.getByText('100%').first()).toBeVisible().catch(() => undefined);
   await s.screenshot({ path: 'test-results/spv-dashboard.png', fullPage: true });

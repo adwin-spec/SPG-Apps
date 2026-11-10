@@ -31,8 +31,8 @@ export function ReviewView() {
       toast('success', action === 'approve' ? 'Disetujui – masuk ke dashboard' : 'Ditolak – dikembalikan ke SPG'); setRej(null); setNote(''); qc.invalidateQueries({ queryKey: ['review'] }); qc.invalidateQueries({ queryKey: ['dash'] }); }
     catch (e) { toast('error', e instanceof ApiError ? e.message : 'Gagal'); } finally { setBusy(false); }
   };
-  const seg = (items: [string, string][], cur: string, set: (v: string) => void, label: string) => <div className="inline-flex flex-wrap rounded-lg bg-slate-200/60 p-1" role="group" aria-label={label}>
-    {items.map(([v, l]) => <button key={v} aria-pressed={cur === v} onClick={() => set(v)} className={cn('h-8 rounded-md px-3 text-sm', cur === v ? 'bg-white font-semibold shadow-sm' : 'text-ink-secondary')}>{l}</button>)}</div>;
+  const seg = (items: [string, string][], cur: string, set: (v: string) => void, label: string) => <div className="inline-flex flex-wrap rounded-md border-2 border-ink bg-paper-card p-0.5 shadow-hard-sm" role="group" aria-label={label}>
+    {items.map(([v, l]) => <button key={v} aria-pressed={cur === v} onClick={() => set(v)} className={cn('h-8 rounded px-3 text-sm font-bold', cur === v ? 'bg-ink text-paper-card' : 'text-ink-secondary hover:text-ink')}>{l}</button>)}</div>;
   return <>
     <PageHeader title="Persetujuan laporan" description={user?.role === 'SPV' ? `Anda supervisor untuk: ${user.coverage.map((c) => c.label).join(', ') || 'belum ada wilayah – hubungi admin pusat'}. Laporan masuk dashboard setelah disetujui.`
       : 'Laporan otomatis diarahkan ke supervisor yang memegang kecamatan lokasinya. Wilayah tanpa supervisor ditangani admin pusat.'} />
@@ -43,7 +43,7 @@ export function ReviewView() {
       {seg([['SUBMITTED', 'Menunggu'], ['APPROVED', 'Disetujui'], ['REJECTED', 'Ditolak / diperbaiki'], ['', 'Semua']], status, setStatus, 'Status')}
     </div>
     {q.error && <ErrorBox error={q.error} />}
-    <div className="overflow-x-auto rounded-lg border border-border bg-white"><table className="w-full text-[13px]"><thead><tr className="bg-surface text-left text-2xs uppercase tracking-wide text-ink-muted">
+    <div className="overflow-x-auto rounded-md border-2 border-ink bg-paper-card shadow-hard"><table className="w-full text-[13px]"><thead><tr className="bg-paper-deep text-left text-2xs uppercase tracking-wide text-ink-secondary">
       {['Tanggal', 'SPG', 'Lokasi', 'Supervisor', 'Kontak', 'Bks TT', 'Pemeriksaan', 'Status', ''].map((h) => <th key={h} className="whitespace-nowrap px-3 py-2 font-semibold">{h}</th>)}</tr></thead>
       <tbody>{(q.data ?? []).map((r) => <Fragment key={r.id}><tr className="border-t border-border align-top">
         <td className="px-3 py-2">{fmtDate(r.startedAt)}<div className="text-2xs text-ink-muted">{fmtTime(r.startedAt)}–{fmtTime(r.endedAt)}</div></td>
@@ -84,7 +84,7 @@ function Detail({ id }: { id: string }) {
     return String(v);
   };
   return <div className="grid gap-3 text-[13px]">
-    <div className="overflow-x-auto rounded-md border border-border bg-white"><table className="w-full"><thead><tr className="bg-surface text-left text-2xs uppercase text-ink-muted"><th className="px-2 py-1.5">#</th>{qs.map((q) => <th key={q.id} className="whitespace-nowrap px-2 py-1.5">{q.label.replace(/\?$/, '').slice(0, 28)}</th>)}</tr></thead>
+    <div className="overflow-x-auto rounded-md border-2 border-ink bg-paper-card"><table className="w-full"><thead><tr className="bg-surface text-left text-2xs uppercase text-ink-muted"><th className="px-2 py-1.5">#</th>{qs.map((q) => <th key={q.id} className="whitespace-nowrap px-2 py-1.5">{q.label.replace(/\?$/, '').slice(0, 28)}</th>)}</tr></thead>
       <tbody>{r.data.entries.map((e: any, i: number) => <tr key={i} className="border-t border-border align-top"><td className="px-2 py-1.5">{i + 1}</td>{qs.map((q) => <td key={q.id} className="px-2 py-1.5">{show(q, e[q.id])}</td>)}</tr>)}</tbody></table></div>
     {F.sections.map((s) => { const x = r.data.sections?.[s.key]; return <div key={s.key}><b>{s.title}:</b> {x?.none ? 'tidak ada' : (x?.items ?? []).map((it: any) => Object.values(it).join(' · ')).join('; ') || '–'}</div>; })}
     {F.closing.map((q) => <div key={q.id}><b>{q.label}:</b> {q.type === 'brandcounts' ? (r.data.closing?.[q.id] ?? []).map((t: any) => `${t.merek} (${t.batang ?? '–'} btg)`).join(', ') || '–' : show(q, r.data.closing?.[q.id])}</div>)}
