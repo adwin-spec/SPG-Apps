@@ -122,7 +122,7 @@ def load_approved(db: Session, me: User, f: Filters, all_types: bool = False) ->
     target = next((s for s in spvs if s.id == f.spv), None) if f.spv not in ("", "_none") else None
     out = []
     for a in rows[:MAX_ROWS]:
-        s = {**a.snapshot, "_id": a.report_id, "_spg": a.spg_name, "_by": a.approver_name, "_sample": a.sample, "type": a.type}
+        s = {**a.snapshot, "_id": a.report_id, "_spg": a.spg_name, "_by": a.approver_name, "_at": a.approved_at, "_sample": a.sample, "type": a.type}
         loc = loc_of(s, a.type)
         if me.role == "SPV" and not covers(me, loc):
             continue

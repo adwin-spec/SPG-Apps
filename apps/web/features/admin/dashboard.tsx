@@ -2,7 +2,7 @@
 /** Dashboard generik: angka dan panel dihitung di backend (apps/api/app/services/dashboard.py); halaman ini hanya menampilkan. */
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Download } from 'lucide-react';
+import { Download, FileSpreadsheet } from 'lucide-react';
 import Link from 'next/link';
 import { api, ApiError, download } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -36,7 +36,9 @@ export function DashboardView() {
   const onCell = (c: Cell) => { if (typeof c === 'object' && c.geo) { if (f.kab) set({ kec: c.geo }); else set({ kab: c.geo, prov: c.geo.slice(0, 2) }); } else if (typeof c === 'object' && c.tipe) set({ tipe: c.tipe }); };
   return <>
     <PageHeader title={d?.title ?? 'Dashboard'} description={d ? `${d.reports} laporan disetujui${d.coverage ? ` · wilayah Anda: ${d.coverage.join(', ') || 'belum ditetapkan'}` : ''}${d.truncated ? ' · data terpotong, persempit periode' : ''}` : 'Memuat…'}
-      actions={<Button variant="secondary" size="sm" onClick={() => download('/dashboard/export', f).catch((e) => alert((e as Error).message))}><Download className="h-4 w-4" />Unduh CSV</Button>} />
+      actions={<>
+        <Button size="sm" onClick={() => download('/dashboard/export.xlsx', f).catch((e) => alert((e as Error).message))}><FileSpreadsheet className="h-4 w-4" />Unduh Excel</Button>
+        <Button variant="secondary" size="sm" onClick={() => download('/dashboard/export', f).catch((e) => alert((e as Error).message))}><Download className="h-4 w-4" />CSV</Button></>} />
     <div className="mb-4 flex flex-wrap items-center gap-2">
       <div className="inline-flex rounded-lg bg-slate-200/60 p-1" role="group" aria-label="Kategori">{TYPES.map((t) => <button key={t} aria-pressed={f.type === t} onClick={() => set({ type: t, spg: '', tipe: '' })}
         className={cn('h-8 rounded-md px-3 text-sm', f.type === t ? 'bg-white font-semibold shadow-sm' : 'text-ink-secondary')}>{TYPE_LABEL[t]}</button>)}</div>

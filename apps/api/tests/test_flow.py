@@ -153,3 +153,31 @@ def test_append_only_and_samples(admin, make_user):
     assert admin.delete("/admin/samples").json()["data"]["deleted"] == 30
     spg = make_user("SPG", ["GROSIR"])
     assert spg.get("/dashboard").status_code == 403 and spg.post("/admin/samples").status_code == 403
+
+
+def test_excel_export(admin, make_user):
+    import io
+    from openpyxl import load_workbook
+    g = make_user("SPG", ["GROSIR"], name="Excel Uji")
+    i = rid()
+    body = {"type": "GROSIR", "header": {"grosir": "Grosir Excel", "kecGrosir": {"kode": CILACAP_TENGAH}},
+            "entries": [{"jenis": "RETAIL", "tipeToko": "Kios", "namaToko": "=HYPERLINK(\"x\")", "kecamatan": {"kode": CILACAP_TENGAH}, "statusTT": "JUAL",
+                         "tahuDari": "Event", "beli": {"Original": 3}, "alasanBeli": "Coba-coba", "tier2": "Surya 16", "hargaGrosir": 23000}],
+            "sections": {"promos": {"items": [{"merek": "L.A Lights", "aktivitas": "Diskon", "sejak": "Hari ini"}]}, "promotors": {"none": True}},
+            "closing": {"terlaris": [{"merek": "Surya 16", "batang": 9}], "pic": "Pak Excel"}}
+    assert g.put(f"/reports/{i}", json=body).status_code == 200 and g.post(f"/reports/{i}/submit").status_code == 200
+    assert admin.post(f"/review/{i}/approve").status_code == 200
+    assert g.get("/dashboard/export.xlsx?type=GROSIR").status_code == 403
+    r = admin.get("/dashboard/export.xlsx?type=GROSIR&spg=Excel Uji")
+    assert r.status_code == 200 and r.headers["content-type"].startswith("application/vnd.openxmlformats")
+    wb = load_workbook(io.BytesIO(r.content))
+    assert wb.sheetnames[:3] == ["Ringkasan", "Laporan", "Detail pembeli"] and len(wb.sheetnames) == 5
+    det = wb["Detail pembeli"]; head = [c.value for c in det[1]]; row = [c.value for c in det[2]]
+    assert "Tanda Tambah yang dibeli – Original" in head and row[head.index("Tanda Tambah yang dibeli – Original")] == 3
+    assert row[head.index("Status Tanda Tambah sebelum ditawari hari ini")] == "Sudah jual TT"      # label, bukan kode
+    cell = det.cell(row=2, column=head.index("Nama toko") + 1)
+    assert cell.data_type == "s" and cell.value.startswith("=")                                    # tidak menjadi rumus
+    lap = wb["Laporan"]; lh = [c.value for c in lap[1]]
+    assert lap.cell(row=2, column=lh.index("Nama grosir") + 1).value == "Grosir Excel"
+    assert lap.cell(row=2, column=1).is_date                                                      # tanggal asli, bukan teks
+    assert wb.sheetnames[3].startswith("Promo") and wb[wb.sheetnames[3]].max_row == 2

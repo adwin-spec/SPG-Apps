@@ -71,6 +71,7 @@ http://localhost:4000/api/docs.
 |---|---|
 | Pertanyaan form SPG (Grosir, HORECA, Reguler), pilihan jawaban, kapan pertanyaan muncul, wajib/tidak | `apps/api/app/forms.py` |
 | Angka & panel dashboard | `apps/api/app/services/dashboard.py` |
+| Isi file Excel yang diunduh (lembar & kolom) | `apps/api/app/services/excel.py` (kolom detail otomatis mengikuti `forms.py`) |
 | Peringatan otomatis di Persetujuan (mis. "harga eceran < grosir") | `apps/api/app/services/reports.py` → fungsi `flags()` |
 | Syarat laporan bisa dikirim | `apps/api/app/services/reports.py` → fungsi `clean_report()` |
 | Siapa boleh menyetujui (wilayah supervisor) | `apps/api/app/services/access.py` |

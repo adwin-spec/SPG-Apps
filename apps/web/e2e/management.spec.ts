@@ -11,6 +11,8 @@ test('admin: semua halaman tampil tanpa error, data contoh mengisi ketiga dashbo
   }
   await expect(page.getByText('Share of shelf').first()).toBeVisible();
   await page.screenshot({ path: 'test-results/admin-dashboard-reguler.png', fullPage: true });
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Unduh Excel' }).click()]);
+  expect(dl.suggestedFilename()).toMatch(/^tanda-tambah-reguler-30hari\.xlsx$/);
   await page.getByRole('button', { name: /Kab\. Banyumas|Kab\. Cilacap|Kab\. Purbalingga|Kab\. Banjarnegara/ }).first().click();  // drill-down wilayah
   await expect(page.getByLabel('Kecamatan')).toBeEnabled();
   const spv = await makeUser('SPV', 'Rudi Hartono');

@@ -9,6 +9,12 @@
 4. **Wilayah**: ganti nama, nonaktifkan, atau tambah kecamatan/kab/kota.
 5. **Persetujuan**: admin melihat semua wilayah; filter "Tanpa SPV" untuk laporan yang belum punya supervisor.
 
+## Mengunduh hasil ke Excel
+Di **Dashboard**, atur filter (kategori Grosir/HORECA/Reguler, periode, wilayah, tipe toko, SPG), lalu klik **Unduh Excel**.
+File berisi lembar *Ringkasan*, *Laporan* (satu baris per laporan), *Detail* (satu baris per pembeli/responden/outlet),
+dan untuk Grosir lembar *Promo* dan *Promotor*. Hanya laporan yang sudah disetujui yang ikut. Supervisor hanya
+mendapat data wilayahnya. Unduh per kategori (tiga kali) untuk mendapatkan semua jenis laporan.
+
 ## Supervisor
 * **Persetujuan** menampilkan laporan di wilayah Anda. Buka *Detail* (termasuk foto), lalu *Setujui* atau *Tolak*
   dengan alasan yang jelas – SPG akan memperbaikinya.

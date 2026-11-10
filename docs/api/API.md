@@ -14,6 +14,6 @@ Semua respons berbentuk `{"data": ...}`; kesalahan `{"error": {"code", "message"
 | `POST /photos` · `GET /photos/{id}` | semua (SPG hanya fotonya) | unggah/lihat foto |
 | `GET /reports/mine` · `PUT /reports/{id}` · `POST /reports/{id}/submit` · `/rework` · `DELETE /reports/{id}` | SPG pemilik | laporan |
 | `GET /review` · `GET /review/{id}` · `POST /review/{id}/approve` · `/reject` | ADMIN, SPV | persetujuan (SPV dibatasi wilayah) |
-| `GET /dashboard` · `GET /dashboard/export` | ADMIN, SPV | panel dashboard & CSV |
+| `GET /dashboard` · `GET /dashboard/export.xlsx` · `GET /dashboard/export` | ADMIN, SPV | panel dashboard, unduh Excel (beberapa lembar), CSV |
 | `POST/DELETE /admin/samples` · `GET /admin/audit` | ADMIN | data contoh, log audit |
 | `GET /health` | publik | cek server + database |
