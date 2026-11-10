@@ -5,7 +5,7 @@ _Pembaruan: 2026-11-10 · branch `main` · versi 2.0 (backend Python)_
 ## Ringkasan perubahan versi 2.0
 Backend NestJS/TypeScript diganti **FastAPI (Python)** agar bisa diedit sendiri; konsep aplikasi disesuaikan dengan
 form digital terbaru (Grosir, HORECA, Reguler), SPG multi-tugas, foto responden dengan persetujuan, dan supervisor
-per kecamatan. Versi lama tersimpan di tag git **`v1-typescript`**.
+per kecamatan. Versi lama tersimpan di branch git **`v1-typescript`**.
 
 | Bagian | Status | Bukti |
 |---|---|---|
@@ -25,7 +25,7 @@ per kecamatan. Versi lama tersimpan di tag git **`v1-typescript`**.
   SPG tidak bisa membuka halaman manajemen)
 * Migrasi Alembic naik–turun–naik berhasil; seed 119 kab/kota, 2.146 kecamatan
 
-## Fitur versi 1 yang TIDAK dibawa ke versi 2 (masih ada di tag `v1-typescript`)
+## Fitur versi 1 yang TIDAK dibawa ke versi 2 (masih ada di branch `v1-typescript`)
 1. Mesin KPI (bobot, target, ranking, kunci periode) – dashboard v2 berisi metrik operasional, bukan skor KPI.
 2. OCR form kertas & integrasi Google Drive/Sheets – tidak relevan karena semua form kini digital.
 3. Absensi, GPS/geofence, rencana kunjungan.

@@ -55,5 +55,5 @@ di `apps/api`, frontend `pnpm dev:web` di root.
 * [Arsitektur](docs/architecture/ARCHITECTURE.md) · [Database](docs/database/DATABASE.md) · [API](docs/api/API.md)
 * [Deployment](infrastructure/deployment/DEPLOYMENT.md) · [Status pengembangan](DEVELOPMENT_PROGRESS.md)
 
-Versi sebelumnya (backend NestJS/TypeScript dengan modul KPI, OCR kertas, absensi GPS) disimpan di tag git
+Versi sebelumnya (backend NestJS/TypeScript dengan modul KPI, OCR kertas, absensi GPS) disimpan di branch git
 `v1-typescript`.
