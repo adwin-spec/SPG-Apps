@@ -16,7 +16,7 @@ per kecamatan. Versi lama tersimpan di branch git **`v1-typescript`**.
 | Dashboard 3 kategori dari laporan disetujui, filter wilayah/tipe/SPG/supervisor, drill-down, CSV | ✅ | pytest + Playwright |
 | Riwayat & audit append-only (trigger database) | ✅ | pytest |
 | Next.js: aplikasi HP + halaman manajemen | ✅ | typecheck, build, Playwright (4 skenario, tanpa error halaman, tanpa geser horizontal di HP) |
-| Docker (api Python, web) & CI GitHub Actions | 🟡 ditulis | belum dijalankan di lingkungan ini (tidak ada Docker daemon); akan terverifikasi oleh CI setelah push |
+| Docker (api Python, web) & CI GitHub Actions | ✅ | GitHub Actions run 42763785034 hijau: pytest, migrasi + seed, typecheck & build web, Playwright, secret scan, build image api & web. `docker compose up` di server sungguhan belum dicoba |
 
 ## Tes terakhir (semua lulus)
 * `apps/api` pytest – 8 skenario (auth & penyalahgunaan token, validasi form, isolasi antar-SPG, foto & persetujuan,
