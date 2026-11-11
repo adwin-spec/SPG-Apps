@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { adminApi, chip, gpsReady, login, makeUser, pickKec, PNG } from './helpers';
+import { adminApi, chip, gpsReady, login, makeUser, pickKec, PNG, userApi } from './helpers';
 
 test('SPG Grosir+HORECA mengisi survei dengan foto → SPV wilayah menyetujui → masuk dashboard', async ({ page, browser }) => {
   const errors: string[] = []; page.on('pageerror', (e) => errors.push(e.message));
@@ -15,6 +15,7 @@ test('SPG Grosir+HORECA mengisi survei dengan foto → SPV wilayah menyetujui �
   await expect(page.getByText('Disetujui oleh:')).toContainText('Sari Wulandari');
   await chip(page, 'Cafe'); await chip(page, 'Area merokok khusus');
   await gpsReady(page);                                                                  // lokasi otomatis tercatat
+  await expect(page.locator('[data-minimap]')).toBeVisible();                            // peta kecil lokasi SPG
   await expect(page.getByText('-7.45650, 109.28640')).toBeVisible();
   await page.getByRole('button', { name: 'Mulai' }).click();
   await expect(page.getByRole('heading', { name: 'Survei Konsumen HORECA' })).toBeVisible();
@@ -86,4 +87,20 @@ test('SPG Reguler: stok per varian, share of shelf, submit; tugas yang tidak dib
   await page.getByRole('button', { name: 'Kirim laporan' }).click();
   await expect(page.getByText('Laporan terkirim')).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test('draf lama tanpa lokasi tetap bisa disimpan, lalu SPG melengkapi data awal dengan GPS', async ({ page }) => {
+  const s = await makeUser('SPG', 'Lina Draf Lama', ['REGULER']);
+  const id = crypto.randomUUID();                                                       // draf dibuat sebelum ada pertanyaan GPS
+  await userApi(s.username, s.password, `/reports/${id}`, 'PUT', { type: 'REGULER', header: { kecRute: { kode: '33.02.20' } },
+    entries: [{ namaOutlet: 'Toko Lama', kecOutlet: { kode: '33.02.20' } }] });
+  await login(page, s.username, s.password);
+  const card = page.locator('[data-start-card]');
+  await expect(card).toContainText('Data awal belum lengkap'); await expect(card).toContainText('Lokasi kamu sekarang');
+  await expect(page.getByText('Belum lengkap – ketuk Ubah')).toBeVisible();              // outlet lama tanpa GPS ditandai
+  await page.locator('[data-edit-start]').click();
+  await gpsReady(page); await expect(page.locator('[data-minimap]')).toBeVisible();
+  await page.getByRole('button', { name: 'Simpan data awal' }).click();
+  await expect(page.getByText('Data awal tersimpan')).toBeVisible();
+  await expect(card).toContainText('Lokasi -7.45650, 109.28640');
 });

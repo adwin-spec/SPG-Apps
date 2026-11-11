@@ -77,8 +77,11 @@ def test_photo_consent_and_ownership(make_user):
     assert a.post("/photos", files={"file": ("x.txt", b"bukan gambar", "text/plain")}).status_code == 415
     pid = a.post("/photos", files={"file": ("a.jpg", jpeg(), "image/jpeg")}).json()["data"]["id"]
     assert a.get(f"/photos/{pid}").status_code == 200 and b.get(f"/photos/{pid}").status_code == 404
-    r = a.put(f"/reports/{rid()}", json=horeca_report([horeca_entry()]))                     # setuju difoto tapi tanpa foto
+    k = rid()
+    assert a.put(f"/reports/{k}", json=horeca_report([horeca_entry()])).status_code == 200       # setuju difoto tapi belum ada foto: draf boleh disimpan …
+    r = a.post(f"/reports/{k}/submit")                                                          # … tapi tidak bisa dikirim
     assert r.status_code == 422 and "foto" in r.json()["error"]["details"]["entries.0"]
+    assert a.delete(f"/reports/{k}").status_code == 200
     r = b.put(f"/reports/{rid()}", json=horeca_report([horeca_entry(pid)]))                 # foto milik SPG lain
     assert r.status_code == 422
     j = rid()
@@ -200,10 +203,15 @@ def test_gps_map_delete_restore(admin, make_user):
     g = make_user("SPG", ["REGULER"], name="Gita Reguler")
     i = rid()
     head = {"kecRute": {"kode": KEMBARAN}}
-    r = g.put(f"/reports/{i}", json={"type": "REGULER", "header": head})
-    assert r.status_code == 422 and "lokasi" in r.json()["error"]["details"]["header"]           # GPS wajib saat mulai
     r = g.put(f"/reports/{i}", json={"type": "REGULER", "header": {**head, "lokasi": {"lat": 999, "lon": 1}}})
-    assert r.status_code == 422                                                                   # koordinat tidak masuk akal ditolak
+    assert r.status_code == 422 and "lokasi" in r.json()["error"]["details"]["header"]           # koordinat tidak masuk akal ditolak
+    # Draf lama tanpa lokasi (dibuat sebelum ada pertanyaan GPS) tetap bisa disimpan & ditambah outlet …
+    assert g.put(f"/reports/{i}", json={"type": "REGULER", "header": head}).status_code == 200
+    assert g.put(f"/reports/{i}", json={"type": "REGULER", "header": head, "entries": [{"namaOutlet": "Toko Tanpa GPS", "kecOutlet": {"kode": KEMBARAN}}]}).status_code == 200
+    r = g.post(f"/reports/{i}/submit")                                                           # … tapi tidak bisa dikirim sebelum lengkap
+    d = r.json()["error"]["details"]
+    assert r.status_code == 422 and "lokasi" in d["header"] and "gps" in d["entries.0"]
+    assert g.put(f"/reports/{i}", json={"type": "REGULER", "header": {"lokasi": GPS}}).status_code == 422   # kecamatan rute tetap wajib
     outlet = {"gps": {"lat": -7.43, "lon": 109.25, "acc": 9}, "namaOutlet": "Toko Peta", "tipeOutlet": "Kios", "kecOutlet": {"kode": KEMBARAN},
               "statusOutlet": "BELUM", "facingTotal": 10, "posm": "Tidak ada", "beli": {"Original": 2}, "kompetitor": "Surya 16", "promoKomp": "Diskon"}
     body = {"type": "REGULER", "header": {**head, "lokasi": GPS}, "entries": [outlet]}

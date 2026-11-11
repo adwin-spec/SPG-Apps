@@ -96,8 +96,10 @@ def _num(v: Any) -> float | None:
     return int(n) if n.is_integer() else n
 
 
-def clean(questions: list[dict], raw: dict | None, ctx: Ctx, strict: bool = True) -> tuple[dict, dict]:
-    """Kembalikan (isian bersih, kesalahan). Jawaban pertanyaan yang tidak tampil atau tidak dikenal dibuang."""
+def clean(questions: list[dict], raw: dict | None, ctx: Ctx, strict: bool = True, need: set[str] | None = None) -> tuple[dict, dict]:
+    """Kembalikan (isian bersih, kesalahan). Jawaban pertanyaan yang tidak tampil atau tidak dikenal dibuang.
+    `need`: bila diisi, hanya isian wajib di daftar ini yang dicek kosong/tidaknya (dipakai saat menyimpan draf).
+    Nilai yang SALAH (angka tidak wajar, kecamatan tidak dikenal, foto hilang) tetap selalu ditolak."""
     raw = raw if isinstance(raw, dict) else {}
     out: dict = {}
     errs: dict = {}
@@ -124,7 +126,7 @@ def clean(questions: list[dict], raw: dict | None, ctx: Ctx, strict: bool = True
             elif t == "stok":
                 ok = [val(o) for o in q["options"]]
                 v = {k: v[k] for k in ctx.variants if isinstance(v, dict) and v.get(k) in ok} or None
-                if strict and q.get("required") and (not v or len(v) < len(ctx.variants)):
+                if strict and q.get("required") and (need is None or qid in need) and (not v or len(v) < len(ctx.variants)):
                     errs[qid] = "Pilih stok tiap varian dulu ya"
             elif t == "confirm":
                 v = True if v is True else None
@@ -139,7 +141,10 @@ def clean(questions: list[dict], raw: dict | None, ctx: Ctx, strict: bool = True
                 if pid and not v:
                     errs[qid] = "Fotonya nggak ketemu, ambil ulang ya"
             elif t == "gps":
+                given = v not in (None, "", {})
                 v = clean_gps(v)
+                if given and v is None:
+                    errs[qid] = "Lokasinya nggak valid, ambil ulang ya"
             elif t == "brandcounts":
                 rows = []
                 for r in (v or [])[: q.get("rows", 3)]:
@@ -154,7 +159,7 @@ def clean(questions: list[dict], raw: dict | None, ctx: Ctx, strict: bool = True
             v = None
         if v is not None:
             out[qid] = v
-        if strict and q.get("required") and v is None and qid not in errs:
+        if strict and q.get("required") and v is None and qid not in errs and (need is None or qid in need):
             errs[qid] = {"confirm": "Centang dulu ya", "single": "Pilih salah satu dulu", "kecamatan": "Pilih kecamatannya dari daftar", "photo": "Ambil foto dulu", "gps": "Lokasinya belum tercatat"}.get(t, "Ini belum diisi")
         rules = q.get("rules") or {}
         if v is not None and "min" in rules and isinstance(v, (int, float)) and v < rules["min"]:

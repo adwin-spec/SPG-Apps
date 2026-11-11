@@ -10,7 +10,7 @@ import { type Kec, type ReportType, TYPE_LABEL } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/toast';
 import { Photo } from '@/components/photo';
-import { type Answers, type FormDef, type FormsPayload, type KecIndex, indexKec, kecFull, labelOfStatus, sumVariants, titleCase, validate } from './engine';
+import { type Answers, type FormDef, type FormsPayload, type KecIndex, type Question, indexKec, kecFull, labelOfStatus, sumVariants, titleCase, validate } from './engine';
 import { Questions, type QCtx } from './questions';
 import { PlusLoader, PlusMark } from '@/components/branding/plus-mark';
 import { TypographyBackground } from '@/components/branding/typography-background';
@@ -19,7 +19,7 @@ interface Report {
   id: string; type: ReportType; status: string; version?: number; header: Answers; entries: Answers[]; sections: Record<string, { none?: boolean; items: Answers[] }>; closing: Answers;
   startedAt?: string; revision?: number; reviewNote?: string | null; reviewedBy?: string | null; spvNames?: string[]; title?: string; date?: string; entryCount?: number; dirty?: boolean;
 }
-type Screen = { k: 'home' } | { k: 'entry'; idx: number | null } | { k: 'section'; key: string };
+type Screen = { k: 'home' } | { k: 'start' } | { k: 'entry'; idx: number | null } | { k: 'section'; key: string };
 const OPEN = ['DRAFT', 'REVISION'];
 const store = { get<T>(k: string): T | null { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch { return null; } },
   set(k: string, v: unknown) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch { /* penuh/diblokir */ } } };
@@ -63,12 +63,12 @@ export function FieldApp() {
       const s = fromServer(await api<any>(`/reports/${r.id}`, { method: 'PUT', body: body(r) }));
       setOpen({ ...local, version: s.version, status: s.status, spvNames: s.spvNames, startedAt: s.startedAt, dirty: false }); setOnline(true); return true;
     } catch (e) {
-      if (e instanceof ApiError && e.status === 422) { toast('error', 'Isian ditolak server: ' + e.message); setOpen({ ...local, dirty: false }); return false; }
+      if (e instanceof ApiError && e.status === 422) { const F0 = forms?.forms[r.type]; toast('error', (F0 && explain(e.details, F0)) || e.message); setOpen({ ...local, dirty: false }); return false; }
       if (e instanceof ApiError && e.status === 409) { toast('error', e.message); await load(); return false; }
       if (e instanceof ApiError) { toast('error', e.message); return false; }
       setOnline(false); return true; // tersimpan di HP
     }
-  }, [load, setOpen, toast]);
+  }, [load, setOpen, toast, forms]);
   useEffect(() => {
     const retry = () => { const cur = store.get<Report>(key('open')); if (cur?.dirty) persist(cur); };
     window.addEventListener('online', retry); const t = setInterval(retry, 30_000);
@@ -126,7 +126,27 @@ export function FieldApp() {
   const btn = 'h-12 w-full rounded-glass-sm text-base font-semibold transition-[background-color,transform] duration-200 active:scale-[.99] disabled:opacity-50';
   let content: React.ReactNode;
 
-  if (open && F && screen.k === 'entry') {
+  /** Buka layar perbaikan untuk isian yang ditolak (data awal atau pembeli/responden/outlet ke-N). */
+  const goFix = (d: unknown) => {
+    if (!open || !F || !d || typeof d !== 'object') return;
+    const det = d as Record<string, Record<string, string>>;
+    if (det.header) { setDraft(structuredClone(open.header)); setErrs(det.header); setScreen({ k: 'start' }); scrollTo(0, 0); return; }
+    const k = Object.keys(det).find((x) => x.startsWith('entries.'));
+    if (k) { const i = +k.split('.')[1]; if (open.entries[i]) { setDraft(structuredClone(open.entries[i])); setErrs(det[k]); setScreen({ k: 'entry', idx: i }); scrollTo(0, 0); } return; }
+    if (det.closing) setErrs(det.closing);
+  };
+
+  if (open && F && screen.k === 'start') {
+    const save = async () => {
+      const e = validate(F.start, draft, variants); setErrs(e);
+      if (Object.keys(e).length) { toast('error', 'Lengkapi isian yang ditandai'); document.querySelector(`[data-qid="${Object.keys(e)[0]}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+      setBusy(true); const ok = await persist({ ...open, header: draft }); setBusy(false);
+      if (ok) { setScreen({ k: 'home' }); setDraft({}); setErrs({}); toast('success', 'Data awal tersimpan'); scrollTo(0, 0); }
+    };
+    content = <>
+      <Card title={F.start_title} sub="Data awal laporan ini"><Questions qs={F.start} value={draft} onChange={(a) => { setDraft(a); setErrs({}); }} errors={errs} ctx={ctx} idPrefix="start" /></Card>
+      <Sticky><button className={cn(btn, 'bg-ink text-white shadow-[0_8px_20px_rgba(0,0,0,.2)] hover:bg-ink-deep')} disabled={busy} onClick={save}>Simpan data awal</button><button className="h-10 text-sm" onClick={() => { setScreen({ k: 'home' }); setDraft({}); setErrs({}); }}>Batal</button></Sticky></>;
+  } else if (open && F && screen.k === 'entry') {
     const save = async () => {
       const e = validate(F.entry, draft, variants); setErrs(e);
       if (Object.keys(e).length) { toast('error', 'Lengkapi isian yang ditandai'); document.querySelector(`[data-qid="${Object.keys(e)[0]}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
@@ -156,6 +176,10 @@ export function FieldApp() {
       F.sections.forEach((s) => { const x = open.sections[s.key]; if (!x?.items?.length && !x?.none) miss.push(`${s.title.split('·')[0].trim()} (isi atau centang "tidak ada")`); });
       const e = validate(F.closing, open.closing, variants); setErrs(e); if (Object.keys(e).length) miss.push('isian penutup');
       if (miss.length) return toast('error', 'Belum lengkap: ' + miss.join(', '));
+      const he = validate(F.start, open.header, variants);
+      if (Object.keys(he).length) { toast('error', 'Data awal belum lengkap: ' + labelsOf(F.start, he)); goFix({ header: he }); return; }
+      const bad = open.entries.findIndex((x) => Object.keys(validate(F.entry, x, variants)).length);
+      if (bad >= 0) { const ee = validate(F.entry, open.entries[bad], variants); toast('error', `${entryTitle(open.type, open.entries[bad], bad)} belum lengkap: ${labelsOf(F.entry, ee)}`); goFix({ [`entries.${bad}`]: ee }); return; }
       setBusy(true);
       try {
         if (open.dirty && !(await persist(open))) return;
@@ -163,15 +187,25 @@ export function FieldApp() {
         await api(`/reports/${open.id}/submit`, { method: 'POST' });
         toast('success', open.status === 'REVISION' ? 'Revisi terkirim – menunggu persetujuan ulang' : 'Laporan terkirim – menunggu persetujuan supervisor');
         setOpen(null); setTugas(user!.tugas.length === 1 ? user!.tugas[0] : ''); await load(); scrollTo(0, 0);
-      } catch (er) { toast('error', er instanceof ApiError ? er.message : 'Kirim laporan butuh sinyal. Isian tetap tersimpan di HP.'); }
+      } catch (er) {
+        if (er instanceof ApiError && er.status === 422) { toast('error', explain(er.details, F) || er.message); goFix(er.details); }
+        else toast('error', er instanceof ApiError ? er.message : 'Kirim laporan butuh sinyal. Isian tetap tersimpan di HP.');
+      }
       finally { setBusy(false); }
     };
     content = <>
       {open.status === 'REVISION' && <div className="rounded-r-md border-l-4 border-critical bg-critical-soft px-3 py-2 text-sm"><b>Revisi</b> – alasan ditolak{open.reviewedBy ? ` oleh ${open.reviewedBy}` : ''}: {open.reviewNote}<div className="text-xs text-ink-muted">Perbaiki isian yang diminta, lalu tekan Kirim ulang.</div></div>}
       <Card title={reportTitle(open, F)} sub={`${kecFull(open.header[F.location_field])} · mulai ${fmtTime(open.startedAt)}`} badge={`${fmtNum(packs)} bks TT ${open.type === 'REGULER' ? 'diorder' : 'terjual'}`}>
         <div className="text-xs text-ink-secondary">Disetujui oleh: <b>{open.spvNames?.length ? [...new Set(open.spvNames)].join(', ') : ctx.spvFor!(open.header[F.location_field])}</b></div>
+        {(() => { const he = validate(F.start, open.header, variants); const n = Object.keys(he).length; const g = open.header.lokasi;
+          return <div className={cn('mt-2 flex items-center gap-2 rounded-glass-sm px-3 py-2 text-sm', n ? 'border border-critical/40 bg-critical-soft' : 'border border-line bg-white/60')} data-start-card>
+            <div className="min-w-0 flex-1">{n ? <><b>Data awal belum lengkap:</b> {labelsOf(F.start, he)}</>
+              : <><b>Data awal</b><div className="truncate text-xs text-ink-muted">{g ? `Lokasi ${g.lat.toFixed(5)}, ${g.lon.toFixed(5)}${g.acc != null ? ` · ± ${g.acc} m` : ''}` : 'Lengkap'}</div></>}</div>
+            <button className={cn('shrink-0 rounded-md px-3 py-1.5 text-sm font-semibold', n ? 'bg-ink text-white' : 'underline decoration-ink/30 decoration-2 underline-offset-4')}
+              data-edit-start onClick={() => goFix({ header: n ? he : {} })}>{n ? 'Lengkapi' : 'Ubah'}</button></div>; })()}
         <div className="mt-2 divide-y divide-border">{open.entries.map((e, i) => <div key={i} className="flex items-center gap-2 py-2">
-          <div className="min-w-0 flex-1"><div className="truncate font-medium">{entryTitle(open.type, e, i)}</div><div className="truncate text-xs text-ink-muted">{entrySub(open.type, e, forms)}</div></div>
+          <div className="min-w-0 flex-1"><div className="truncate font-medium">{entryTitle(open.type, e, i)}</div><div className="truncate text-xs text-ink-muted">{entrySub(open.type, e, forms)}</div>
+            {Object.keys(validate(F.entry, e, variants)).length > 0 && <div className="text-xs font-semibold text-critical-text">Belum lengkap – ketuk Ubah</div>}</div>
           {(e.foto || e.fotoDisplay) && <Photo value={e.foto || e.fotoDisplay} alt="Foto" className="h-10 w-10" />}
           <button className="rounded-md px-2 py-1 text-sm font-semibold underline decoration-ink/30 decoration-2 underline-offset-4" onClick={() => { setDraft(structuredClone(e)); setErrs({}); setScreen({ k: 'entry', idx: i }); scrollTo(0, 0); }}>Ubah</button>
           <button className="rounded-md px-2 py-1 text-sm text-critical-text" onClick={() => persist({ ...open, entries: open.entries.filter((_, j) => j !== i) })} aria-label={`Hapus ${entryTitle(open.type, e, i)}`}>Hapus</button></div>)}</div>
@@ -235,4 +269,23 @@ function entrySub(t: ReportType, e: Answers, f: FormsPayload) {
   if (t === 'HORECA') return `${e.usia} th · ${e.rokokBiasa} · ${sumVariants(e.beli)} bks TT · ${e.foto ? 'difoto' : 'tanpa foto'}`;
   const st = (f.options.statusOutlet as [string, string][]).find((o) => o[0] === e.statusOutlet)?.[1] ?? e.statusOutlet;
   return `${e.tipeOutlet} · ${e.kecOutlet?.nama ?? ''} · ${st} · order ${sumVariants(e.beli)} bks`;
+}
+
+/** Label pertanyaan untuk daftar kesalahan, mis. "Lokasi kamu sekarang, Nama outlet". */
+function labelsOf(qs: Question[], e: Record<string, unknown>) { return Object.keys(e).map((id) => qs.find((q) => q.id === id)?.label ?? id).join(', '); }
+
+/** Ubah rincian penolakan server menjadi kalimat yang dimengerti SPG. */
+function explain(d: unknown, F: FormDef): string {
+  if (!d || typeof d !== 'object') return '';
+  const word = F.entry_word.charAt(0).toUpperCase() + F.entry_word.slice(1); const out: string[] = [];
+  for (const [k, v] of Object.entries(d as Record<string, any>)) {
+    if (k === 'submit') { out.push(...(Array.isArray(v) ? v : [])); continue; }
+    const m = /^(.+)\.(\d+)$/.exec(k); let where = k; let qs: Question[] = [];
+    if (k === 'header') { where = 'Data awal'; qs = F.start; }
+    else if (k === 'closing') { where = 'Penutup'; qs = F.closing; }
+    else if (m && m[1] === 'entries') { where = `${word} ke-${+m[2] + 1}`; qs = F.entry; }
+    else if (m) { const sec = F.sections.find((x) => x.key === m[1]); where = sec ? sec.title.split('·')[0].trim() : m[1]; qs = sec?.questions ?? []; }
+    if (v && typeof v === 'object') out.push(`${where}: ${labelsOf(qs, v)}`);
+  }
+  return out.length ? 'Belum lengkap – ' + out.slice(0, 3).join(' · ') + (out.length > 3 ? ` (+${out.length - 3} lagi)` : '') : '';
 }

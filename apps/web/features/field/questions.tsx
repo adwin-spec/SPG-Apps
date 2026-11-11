@@ -7,6 +7,7 @@ import { fieldBase } from '@/components/ui/glass-input';
 import type { Kec } from '@/lib/types';
 import { type Answers, type Gps, type KecIndex, type Question, getGps, lab, mapsLink, optionsOf, searchKec, shortKab, sumVariants, val, visible } from './engine';
 import { uploadPhoto } from './photo';
+import { MiniMap } from './minimap';
 
 export interface QCtx { variants: string[]; kec: KecIndex; suggest: (k: string) => string[]; preferKab?: string; stamp: () => string; spvFor?: (k: Kec) => string;
   /** Isian yang pernah ditulis SPG ini untuk pertanyaan yang sama (terbanyak & terbaru dulu). */ history?: (qid: string) => unknown[] }
@@ -156,6 +157,7 @@ function GpsInput({ q, v, set }: { q: Question; v?: Gps; set: (v: unknown) => vo
       : <button type="button" onClick={take} disabled={busy} data-gps={q.id}
           className="flex h-12 items-center justify-center gap-2 rounded-glass-sm border border-dashed border-ink/40 bg-white/60 font-semibold text-ink transition-colors hover:bg-white disabled:opacity-60">
           <LocateFixed className={busy ? 'h-5 w-5 animate-pulse' : 'h-5 w-5'} />{busy ? 'Mencari lokasi kamu…' : 'Ambil lokasi saya'}</button>}
+    {v && <MiniMap g={v} />}
     {v?.acc != null && v.acc > 150 && <p className="text-xs font-medium text-warn-text">Akurasinya kurang bagus. Coba ketuk "Perbarui" di tempat yang lebih terbuka.</p>}
     {err && <p role="alert" className="text-xs font-medium text-critical-text">{err}</p>}
   </div>;

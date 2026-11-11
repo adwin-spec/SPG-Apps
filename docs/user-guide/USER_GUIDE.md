@@ -50,7 +50,8 @@ Hanya laporan yang sudah disetujui yang ikut. Supervisor hanya mendapat data wil
 ## SPG (di HP)
 1. Buka alamat aplikasi di browser HP, masuk, lalu *Tambahkan ke layar utama*.
 2. Bila punya beberapa tugas, pilih **Tugas hari ini**. Saat form dibuka, **lokasi diambil otomatis**
-   (lat/lon + akurasi tampil di layar; ketuk *lihat di peta* untuk mengecek, *Perbarui* bila pindah tempat).
+   (lat/lon + akurasi dan **peta kecil** titik lokasi tampil di layar; ketuk *lihat di peta* untuk membuka Google Maps,
+   *Perbarui* bila pindah tempat).
    Pertama kali, browser meminta izin lokasi → pilih **Izinkan**. Untuk Reguler, lokasi diambil di setiap outlet.
    Lokasi hanya bisa diambil bila aplikasi dibuka lewat **https://** (alamat tunnel/domain), bukan http biasa.
    Bila tidak sengaja ditolak: pengaturan browser → Situs → Lokasi → izinkan alamat aplikasi.
@@ -61,4 +62,8 @@ Hanya laporan yang sudah disetujui yang ikut. Supervisor hanya mendapat data wil
 5. Isi penutup, tekan **Kirim laporan**. Bila sinyal hilang, isian tetap tersimpan di HP dan dikirim saat sinyal kembali
    (tanda "Belum terkirim" di atas). Foto dan tombol Kirim membutuhkan sinyal.
 6. Laporan yang ditolak muncul di **Perlu diperbaiki** → *Perbaiki* → ubah → *Kirim ulang*.
-7. Di bawah setiap isian ada **Pernah diisi:** – ketuk salah satu jawaban lama untuk mengisinya ulang dengan cepat.
+7. Di laporan yang sedang dibuka ada kotak **Data awal** → *Ubah* untuk memperbaiki data awal. Bila kotaknya merah
+   (**Data awal belum lengkap**, mis. draf lama yang dibuat sebelum ada lokasi), ketuk **Lengkapi**. Pembeli/responden/
+   outlet yang belum lengkap ditandai *Belum lengkap – ketuk Ubah*. Saat *Kirim laporan*, aplikasi langsung membuka isian
+   yang masih kurang.
+8. Di bawah setiap isian ada **Pernah diisi:** – ketuk salah satu jawaban lama untuk mengisinya ulang dengan cepat.

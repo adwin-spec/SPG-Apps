@@ -28,11 +28,15 @@ def clean_report(db: Session, user: User, rtype: str, body: dict, final: bool) -
     f = FORMS[rtype]
     ctx = make_ctx(db, user)
     errs: dict = {}
-    header, e = clean(f["start"], body.get("header"), ctx, strict=True)
+    # Draf: isian wajib yang masih kosong tidak menghalangi penyimpanan (mis. laporan lama sebelum ada pertanyaan baru,
+    # atau GPS sedang gagal). Hanya kecamatan lokasi yang wajib, karena dipakai untuk menentukan supervisor.
+    # Saat dikirim (final) semuanya diperiksa lengkap.
+    need = None if final else {f["location_field"]}
+    header, e = clean(f["start"], body.get("header"), ctx, strict=True, need=need)
     if e: errs["header"] = e
     entries = []
     for i, raw in enumerate((body.get("entries") or [])[:300]):
-        ent, e = clean(f["entry"], raw, ctx, strict=True)
+        ent, e = clean(f["entry"], raw, ctx, strict=True, need=None if final else set())
         if e: errs[f"entries.{i}"] = e
         at = raw.get("at") if isinstance(raw, dict) else None
         ent["at"] = at if isinstance(at, str) and len(at) <= 40 else datetime.now(UTC).isoformat()
@@ -42,7 +46,7 @@ def clean_report(db: Session, user: User, rtype: str, body: dict, final: bool) -
         raw = (body.get("sections") or {}).get(sec["key"]) or {}
         items = []
         for i, it in enumerate((raw.get("items") or [])[:50]):
-            c, e = clean(sec["questions"], it, ctx, strict=True)
+            c, e = clean(sec["questions"], it, ctx, strict=True, need=None if final else set())
             if e: errs[f"{sec['key']}.{i}"] = e
             items.append(c)
         sections[sec["key"]] = {"none": bool(raw.get("none")) and not items, "items": items}
