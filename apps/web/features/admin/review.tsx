@@ -98,10 +98,10 @@ function Detail({ id }: { id: string }) {
     return String(v);
   };
   return <div className="grid gap-3 text-[13px]">
-    <div className="glass-nested overflow-x-auto"><table className="glass-table"><thead><tr><th>#</th>{qs.map((q) => <th key={q.id}>{q.label.replace(/\?$/, '').slice(0, 28)}</th>)}</tr></thead>
+    <div className="glass-nested overflow-x-auto"><table className="glass-table"><thead><tr><th>#</th>{qs.map((q) => <th key={q.id}>{q.col ?? q.label.replace(/\?$/, '').slice(0, 28)}</th>)}</tr></thead>
       <tbody>{r.data.entries.map((e: any, i: number) => <tr key={i}><td>{i + 1}</td>{qs.map((q) => <td key={q.id}>{show(q, e[q.id])}</td>)}</tr>)}</tbody></table></div>
     {F.sections.map((s) => { const x = r.data.sections?.[s.key]; return <div key={s.key}><b>{s.title}:</b> {x?.none ? 'tidak ada' : (x?.items ?? []).map((it: any) => Object.values(it).join(' · ')).join('; ') || '–'}</div>; })}
-    {F.closing.map((q) => <div key={q.id}><b>{q.label}:</b> {q.type === 'brandcounts' ? (r.data.closing?.[q.id] ?? []).map((t: any) => `${t.merek} (${t.batang ?? '–'} btg)`).join(', ') || '–' : show(q, r.data.closing?.[q.id])}</div>)}
+    {F.closing.map((q) => <div key={q.id}><b>{q.col ?? q.label}:</b> {q.type === 'brandcounts' ? (r.data.closing?.[q.id] ?? []).map((t: any) => `${t.merek} (${t.batang ?? '–'} btg)`).join(', ') || '–' : show(q, r.data.closing?.[q.id])}</div>)}
     <div><b>Riwayat:</b> {r.log.map((l: any) => `${l.action.replace(/_/g, ' ').toLowerCase()}${l.by ? ' oleh ' + l.by : ''} ${fmtDateTime(l.at)}${l.note ? ` (“${l.note}”)` : ''}`).join(' → ')}</div>
   </div>;
 }

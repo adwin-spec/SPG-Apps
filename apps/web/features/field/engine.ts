@@ -9,6 +9,7 @@ export interface Question {
   required: boolean; hint?: string; placeholder?: string; text?: string; options?: Opt[] | { by: string; map: Record<string, Opt[]> } | { variants: true; extra: string[] };
   show?: Cond; suggest?: 'brands' | 'grosirs' | 'outlets'; capture?: 'user' | 'environment'; rows?: number; titlecase?: boolean; location?: boolean;
   rules?: { min?: number; min_message?: string; lte_field?: string; lte_message?: string };
+  /** Nama kolom singkat untuk Excel & halaman Persetujuan. */ col?: string;
 }
 export interface Section { key: string; title: string; none_label: string; questions: Question[] }
 export interface FormDef { title: string; start_title: string; entry_word: string; entry_hint: string; title_field: string; location_field: string; entry_location: string;
@@ -64,8 +65,8 @@ export function validate(qs: Question[], a: Answers, variants: string[]): Record
   for (const q of shown) {
     const v = clean[q.id];
     if (q.required && (empty(v) || (q.type === 'stok' && variants.some((x) => !(v ?? {})[x]))))
-      e[q.id] = q.type === 'stok' ? 'Pilih status stok setiap varian' : ({ confirm: 'Wajib dicentang', single: 'Pilih salah satu', kecamatan: 'Pilih kecamatan dari daftar', photo: 'Ambil foto dulu' } as Record<string, string>)[q.type] ?? 'Wajib diisi';
-    if (q.required && q.type === 'brandcounts' && !(v ?? []).some((r: any) => norm(r?.merek))) e[q.id] = 'Isi minimal satu merek';
+      e[q.id] = q.type === 'stok' ? 'Pilih stok tiap varian dulu ya' : ({ confirm: 'Centang dulu ya', single: 'Pilih salah satu dulu', kecamatan: 'Pilih kecamatannya dari daftar', photo: 'Ambil foto dulu' } as Record<string, string>)[q.type] ?? 'Ini belum diisi';
+    if (q.required && q.type === 'brandcounts' && !(v ?? []).some((r: any) => norm(r?.merek))) e[q.id] = 'Isi minimal satu merek ya';
     const r = q.rules;
     if (r && typeof v === 'number') {
       if (r.min != null && v < r.min) e[q.id] = r.min_message ?? `Minimal ${r.min}`;

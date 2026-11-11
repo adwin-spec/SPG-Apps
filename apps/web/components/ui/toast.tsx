@@ -13,7 +13,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setTimeout(() => setItems((x) => x.filter((t) => t.id !== id)), tone === 'error' ? 7000 : 3500);
   }, []);
   return <Ctx.Provider value={push}>{children}
-    <div aria-live="polite" className="pointer-events-none fixed bottom-4 right-4 z-[60] flex w-[min(92vw,380px)] flex-col gap-2">
+    <div aria-live="polite" className="pointer-events-none fixed right-4 top-20 z-[60] flex w-[min(92vw,380px)] flex-col gap-2 sm:bottom-4 sm:top-auto">
       {items.map((t) => {
         const Icon = t.tone === 'success' ? CheckCircle2 : t.tone === 'error' ? AlertOctagon : Info;
         return <div key={t.id} className="pointer-events-auto flex items-start gap-2 glass-elevated !rounded-glass-md px-4 py-3 text-sm font-medium">

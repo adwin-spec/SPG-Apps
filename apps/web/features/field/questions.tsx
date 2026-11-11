@@ -8,7 +8,8 @@ import type { Kec } from '@/lib/types';
 import { type Answers, type KecIndex, type Question, lab, optionsOf, searchKec, shortKab, sumVariants, val, visible } from './engine';
 import { uploadPhoto } from './photo';
 
-export interface QCtx { variants: string[]; kec: KecIndex; suggest: (k: string) => string[]; preferKab?: string; stamp: () => string; spvFor?: (k: Kec) => string }
+export interface QCtx { variants: string[]; kec: KecIndex; suggest: (k: string) => string[]; preferKab?: string; stamp: () => string; spvFor?: (k: Kec) => string;
+  /** Isian yang pernah ditulis SPG ini untuk pertanyaan yang sama (terbanyak & terbaru dulu). */ history?: (qid: string) => unknown[] }
 
 const chip = 'relative inline-flex min-h-10 cursor-pointer select-none items-center rounded-full border border-line-strong bg-white/70 px-3.5 py-2 text-sm font-medium transition-colors hover:border-ink has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:font-bold has-[:checked]:text-white  has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ink';
 const inputCls = cn(fieldBase, 'h-11 text-base');
@@ -23,6 +24,7 @@ export function Questions({ qs, value, onChange, errors, ctx, idPrefix = 'q' }: 
       <div id={hid} className="font-bold">{q.label}{!q.required && <span className="ml-1 text-xs font-normal text-ink-muted">(opsional)</span>}</div>
       {q.hint && <div className="-mt-1 text-xs text-ink-muted">{q.hint}</div>}
       <Control q={q} v={v} a={clean} set={(x) => set(q.id, x)} ctx={ctx} />
+      <History q={q} v={v} set={(x) => set(q.id, x)} ctx={ctx} />
       {err && <div role="alert" className="text-xs text-critical-text">{err}</div>}
     </div>; })}</div>;
 }
@@ -108,5 +110,28 @@ function PhotoInput({ q, v, set, ctx }: { q: Question; v: any; set: (v: unknown)
       : <label className="relative flex h-14 cursor-pointer items-center justify-center gap-2 rounded-glass-sm border border-dashed border-ink/40 bg-white/60 font-semibold text-ink hover:bg-black/[.04] has-[:focus-visible]:ring-2">
         <Camera className="h-5 w-5" />{busy ? 'Mengunggah foto…' : 'Ambil foto'}{input}</label>}
     {err && <div role="alert" className="text-xs text-critical-text">{err}</div>}
+  </div>;
+}
+
+/** "Pernah diisi": isian sebelumnya sebagai tombol yang tinggal diketuk. */
+function History({ q, v, set, ctx }: { q: Question; v: any; set: (v: unknown) => void; ctx: QCtx }) {
+  if (!ctx.history || !['text', 'textarea', 'number', 'kecamatan', 'brandcounts'].includes(q.type)) return null;
+  const key = (x: any) => (x && typeof x === 'object' ? x.kode : String(x));
+  let items = ctx.history(q.type === 'brandcounts' ? '__brands' : q.id);
+  if (q.type === 'brandcounts') { const used = new Set((v ?? []).map((r: any) => String(r?.merek ?? '').toLowerCase())); items = items.filter((x) => !used.has(String(x).toLowerCase())); }
+  else if (q.type === 'kecamatan') { if (v && typeof v === 'object') return null; items = items.filter((x: any) => x && ctx.kec.byKode.has(x.kode)); }
+  else items = items.filter((x) => key(x) !== key(v));
+  items = items.slice(0, 6);
+  if (!items.length) return null;
+  const pick = (x: any) => {
+    if (q.type === 'kecamatan') return set(ctx.kec.byKode.get(x.kode));
+    if (q.type === 'brandcounts') { const rows = [...(v ?? [])]; const i = rows.findIndex((r: any) => !r?.merek); if (i >= 0) rows[i] = { ...rows[i], merek: x }; else if (rows.length < (q.rows ?? 3)) rows.push({ merek: x }); else return; return set(rows); }
+    set(x);
+  };
+  return <div className="flex flex-wrap items-center gap-1.5" aria-label={`Isian sebelumnya untuk ${q.label}`}>
+    <span className="mr-0.5 text-2xs font-medium text-ink-muted">Pernah diisi:</span>
+    {items.map((x: any) => <button key={key(x)} type="button" onClick={() => pick(x)} data-hist={q.id}
+      className="max-w-[16rem] truncate rounded-full border border-line-strong bg-white/70 px-2.5 py-1 text-xs font-medium text-ink-secondary transition-colors hover:border-ink hover:bg-white hover:text-ink">
+      {q.type === 'kecamatan' ? x.nama : q.type === 'number' ? Number(x).toLocaleString('id-ID') : String(x)}</button>)}
   </div>;
 }

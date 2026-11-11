@@ -48,7 +48,7 @@ def load_samples(n: int = Query(60, ge=3, le=600), me: User = Depends(require("A
                 b = buy(0 if sampel == "Tidak mencoba" else 0.35); setuju = "YA" if rnd.random() < 0.75 else "TIDAK"
                 e = {"dewasa": True, "usia": pick(O["usia"]), "domisili": pick(kecs), "rokokBiasa": pick(comp), "tempatBeli": pick(O["tempatBeli"]), "rasa": pick(O["rasaDisukai"]),
                      "statusTT": st, "alasan": pick(O["alasanPengguna"] if st in ("BARU", "LAMA") else O["alasanBerhenti"] if st == "BERHENTI" else O["alasanBelumCoba"]),
-                     "sampel": sampel, "beli": b, "promo": pick(O["promoDisukai"]), "fotoSetuju": setuju, "at": at}
+                     "sampel": sampel, "beli": b, "fotoSetuju": setuju, "at": at}
                 if st != "BELUM": e["tahuDari"] = pick(O["tahuDariHoreca"])
                 if sampel != "Tidak mencoba": e |= {"kekuatan": pick(["Pas", "Pas", "Terlalu ringan", "Terlalu kuat"]), "asap": pick(O["asap"])}
                 e["alasanBeli" if sum_variants(b) else "alasanTidak"] = pick(O["alasanBeliHoreca" if sum_variants(b) else "alasanTidakHoreca"])

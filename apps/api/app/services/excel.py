@@ -42,7 +42,7 @@ def _wib(v) -> datetime | None:
 
 
 def _sheet(wb: Workbook, title: str, headers: list[str], rows: list[list]):
-    ws = wb.create_sheet(title[:31])
+    ws = wb.create_sheet(re.sub(r"[\\/?*\[\]:]", "-", title).strip()[:31] or "Lembar")  # karakter yang dilarang Excel
     ws.append(headers)
     for c in ws[1]:
         c.fill, c.font, c.alignment = HEAD_FILL, HEAD_FONT, Alignment(wrap_text=True, vertical="top")
@@ -70,7 +70,7 @@ def _columns(questions: list[dict], variants: list[str]) -> list[tuple[str, str,
     """(id pertanyaan, judul kolom, sub-kunci) untuk setiap kolom."""
     cols = []
     for q in questions:
-        label = q["label"].rstrip("?")
+        label = q.get("col") or q["label"].rstrip("?")
         if q["type"] in ("variants", "stok"):
             cols += [(q["id"], f"{label} – {v}", v) for v in variants]
         elif q["type"] == "kecamatan":
@@ -272,8 +272,8 @@ def build_xlsx(db: Session, me: User, f: Filters) -> bytes:
         for s in ss:
             for it in ((s.get("sections") or {}).get(sec["key"]) or {}).get("items", []):
                 rows.append([s.get("date"), s["_spg"], s["header"].get(title_field) or "", *[_value(qmap_s[i], it.get(i), sub, it, variants) for i, _, sub in scols]])
-        name = sec["title"].split("·")[-1].strip()
-        _sheet(wb, name.replace("/", "-")[:31], ["Tanggal", "SPG", "Grosir", *[h for _, h, _ in scols]], rows)
+        name = sec.get("sheet") or sec["title"].split("·")[-1].strip()
+        _sheet(wb, name, ["Tanggal", "SPG", "Grosir", *[h for _, h, _ in scols]], rows)
 
     buf = io.BytesIO()
     wb.save(buf)

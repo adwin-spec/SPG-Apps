@@ -82,7 +82,29 @@ export function FieldApp() {
       Object.values(r.sections ?? {}).forEach((x) => x.items?.forEach((i) => i.merek && s.add(titleCase(i.merek)))); (r.closing?.terlaris ?? []).forEach((t: any) => t.merek && s.add(titleCase(t.merek))); });
     return [...s].sort();
   }, [mine, open]);
+  /** Riwayat isian per pertanyaan dari laporan SPG ini (termasuk yang sedang dibuka): paling sering & terbaru dulu. */
+  const history = useMemo(() => {
+    const m = new Map<string, Map<string, { v: unknown; n: number; i: number }>>(); let order = 0;
+    const add = (qid: string, v: unknown) => {
+      if (v == null || v === '' || typeof v === 'boolean') return;
+      let k: string;
+      if (typeof v === 'object') { const o = v as Record<string, unknown>; if (typeof o.kode !== 'string' || typeof o.nama !== 'string') return; k = o.kode; }
+      else { k = String(v).trim(); if (!k || k.length > 80) return; }
+      const bucket = m.get(qid) ?? new Map(); const cur = bucket.get(k.toLowerCase());
+      bucket.set(k.toLowerCase(), { v, n: (cur?.n ?? 0) + 1, i: Math.min(cur?.i ?? Infinity, order++) }); m.set(qid, bucket);
+    };
+    const all = [...(open ? [open] : []), ...mine.filter((r) => r.id !== open?.id)];
+    for (const r of all) {
+      const rows = [r.header ?? {}, r.closing ?? {}, ...[...(r.entries ?? [])].reverse(), ...Object.values(r.sections ?? {}).flatMap((x) => x.items ?? [])];
+      for (const row of rows) for (const [k, v] of Object.entries(row)) { if (k !== 'at' && k !== 'terlaris') add(k, v); }
+      for (const t of (r.closing?.terlaris ?? []) as { merek?: string }[]) add('__brands', t.merek);
+    }
+    brands.forEach((b) => add('__brands', b));
+    return (qid: string) => [...(m.get(qid)?.values() ?? [])].sort((a, b) => b.n - a.n || a.i - b.i).map((x) => x.v);
+  }, [mine, open, brands]);
+
   const ctx: QCtx | null = forms && wil ? {
+    history,
     variants, kec: wil, preferKab: open ? (open.header[forms.forms[open.type].location_field] as Kec | undefined)?.kabKode : undefined,
     suggest: (k) => (k === 'brands' ? brands : k === 'grosirs' ? [...new Set([...forms.settings.grosirs, ...mine.map((r) => r.header.grosir).filter(Boolean)])].sort()
       : [...new Set([...mine, ...(open ? [open] : [])].flatMap((r) => r.entries.map((e) => e.namaOutlet)).filter(Boolean))].sort()),

@@ -323,23 +323,20 @@ def horeca(ss: list[dict], ents: list[dict], variants: list[str], brand: str, X:
         bars("Kesan asap", "Setelah mencoba", count(tried, "asap", O["asap"]), pct=True, span=4),
         bars("Penjualan per varian", "Bungkus dibeli responden", by_var),
         bars("Sampel yang dicoba", "", count(tried, "sampel"), pct=True, tone="tt"),
-        bars("Promo yang disukai", "", count(ents, "promo"), pct=True),
         bars("Alasan membeli", "", count(ents, "alasanBeli"), pct=True, tone="tt"),
         bars("Alasan tidak membeli", "", count(ents, "alasanTidak"), pct=True, tone="comp"),
         bars("Rokok yang biasa dihisap", "Diisi bebas oleh SPG", count(ents, lambda e: title_case(e["rokokBiasa"]) if e.get("rokokBiasa") else None), pct=True, tone="comp"),
         segments("Usia responden", "", count(ents, "usia", O["usia"]), span=4),
-        bars("Tempat biasa beli rokok", "", count(ents, "tempatBeli"), pct=True, span=6),
-        bars("Jenis venue", f"{fmt(sum(int((s.get('closing') or {}).get('korek') or 0) for s in ss))} korek diberikan", count([s["header"] for s in ss], "jenisVenue"), pct=True, span=6),
-        observed(ss, brand, "Merek paling banyak dihisap di venue", 12),
+        bars("Tempat biasa beli rokok", "", count(ents, "tempatBeli"), pct=True),
+        bars("Jenis venue", f"{fmt(sum(int((s.get('closing') or {}).get('korek') or 0) for s in ss))} korek diberikan", count([s["header"] for s in ss], "jenisVenue"), pct=True),
+        observed(ss, brand, "Merek paling banyak dihisap di venue", 8),
         gallery("Foto SPG bersama responden", "Terbaru · hanya untuk verifikasi internal",
                 photo_items(ents, "foto", lambda e: f"{e['_s']['_spg']} · {e['_s']['header'].get('venue')} · {str(e.get('at'))[:10]}")),
     ]
     no_buy = count([e for e in tried if packs(e) == 0], "alasanTidak")
-    promo = count(ents, "promo")
     ins = [
         f"{pct(len(bought), len(tried))} responden yang mencoba sampel langsung membeli." if tried else None,
         f"Alasan utama tidak membeli setelah mencoba: {no_buy[0][0].lower()}." if no_buy else None,
-        f"Promo paling disukai: {promo[0][0].lower()}." if promo else None,
         f"{pct(len(photo), len(ents))} responden bersedia difoto bersama SPG." if ents else None,
     ]
     return tiles, p, [x for x in ins if x]

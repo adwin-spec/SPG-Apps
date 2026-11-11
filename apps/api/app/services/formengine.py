@@ -75,7 +75,7 @@ def _num(v: Any) -> float | None:
     try:
         n = float(v)
     except (TypeError, ValueError):
-        raise ValueError("Harus angka")
+        raise ValueError("Isi pakai angka ya")
     if n < 0 or n > MAX_NUMBER:
         raise ValueError("Angka tidak wajar")
     return int(n) if n.is_integer() else n
@@ -110,19 +110,19 @@ def clean(questions: list[dict], raw: dict | None, ctx: Ctx, strict: bool = True
                 ok = [val(o) for o in q["options"]]
                 v = {k: v[k] for k in ctx.variants if isinstance(v, dict) and v.get(k) in ok} or None
                 if strict and q.get("required") and (not v or len(v) < len(ctx.variants)):
-                    errs[qid] = "Pilih status stok setiap varian"
+                    errs[qid] = "Pilih stok tiap varian dulu ya"
             elif t == "confirm":
                 v = True if v is True else None
             elif t == "kecamatan":
                 kode = v.get("kode") if isinstance(v, dict) else v
                 v = ctx.kecamatan(str(kode)) if kode else None
                 if kode and not v:
-                    errs[qid] = "Kecamatan tidak ada di master wilayah"
+                    errs[qid] = "Kecamatannya nggak ada di daftar"
             elif t == "photo":
                 pid = v.get("id") if isinstance(v, dict) else v
                 v = {"id": pid} if pid and ctx.photo_ok(str(pid)) else ({"sample": True} if isinstance(v, dict) and v.get("sample") else None)
                 if pid and not v:
-                    errs[qid] = "Foto tidak ditemukan, ambil ulang"
+                    errs[qid] = "Fotonya nggak ketemu, ambil ulang ya"
             elif t == "brandcounts":
                 rows = []
                 for r in (v or [])[: q.get("rows", 3)]:
@@ -138,7 +138,7 @@ def clean(questions: list[dict], raw: dict | None, ctx: Ctx, strict: bool = True
         if v is not None:
             out[qid] = v
         if strict and q.get("required") and v is None and qid not in errs:
-            errs[qid] = {"confirm": "Wajib dicentang", "single": "Pilih salah satu", "kecamatan": "Pilih kecamatan dari daftar", "photo": "Ambil foto dulu"}.get(t, "Wajib diisi")
+            errs[qid] = {"confirm": "Centang dulu ya", "single": "Pilih salah satu dulu", "kecamatan": "Pilih kecamatannya dari daftar", "photo": "Ambil foto dulu"}.get(t, "Ini belum diisi")
         rules = q.get("rules") or {}
         if v is not None and "min" in rules and isinstance(v, (int, float)) and v < rules["min"]:
             errs[qid] = rules.get("min_message", f"Minimal {rules['min']}")

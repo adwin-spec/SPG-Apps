@@ -19,6 +19,19 @@ test('admin: semua halaman tampil tanpa error, data contoh mengisi ketiga dashbo
   await page.getByRole('button', { name: 'Tabel' }).first().click();                       // setiap grafik punya tampilan tabel
   await expect(page.locator('table').first()).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Insight' })).toBeVisible();
+  // Setiap kotak yang bereaksi saat disentuh kursor harus tetap terbaca (bug: kotak gelap berubah putih)
+  const cards = page.locator('.glass-hover');
+  for (let i = 0; i < Math.min(await cards.count(), 10); i++) {
+    await cards.nth(i).hover(); await page.waitForTimeout(260);
+    const ratio = await cards.nth(i).evaluate((el) => {
+      const rgb = (c: string) => (c.match(/[\d.]+/g) ?? []).map(Number);
+      const lum = ([r, g, b]: number[]) => { const f = (x: number) => { x /= 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+      const bg = rgb(getComputedStyle(el).backgroundColor); const fg = rgb(getComputedStyle(el.querySelector('div') ?? el).color);
+      const a = (bg[3] ?? 1); const base = a < 0.5 ? [247, 247, 247] : bg.slice(0, 3); // kaca terang tembus ke latar #F7F7F7
+      const L1 = lum(base), L2 = lum(fg.slice(0, 3)); return (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
+    });
+    expect(ratio, `kotak ke-${i + 1} harus tetap terbaca saat di-hover`).toBeGreaterThan(3);
+  }
   await page.getByRole('button', { name: /Kab\. Banyumas|Kab\. Cilacap|Kab\. Purbalingga|Kab\. Banjarnegara/ }).first().click();  // drill-down wilayah
   await expect(page.getByLabel('Kecamatan')).toBeEnabled();
   const spv = await makeUser('SPV', 'Rudi Hartono');

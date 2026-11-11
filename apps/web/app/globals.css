@@ -68,6 +68,8 @@ body { font-family: var(--font-sans), "Helvetica Neue", ui-sans-serif, system-ui
   .glass-hover { transition: transform var(--tt-dur) var(--tt-ease), box-shadow var(--tt-dur) var(--tt-ease), background-color var(--tt-dur) var(--tt-ease), border-color var(--tt-dur) var(--tt-ease); }
   .glass-hover:hover { transform: translateY(-2px); box-shadow: var(--tt-shadow-hover); background-color: rgba(255, 255, 255, 0.72); border-color: rgba(255, 255, 255, 0.95); }
   .glass-hover:active { transform: translateY(0); }
+  /* Kaca gelap tetap gelap saat disentuh kursor (teksnya putih) */
+  .glass-dark.glass-hover:hover { background-color: rgba(17, 17, 17, 0.92); border-color: rgba(255, 255, 255, 0.22); box-shadow: 0 16px 44px rgba(0, 0, 0, 0.24); }
   /* Tabel: header lebih solid, pemisah tipis, hover & baris terpilih */
   .glass-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
   .glass-table thead th { position: sticky; top: 0; z-index: 1; background: rgba(247, 247, 247, 0.96); backdrop-filter: blur(8px);

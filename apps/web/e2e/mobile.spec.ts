@@ -18,11 +18,11 @@ test('SPG Grosir+HORECA mengisi survei dengan foto → SPV wilayah menyetujui �
   await expect(page.getByRole('heading', { name: 'Survei Konsumen HORECA' })).toBeVisible();
 
   await page.getByRole('button', { name: '+ Tambah responden' }).click();
-  await chip(page, 'Responden perokok aktif dan berusia 18 tahun ke atas');
+  await chip(page, 'Orangnya perokok & umurnya 18 tahun ke atas');
   await chip(page, '25–34'); await pickKec(page, 'domisili', 'Kembaran'); await page.locator('input[name=rokokBiasa]').fill('camel purple');
-  await chip(page, 'Minimarket'); await chip(page, 'Sedang'); await chip(page, 'Tahu, belum coba'); await chip(page, 'Ragu dengan rasa'); await chip(page, 'Etalase toko');
+  await chip(page, 'Minimarket'); await chip(page, 'Sedang'); await chip(page, 'Udah kenal, belum nyoba'); await chip(page, 'Ragu dengan rasa'); await chip(page, 'Etalase toko');
   await chip(page, 'Guava'); await chip(page, 'Pas'); await chip(page, 'Halus, nyaman'); await page.getByRole('button', { name: 'Tambah Guava' }).click();
-  await chip(page, 'Rasa cocok'); await chip(page, 'Diskon harga'); await chip(page, 'Ya, bersedia difoto');
+  await chip(page, 'Rasa cocok'); await chip(page, 'Mau difoto');
   await page.getByRole('button', { name: 'Simpan' }).click();
   await expect(page.getByText('Ambil foto dulu')).toBeVisible();                       // foto wajib bila responden setuju
   await page.locator('input[data-photo="foto"]').setInputFiles({ name: 'a.png', mimeType: 'image/png', buffer: PNG });
@@ -42,7 +42,7 @@ test('SPG Grosir+HORECA mengisi survei dengan foto → SPV wilayah menyetujui �
   const row = s.locator('tr', { hasText: 'Kopi Senja' }).first();
   await row.getByRole('button', { name: 'Detail' }).click();
   const drawer = s.getByRole('dialog');
-  await expect(drawer.getByRole('button', { name: /Perbesar Foto SPG bersama responden/ })).toBeVisible();
+  await expect(drawer.getByRole('button', { name: /Perbesar Foto bareng respondennya/ })).toBeVisible();
   await drawer.getByRole('button', { name: 'Setujui laporan' }).click();
   await expect(s.getByText('Disetujui – masuk ke dashboard')).toBeVisible();
   await s.goto('/dashboard'); await s.getByRole('button', { name: 'HORECA', exact: true }).click();
@@ -59,15 +59,21 @@ test('SPG Reguler: stok per varian, share of shelf, submit; tugas yang tidak dib
   await expect(page.locator('input[name=tugasPick]')).toHaveCount(0);
   await pickKec(page, 'kecRute', 'Kembaran'); await page.getByRole('button', { name: 'Mulai' }).click();
   await page.getByRole('button', { name: '+ Tambah kunjungan outlet' }).click();
-  await page.locator('input[name=namaOutlet]').fill('toko berkah'); await chip(page, 'Minimarket'); await pickKec(page, 'kecOutlet', 'Kembaran'); await chip(page, 'Sudah jual TT');
+  await page.locator('input[name=namaOutlet]').fill('toko berkah'); await chip(page, 'Minimarket'); await pickKec(page, 'kecOutlet', 'Kembaran'); await chip(page, 'Udah jual TT');
   for (const v of ['Original', 'Watermelon', 'Guava']) await page.getByRole('radiogroup', { name: `Stok ${v}` }).locator('label').first().click();
   await page.locator('input[name=facingTotal]').fill('40'); await page.locator('input[name=facingTT]').fill('50');
   await chip(page, 'Terpasang baik'); await page.getByRole('button', { name: 'Tambah Original' }).click();
   await page.locator('input[name=kompetitor]').fill('sampoerna mild'); await chip(page, 'Diskon');
   await page.getByRole('button', { name: 'Simpan' }).click();
-  await expect(page.getByText('Tidak boleh melebihi total facing')).toBeVisible();
+  await expect(page.getByText('Nggak boleh lebih dari total di rak')).toBeVisible();
   await page.locator('input[name=facingTT]').fill('6'); await page.getByRole('button', { name: 'Simpan' }).click();
   await expect(page.getByText('Toko Berkah', { exact: true })).toBeVisible();
+  // Riwayat isian: nama outlet & harga yang pernah ditulis muncul sebagai tombol yang tinggal diketuk
+  await page.getByRole('button', { name: '+ Tambah kunjungan outlet' }).click();
+  await page.locator('button[data-hist="namaOutlet"]', { hasText: 'Toko Berkah' }).click();
+  await expect(page.locator('input[name=namaOutlet]')).toHaveValue('Toko Berkah');
+  await expect(page.locator('button[data-hist="kecOutlet"]', { hasText: 'Kembaran' })).toBeVisible();
+  await page.getByRole('button', { name: 'Batal' }).click();
   await page.screenshot({ path: 'test-results/reguler-session.png', fullPage: true });
   // Teks latar dekoratif (aria-hidden) sengaja terpotong di tepi layar; selain itu tidak boleh ada yang melebar.
   const ovf = await page.evaluate(() => { const vw = document.documentElement.clientWidth;

@@ -10,7 +10,7 @@ rid = lambda: str(uuid.uuid4())
 def horeca_entry(photo_id=None, setuju="YA"):
     e = {"dewasa": True, "usia": "25–34", "domisili": {"kode": KEMBARAN}, "rokokBiasa": "camel purple", "tempatBeli": "Minimarket", "rasa": "Sedang",
          "statusTT": "TAHU_BELUM_COBA", "alasan": "Ragu dengan rasa", "tahuDari": "Event", "sampel": "Guava", "kekuatan": "Pas", "asap": "Halus, nyaman",
-         "beli": {"Guava": 1}, "alasanBeli": "Rasa cocok", "promo": "Diskon harga", "fotoSetuju": setuju}
+         "beli": {"Guava": 1}, "alasanBeli": "Rasa cocok", "fotoSetuju": setuju}
     if photo_id: e["foto"] = {"id": photo_id}
     return e
 
@@ -80,8 +80,9 @@ def test_photo_consent_and_ownership(make_user):
     assert r.status_code == 422 and "foto" in r.json()["error"]["details"]["entries.0"]
     r = b.put(f"/reports/{rid()}", json=horeca_report([horeca_entry(pid)]))                 # foto milik SPG lain
     assert r.status_code == 422
-    r = a.put(f"/reports/{rid()}", json=horeca_report([horeca_entry(setuju="TIDAK")]))      # tidak bersedia → boleh tanpa foto
+    r = a.put(f"/reports/{rid()}", json=horeca_report([{**horeca_entry(setuju="TIDAK"), "promo": "Diskon harga"}]))  # tidak bersedia → boleh tanpa foto
     assert r.status_code == 200
+    assert "promo" not in r.json()["data"]["data"]["entries"][0]                               # pertanyaan promo sudah dihapus dari form
 
 
 def test_spv_routing_approval_and_dashboard(admin, make_user):
@@ -174,8 +175,8 @@ def test_excel_export(admin, make_user):
     assert wb.sheetnames[:5] == ["Ringkasan", "Analisis", "Tren harian", "Laporan", "Detail pembeli"] and len(wb.sheetnames) == 7
     assert len(wb["Analisis"]._charts) >= 5 and len(wb["Tren harian"]._charts) >= 2
     det = wb["Detail pembeli"]; head = [c.value for c in det[1]]; row = [c.value for c in det[2]]
-    assert "Tanda Tambah yang dibeli – Original" in head and row[head.index("Tanda Tambah yang dibeli – Original")] == 3
-    assert row[head.index("Status Tanda Tambah sebelum ditawari hari ini")] == "Sudah jual TT"      # label, bukan kode
+    assert "TT dibeli – Original" in head and row[head.index("TT dibeli – Original")] == 3
+    assert row[head.index("Status TT sebelum ditawari")] == "Udah jual TT"      # label, bukan kode
     cell = det.cell(row=2, column=head.index("Nama toko") + 1)
     assert cell.data_type == "s" and cell.value.startswith("=")                                    # tidak menjadi rumus
     lap = wb["Laporan"]; lh = [c.value for c in lap[1]]

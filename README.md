@@ -50,6 +50,7 @@ di `apps/api`, frontend `pnpm dev:web` di root.
 
 ## Dokumentasi
 
+* [**Ubah form sendiri, reset, dan deploy sendiri**](docs/PANDUAN_UBAH_FORM.md)
 * [Panduan edit dengan Python / Antigravity](docs/PANDUAN_PYTHON_ANTIGRAVITY.md)
 * [Panduan pengguna](docs/user-guide/USER_GUIDE.md)
 * [Arsitektur](docs/architecture/ARCHITECTURE.md) · [Database](docs/database/DATABASE.md) · [API](docs/api/API.md)
