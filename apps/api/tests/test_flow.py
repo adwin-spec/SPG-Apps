@@ -80,9 +80,14 @@ def test_photo_consent_and_ownership(make_user):
     assert r.status_code == 422 and "foto" in r.json()["error"]["details"]["entries.0"]
     r = b.put(f"/reports/{rid()}", json=horeca_report([horeca_entry(pid)]))                 # foto milik SPG lain
     assert r.status_code == 422
-    r = a.put(f"/reports/{rid()}", json=horeca_report([{**horeca_entry(setuju="TIDAK"), "promo": "Diskon harga"}]))  # tidak bersedia → boleh tanpa foto
+    j = rid()
+    r = a.put(f"/reports/{j}", json=horeca_report([{**horeca_entry(setuju="TIDAK"), "promo": "Diskon harga"}]))  # tidak bersedia → boleh tanpa foto
     assert r.status_code == 200
     assert "promo" not in r.json()["data"]["data"]["entries"][0]                               # pertanyaan promo sudah dihapus dari form
+    for pilihan in ("SPG", "SPG sebelumnya"):                                                   # "SPG sekarang" (kode lama SPG) & "SPG sebelumnya"
+        e = {**horeca_entry(setuju="TIDAK"), "tahuDari": pilihan}
+        r = a.put(f"/reports/{j}", json=horeca_report([e]))                                  # perbarui laporan yang sama
+        assert r.json()["data"]["data"]["entries"][0]["tahuDari"] == pilihan
 
 
 def test_spv_routing_approval_and_dashboard(admin, make_user):

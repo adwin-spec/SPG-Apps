@@ -105,7 +105,8 @@ O = {
     "alasanPengguna": ["Rasa", "Asap", "Harga", "Kebiasaan / rekomendasi", "Lainnya"],
     "alasanBerhenti": ["Rasa", "Asap", "Harga", "Susah dicari", "Pindah ke rokok lain", "Lainnya"],
     "alasanBelumCoba": ["Belum pernah ditawari", "Ragu dengan rasa", "Sudah cocok rokok lain", "Lainnya"],
-    "tahuDariHoreca": ["Etalase toko", "Event", "Billboard / banner", "Teman / keluarga", "SPG", "Media sosial"],
+    # ("SPG", "SPG sekarang"): kode lama "SPG" dipertahankan agar laporan lama tetap terhitung sama
+    "tahuDariHoreca": ["Etalase toko", "Event", "Billboard / banner", "Teman / keluarga", ("SPG", "SPG sekarang"), "SPG sebelumnya", "Media sosial"],
     "kekuatan": ["Terlalu ringan", "Pas", "Terlalu kuat"],
     "asap": ["Halus, nyaman", "Tebal, mengepul", "Menyengat / perih", "Tipis", "Bau mengganggu"],
     "alasanBeliHoreca": ["Rasa cocok", "Asap nyaman", "Harga sesuai", "Promo menarik", "Kemasan menarik"],
