@@ -129,7 +129,7 @@ export function FieldApp() {
   if (open && F && screen.k === 'entry') {
     const save = async () => {
       const e = validate(F.entry, draft, variants); setErrs(e);
-      if (Object.keys(e).length) { toast('error', 'Lengkapi isian yang ditandai'); document.querySelector(`[data-qid="${Object.keys(e)[0]}"]`)?.scrollIntoView({ block: 'center' }); return; }
+      if (Object.keys(e).length) { toast('error', 'Lengkapi isian yang ditandai'); document.querySelector(`[data-qid="${Object.keys(e)[0]}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
       const entry: Answers = { ...draft, at: draft.at ?? new Date().toISOString() };
       F.entry.forEach((q) => { if (q.titlecase && typeof entry[q.id] === 'string') entry[q.id] = titleCase(entry[q.id]); }); // sama seperti server
       const entries = [...open.entries]; if (screen.idx == null) entries.push(entry); else entries[screen.idx] = entry;

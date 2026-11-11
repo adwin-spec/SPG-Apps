@@ -8,6 +8,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
+from ..services.dashboard import invalidate_cache
 from ..deps import audit, ok, require
 from ..forms import O, TYPES
 from ..models import Approval, AuditLog, Kecamatan, User
@@ -26,6 +27,11 @@ def load_samples(n: int = Query(60, ge=3, le=600), me: User = Depends(require("A
     if not kecs:
         kecs = [kec_obj(k) for k in db.scalars(select(Kecamatan).where(Kecamatan.active.is_(True)).limit(40))]
     pick = rnd.choice
+    # Titik contoh di sekitar pusat kabupaten (fiktif, untuk demo peta)
+    centre = {"33.01": (-7.62, 109.05), "33.02": (-7.45, 109.20), "33.03": (-7.36, 109.36), "33.04": (-7.38, 109.68)}
+    def gps_near(k):
+        lat, lon = centre.get((k or {}).get("kabKode"), (-7.45, 109.25))
+        return {"lat": round(lat + rnd.uniform(-0.08, 0.08), 6), "lon": round(lon + rnd.uniform(-0.08, 0.08), 6), "acc": rnd.choice([8, 12, 20, 35]), "at": None}
     comp = ["Camel Purple", "L.A Lights", "Sampoerna Mild", "Gudang Garam Filter", "Djarum Super", "Surya 16"]
     spg = {"GROSIR": ["SPG Contoh Grosir 1", "SPG Contoh Grosir 2"], "HORECA": ["SPG Contoh Grosir 1", "SPG Contoh HORECA 1"], "REGULER": ["SPG Contoh Reguler 1", "SPG Contoh Reguler 2"]}
     buy = lambda p: {v: (1 + rnd.randrange(4)) if rnd.random() < p else 0 for v in variants}
@@ -58,6 +64,7 @@ def load_samples(n: int = Query(60, ge=3, le=600), me: User = Depends(require("A
                 e = {"namaOutlet": f"Outlet Contoh {i * 10 + k}", "tipeOutlet": pick(O["tipeOutlet"]), "kecOutlet": pick(kecs), "statusOutlet": so,
                      "facingTotal": 20 + rnd.randrange(60), "posm": pick(O["posm"]), "beli": b, "kompetitor": pick(comp),
                      "hargaKompetitor": 23000 + rnd.randrange(10) * 500, "promoKomp": pick(O["promoKompOutlet"]), "at": at}
+                e["gps"] = gps_near(e["kecOutlet"])
                 if j: e |= {"stok": {v: "ADA" if rnd.random() < 0.68 else pick(["KOSONG", "TIDAK"]) for v in variants}, "hargaJual": 24000 + rnd.randrange(7) * 500, "facingTT": rnd.randrange(8)}
                 if not sum_variants(b): e["alasanTidak"] = pick(O["alasanTidakOrder"])
                 if rnd.random() < 0.6: e["fotoDisplay"] = {"sample": True}
@@ -68,6 +75,7 @@ def load_samples(n: int = Query(60, ge=3, le=600), me: User = Depends(require("A
                   "HORECA": {"venue": pick(["Kopi Senja", "Warkop Mbak Ning", "Angkringan Pojok", "Cafe Kopi Kita"]), "alamat": "Alamat contoh", "kecVenue": home,
                              "jenisVenue": pick(O["jenisVenue"]), "kebijakan": pick(O["kebijakan"])},
                   "REGULER": {"rute": f"Rute Contoh {home['nama']}", "kecRute": home}}[t]
+        header["lokasi"] = gps_near(home)
         promos = [{"merek": pick(comp), "aktivitas": pick(O["aktivitasKompetitor"]), "sejak": pick(O["sejak"])}] if t == "GROSIR" and rnd.random() < 0.6 else []
         prom = [{"merek": pick(comp), "jumlah": 1 + rnd.randrange(2), "aktivitas": pick(O["aktivitasPromotor"])}] if t == "GROSIR" and rnd.random() < 0.4 else []
         sections = {"promos": {"none": not promos, "items": promos}, "promotors": {"none": not prom, "items": prom}} if t == "GROSIR" else {}
@@ -77,7 +85,7 @@ def load_samples(n: int = Query(60, ge=3, le=600), me: User = Depends(require("A
         db.add(Approval(report_id=rid, type=t, date=d, loc_kode=home["kode"], spg_id=None, spg_name=pick(spg[t]), approver_id=me.id, approver_name="Admin pusat",
                         approver_role="ADMIN", sample=True, snapshot={"type": t, "date": d.isoformat(), "startedAt": at, "header": header, "entries": ents, "sections": sections, "closing": closing}))
     audit(db, me, "LOAD_SAMPLES", "approvals", None, {"n": n})
-    db.commit()
+    db.commit(); invalidate_cache()
     return ok({"created": n})
 
 
@@ -85,7 +93,7 @@ def load_samples(n: int = Query(60, ge=3, le=600), me: User = Depends(require("A
 def clear_samples(me: User = Depends(require("ADMIN")), db: Session = Depends(get_db)):
     r = db.execute(delete(Approval).where(Approval.sample.is_(True)))
     audit(db, me, "CLEAR_SAMPLES", "approvals", None, {"deleted": r.rowcount})
-    db.commit()
+    db.commit(); invalidate_cache()
     return ok({"deleted": r.rowcount})
 
 

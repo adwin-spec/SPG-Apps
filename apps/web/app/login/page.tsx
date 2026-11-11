@@ -30,7 +30,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return <div className="relative min-h-screen overflow-hidden">
-    <TypographyBackground preset="login" />
+    <TypographyBackground preset="login" animate />
     <div className="relative z-10 mx-auto grid min-h-screen w-full max-w-6xl items-center gap-8 px-5 py-10 lg:grid-cols-2 lg:gap-14">
       {/* Kiri: komposisi poster – dekorasi tidak pernah berada di bawah teks */}
       <div aria-hidden className="relative hidden h-[560px] lg:block">

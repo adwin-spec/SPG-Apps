@@ -28,6 +28,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      leaflet:
+        specifier: 1.9.4
+        version: 1.9.4
       lucide-react:
         specifier: ^0.525.0
         version: 0.525.0(react@19.1.1)
@@ -47,6 +50,9 @@ importers:
       '@playwright/test':
         specifier: 1.63.0
         version: 1.63.0
+      '@types/leaflet':
+        specifier: 1.9.12
+        version: 1.9.12
       '@types/node':
         specifier: ^22.15.0
         version: 22.20.5
@@ -530,6 +536,12 @@ packages:
       '@types/react':
         optional: true
 
+  '@types/geojson@7946.0.16':
+    resolution: {integrity: sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==}
+
+  '@types/leaflet@1.9.12':
+    resolution: {integrity: sha512-BK7XS+NyRI291HIo0HCfE18Lp8oA30H1gpi1tf0mF3TgiCEzanQjOqNZ4x126SXzzi2oNSZhZ5axJp1k0iM6jg==}
+
   '@types/node@22.20.5':
     resolution: {integrity: sha512-U2+DNr+wSjpsTS/wZGYHq7GcwfuSmKiKvoPvK22zwTlRhU91yOniN4qRR5KhIjvif7ysw/dz/hKmfDH0Ris4aA==}
 
@@ -702,6 +714,9 @@ packages:
   jiti@1.21.7:
     resolution: {integrity: sha512-/imKNG4EbWNrVjoNC/1H5/9GFy+tqjGBHCaSsN+P2RnPqjsLmv6UD3Ej+Kj8nBWaRAwyk7kK5ZUc+OEatnTR3A==}
     hasBin: true
+
+  leaflet@1.9.4:
+    resolution: {integrity: sha512-nxS1ynzJOmOlHp+iL3FyWqK89GtNL8U8rvlMOsQdTTssxZwCXh8N2NB3GDQOL+YR3XnWyZAxwQixURb+FA74PA==}
 
   lilconfig@3.1.5:
     resolution: {integrity: sha512-aRAOI9Ia43ygL4o1EOmC/sc/0OFxrm7qcQngiIyWaqVnSnz932ybJ07zyCcgMNGSDP8Yxaf88Xj1zHEXmvQ4SA==}
@@ -1386,6 +1401,12 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
 
+  '@types/geojson@7946.0.16': {}
+
+  '@types/leaflet@1.9.12':
+    dependencies:
+      '@types/geojson': 7946.0.16
+
   '@types/node@22.20.5':
     dependencies:
       undici-types: 6.21.0
@@ -1537,6 +1558,8 @@ snapshots:
   is-number@7.0.0: {}
 
   jiti@1.21.7: {}
+
+  leaflet@1.9.4: {}
 
   lilconfig@3.1.5: {}
 

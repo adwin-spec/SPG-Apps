@@ -8,6 +8,13 @@
 3. **Pengaturan**: nama merek, varian (dipakai di semua form), daftar grosir. Data contoh untuk mencoba dashboard.
 4. **Wilayah**: ganti nama, nonaktifkan, atau tambah kecamatan/kab/kota.
 5. **Persetujuan**: admin melihat semua wilayah; filter "Tanpa SPV" untuk laporan yang belum punya supervisor.
+6. **Menghapus laporan (admin saja).** Di *Persetujuan*, centang satu atau beberapa laporan → **Hapus N terpilih**,
+   atau buka *Detail* → **Hapus**. Alasan wajib diisi (minimal 5 huruf). Laporan yang dihapus:
+   * hilang dari HP SPG, dashboard, dan Excel; SPG yang draf-nya dihapus bisa langsung mulai laporan baru;
+   * **tidak dibuang permanen** – masuk tab **Dihapus** dan bisa dikembalikan dengan **Pulihkan**
+     (kembali ke status sebelumnya; laporan yang sudah disetujui kembali ke *Menunggu* agar diperiksa ulang).
+   * Tab **Sedang dikerjakan** menampilkan draf yang belum dikirim SPG (mis. untuk membersihkan draf yang macet).
+   Semua penghapusan & pemulihan tercatat di riwayat laporan dan log audit.
 
 ## Mengunduh hasil ke Excel
 Di **Dashboard**, atur periode, wilayah, dan SPG, lalu di kotak **Unduh Excel** pilih **SPG Grosir**, **Survei HORECA**,
@@ -20,6 +27,14 @@ atau **SPG Reguler** (satu file per jenis), atau **Ketiganya (.zip)**. Setiap fi
 * Grosir saja: **Promo** dan **Promotor** kompetitor
 
 Hanya laporan yang sudah disetujui yang ikut. Supervisor hanya mendapat data wilayahnya.
+
+## Peta lokasi di dashboard
+* Setiap titik = satu laporan (Grosir, HORECA) atau satu outlet (Reguler) yang **sudah disetujui**, di lokasi GPS SPG saat mengisi.
+* Peta **mengikuti filter** dashboard (periode, wilayah, SPG, jenis). Ketuk titik → muncul nama & tanggal,
+  lalu **Saring ke Kec. …** untuk langsung memfilter seluruh dashboard ke kecamatan itu.
+* Teks di bawah judul peta menyebut berapa laporan **tanpa GPS** (mis. izin lokasi ditolak). Laporan dengan akurasi
+  GPS buruk (> 150 m) diberi tanda di halaman Persetujuan.
+* Tabel di bawah peta berisi koordinat lengkap; kolom lat/lon/akurasi juga ada di Excel.
 
 ## Membaca grafik dashboard
 * **Merah** = Tanda Tambah atau hal yang perlu diperhatikan; **abu-abu** = kompetitor/pembanding.
@@ -34,10 +49,16 @@ Hanya laporan yang sudah disetujui yang ikut. Supervisor hanya mendapat data wil
 
 ## SPG (di HP)
 1. Buka alamat aplikasi di browser HP, masuk, lalu *Tambahkan ke layar utama*.
-2. Bila punya beberapa tugas, pilih **Tugas hari ini**. Isi data awal (grosir / venue / rute) dan kecamatannya –
+2. Bila punya beberapa tugas, pilih **Tugas hari ini**. Saat form dibuka, **lokasi diambil otomatis**
+   (lat/lon + akurasi tampil di layar; ketuk *lihat di peta* untuk mengecek, *Perbarui* bila pindah tempat).
+   Pertama kali, browser meminta izin lokasi → pilih **Izinkan**. Untuk Reguler, lokasi diambil di setiap outlet.
+   Lokasi hanya bisa diambil bila aplikasi dibuka lewat **https://** (alamat tunnel/domain), bukan http biasa.
+   Bila tidak sengaja ditolak: pengaturan browser → Situs → Lokasi → izinkan alamat aplikasi.
+   Lalu Isi data awal (grosir / venue / rute) dan kecamatannya –
    nama supervisor yang akan menyetujui langsung terlihat.
 3. Tambahkan setiap pembeli / responden / outlet. Pertanyaan muncul sesuai jawaban.
 4. **HORECA**: minta izin responden. Bila setuju, ambil foto bersama responden (tanggal, jam, dan nama tercetak di foto).
 5. Isi penutup, tekan **Kirim laporan**. Bila sinyal hilang, isian tetap tersimpan di HP dan dikirim saat sinyal kembali
    (tanda "Belum terkirim" di atas). Foto dan tombol Kirim membutuhkan sinyal.
 6. Laporan yang ditolak muncul di **Perlu diperbaiki** → *Perbaiki* → ubah → *Kirim ulang*.
+7. Di bawah setiap isian ada **Pernah diisi:** – ketuk salah satu jawaban lama untuk mengisinya ulang dengan cepat.

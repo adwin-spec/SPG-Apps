@@ -89,6 +89,14 @@ def flags(r: Report, viewer: User) -> list[str]:
         if len(set(names)) < len(names): f.append("Outlet tercatat dua kali")
     refs = [x["id"] for e in ent for x in (e.get("foto"), e.get("fotoDisplay")) if isinstance(x, dict) and x.get("id")]
     if len(set(refs)) < len(refs): f.append("Foto yang sama dipakai lebih dari sekali")
+    loc = (r.data.get("header") or {}).get("lokasi")
+    if not isinstance(loc, dict):
+        f.append("Lokasi GPS awal tidak tercatat")
+    elif (loc.get("acc") or 0) > 150:
+        f.append(f"Akurasi GPS rendah (± {loc['acc']} m)")
+    no_gps = [e for e in ent if r.type == "REGULER" and not isinstance(e.get("gps"), dict)]
+    if no_gps:
+        f.append(f"{len(no_gps)} outlet tanpa lokasi GPS")
     if r.spg_id == viewer.id: f.append("Laporan Anda sendiri – sebaiknya disetujui orang lain")
     if r.ended_at and ent:
         mins = (r.ended_at - r.started_at).total_seconds() / 60

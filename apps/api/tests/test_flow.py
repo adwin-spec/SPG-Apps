@@ -5,6 +5,7 @@ from sqlalchemy import text
 from .conftest import CILACAP_TENGAH, KEMBARAN, KUTASARI, SOKARAJA, jpeg
 
 rid = lambda: str(uuid.uuid4())
+GPS = {"lat": -7.4213, "lon": 109.2345, "acc": 12}
 
 
 def horeca_entry(photo_id=None, setuju="YA"):
@@ -16,7 +17,7 @@ def horeca_entry(photo_id=None, setuju="YA"):
 
 
 def horeca_report(entries, kec=SOKARAJA):
-    return {"type": "HORECA", "header": {"venue": "kopi senja", "alamat": "Jl. Raya 1", "kecVenue": {"kode": kec}, "jenisVenue": "Cafe", "kebijakan": "Area merokok khusus"},
+    return {"type": "HORECA", "header": {"venue": "kopi senja", "alamat": "Jl. Raya 1", "kecVenue": {"kode": kec}, "jenisVenue": "Cafe", "kebijakan": "Area merokok khusus", "lokasi": GPS},
             "entries": entries, "closing": {"terlaris": [{"merek": "camel purple", "batang": 12}], "pic": "Mas Dani"}}
 
 
@@ -60,14 +61,14 @@ def test_spg_tugas_validation_and_isolation(make_user):
 
 def test_hidden_answers_dropped_and_rules(make_user):
     s = make_user("SPG", ["REGULER"])
-    e = {"namaOutlet": "toko berkah", "tipeOutlet": "Minimarket", "kecOutlet": {"kode": KEMBARAN}, "statusOutlet": "BELUM", "facingTotal": 40,
+    e = {"gps": GPS, "namaOutlet": "toko berkah", "tipeOutlet": "Minimarket", "kecOutlet": {"kode": KEMBARAN}, "statusOutlet": "BELUM", "facingTotal": 40,
          "stok": {"Original": "ADA"}, "facingTT": 5, "posm": "Tidak ada", "beli": {}, "alasanTidak": "Belum laku", "kompetitor": "surya 16", "promoKomp": "Diskon"}
-    r = s.put(f"/reports/{(i := rid())}", json={"type": "REGULER", "header": {"kecRute": {"kode": KEMBARAN}}, "entries": [e]})
+    r = s.put(f"/reports/{(i := rid())}", json={"type": "REGULER", "header": {"kecRute": {"kode": KEMBARAN}, "lokasi": GPS}, "entries": [e]})
     assert r.status_code == 200, r.text
     got = r.json()["data"]["data"]["entries"][0]
     assert "stok" not in got and "facingTT" not in got          # hanya untuk outlet yang menjual TT
     e2 = {**e, "statusOutlet": "JUAL", "stok": {"Original": "ADA", "Watermelon": "KOSONG", "Guava": "ADA"}, "facingTT": 50}
-    r = s.put(f"/reports/{i}", json={"type": "REGULER", "header": {"kecRute": {"kode": KEMBARAN}}, "entries": [e2]})
+    r = s.put(f"/reports/{i}", json={"type": "REGULER", "header": {"kecRute": {"kode": KEMBARAN}, "lokasi": GPS}, "entries": [e2]})
     assert r.status_code == 422 and "facingTT" in r.json()["error"]["details"]["entries.0"]
 
 
@@ -128,7 +129,7 @@ def test_spv_routing_approval_and_dashboard(admin, make_user):
 def test_grosir_submit_rules_admin_no_spv_and_csv(admin, make_user):
     g = make_user("SPG", ["GROSIR"])
     i = rid()
-    gros = {"type": "GROSIR", "header": {"grosir": "Grosir Makmur", "kecGrosir": {"kode": CILACAP_TENGAH}},
+    gros = {"type": "GROSIR", "header": {"grosir": "Grosir Makmur", "kecGrosir": {"kode": CILACAP_TENGAH}, "lokasi": GPS},
             "entries": [{"jenis": "KONSUMEN", "kecamatan": {"kode": CILACAP_TENGAH}, "statusTT": "BELUM", "beli": {"Original": 2}, "alasanBeli": "Coba-coba", "tier2": "=HYPERLINK(1)"}]}
     assert g.put(f"/reports/{i}", json=gros).status_code == 200
     r = g.post(f"/reports/{i}/submit"); assert r.status_code == 422
@@ -166,7 +167,7 @@ def test_excel_export(admin, make_user):
     from openpyxl import load_workbook
     g = make_user("SPG", ["GROSIR"], name="Excel Uji")
     i = rid()
-    body = {"type": "GROSIR", "header": {"grosir": "Grosir Excel", "kecGrosir": {"kode": CILACAP_TENGAH}},
+    body = {"type": "GROSIR", "header": {"grosir": "Grosir Excel", "kecGrosir": {"kode": CILACAP_TENGAH}, "lokasi": GPS},
             "entries": [{"jenis": "RETAIL", "tipeToko": "Kios", "namaToko": "=HYPERLINK(\"x\")", "kecamatan": {"kode": CILACAP_TENGAH}, "statusTT": "JUAL",
                          "tahuDari": "Event", "beli": {"Original": 3}, "alasanBeli": "Coba-coba", "tier2": "Surya 16", "hargaGrosir": 23000}],
             "sections": {"promos": {"items": [{"merek": "L.A Lights", "aktivitas": "Diskon", "sejak": "Hari ini"}]}, "promotors": {"none": True}},
@@ -193,3 +194,43 @@ def test_excel_export(admin, make_user):
     assert sorted(z.namelist()) == ["tanda-tambah-grosir-30hari.xlsx", "tanda-tambah-horeca-30hari.xlsx", "tanda-tambah-reguler-30hari.xlsx"]
     for n in z.namelist():
         load_workbook(io.BytesIO(z.read(n)))  # setiap file valid
+
+
+def test_gps_map_delete_restore(admin, make_user):
+    g = make_user("SPG", ["REGULER"], name="Gita Reguler")
+    i = rid()
+    head = {"kecRute": {"kode": KEMBARAN}}
+    r = g.put(f"/reports/{i}", json={"type": "REGULER", "header": head})
+    assert r.status_code == 422 and "lokasi" in r.json()["error"]["details"]["header"]           # GPS wajib saat mulai
+    r = g.put(f"/reports/{i}", json={"type": "REGULER", "header": {**head, "lokasi": {"lat": 999, "lon": 1}}})
+    assert r.status_code == 422                                                                   # koordinat tidak masuk akal ditolak
+    outlet = {"gps": {"lat": -7.43, "lon": 109.25, "acc": 9}, "namaOutlet": "Toko Peta", "tipeOutlet": "Kios", "kecOutlet": {"kode": KEMBARAN},
+              "statusOutlet": "BELUM", "facingTotal": 10, "posm": "Tidak ada", "beli": {"Original": 2}, "kompetitor": "Surya 16", "promoKomp": "Diskon"}
+    body = {"type": "REGULER", "header": {**head, "lokasi": GPS}, "entries": [outlet]}
+    assert g.put(f"/reports/{i}", json=body).status_code == 200 and g.post(f"/reports/{i}/submit").status_code == 200
+    det = admin.get(f"/review/{i}").json()["data"]
+    assert det["gps"]["lat"] == GPS["lat"]
+    assert admin.post(f"/review/{i}/approve").status_code == 200
+    d = admin.get("/dashboard?type=REGULER&spg=Gita Reguler").json()["data"]               # langsung terlihat (cache dikosongkan saat disetujui)
+    peta = [p for p in d["panels"] if p["kind"] == "map"][0]
+    assert [(p["lat"], p["lon"], p["label"]) for p in peta["points"]] == [(-7.43, 109.25, "Toko Peta")]
+    assert admin.get("/dashboard?type=REGULER&spg=Gita Reguler&kab=33.01").json()["data"]["reports"] == 0   # peta & angka ikut filter
+    # Hapus (admin saja, wajib alasan) → hilang dari SPG, antrean, dan dashboard
+    spv = make_user("SPV")
+    assert spv.post(f"/review/{i}/delete", json={"reason": "Data uji coba"}).status_code == 403
+    assert admin.post(f"/review/{i}/delete", json={"reason": "x"}).status_code == 422
+    assert admin.post(f"/review/{i}/delete", json={"reason": "Laporan ganda"}).status_code == 200
+    assert i not in [x["id"] for x in g.get("/reports/mine").json()["data"]]
+    assert g.put(f"/reports/{i}", json=body).status_code == 410
+    assert admin.get("/dashboard?type=REGULER&spg=Gita Reguler").json()["data"]["reports"] == 0
+    assert i in [x["id"] for x in admin.get("/review?status=DELETED").json()["data"]]
+    assert spv.get("/review?status=DELETED").status_code == 403
+    # Pulihkan → kembali ke antrean untuk disetujui ulang
+    assert admin.post(f"/review/{i}/restore").json()["data"]["status"] == "SUBMITTED"
+    assert [l["action"] for l in admin.get(f"/review/{i}").json()["data"]["log"]][-2:] == ["DIHAPUS", "DIPULIHKAN"]
+    # Admin juga bisa menghapus laporan yang masih dikerjakan (draf) SPG
+    j = rid()
+    assert g.put(f"/reports/{j}", json={"type": "REGULER", "header": {**head, "lokasi": GPS}}).status_code == 200
+    assert j in [x["id"] for x in admin.get("/review?status=DRAFT").json()["data"]]
+    assert admin.post(f"/review/{j}/delete", json={"reason": "Draf tertinggal"}).status_code == 200
+    assert g.put(f"/reports/{rid()}", json={"type": "REGULER", "header": {**head, "lokasi": GPS}}).status_code == 200   # SPG bisa mulai lagi

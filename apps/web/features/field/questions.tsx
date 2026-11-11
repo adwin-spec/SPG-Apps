@@ -1,11 +1,11 @@
 'use client';
-import { useState } from 'react';
-import { Camera, Minus, Plus } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Camera, LocateFixed, MapPin, Minus, Plus } from 'lucide-react';
 import { Photo } from '@/components/photo';
 import { cn } from '@/lib/utils';
 import { fieldBase } from '@/components/ui/glass-input';
 import type { Kec } from '@/lib/types';
-import { type Answers, type KecIndex, type Question, lab, optionsOf, searchKec, shortKab, sumVariants, val, visible } from './engine';
+import { type Answers, type Gps, type KecIndex, type Question, getGps, lab, mapsLink, optionsOf, searchKec, shortKab, sumVariants, val, visible } from './engine';
 import { uploadPhoto } from './photo';
 
 export interface QCtx { variants: string[]; kec: KecIndex; suggest: (k: string) => string[]; preferKab?: string; stamp: () => string; spvFor?: (k: Kec) => string;
@@ -17,7 +17,9 @@ const inputCls = cn(fieldBase, 'h-11 text-base');
 /** Menampilkan pertanyaan dari definisi backend. Setiap perubahan langsung membersihkan jawaban yang tidak lagi relevan. */
 export function Questions({ qs, value, onChange, errors, ctx, idPrefix = 'q' }: { qs: Question[]; value: Answers; onChange: (a: Answers) => void; errors: Record<string, string>; ctx: QCtx; idPrefix?: string }) {
   const { shown, clean } = visible(qs, value, ctx.variants);
-  const set = (id: string, v: unknown) => onChange(visible(qs, { ...value, [id]: v }, ctx.variants).clean);
+  // Foto & GPS selesai beberapa detik kemudian: selalu gabungkan dengan isian TERBARU, bukan isian saat tombol ditekan.
+  const latest = useRef({ value, onChange }); latest.current = { value, onChange };
+  const set = (id: string, v: unknown) => latest.current.onChange(visible(qs, { ...latest.current.value, [id]: v }, ctx.variants).clean);
   return <div className="grid gap-3">{shown.map((q) => {
     const err = errors[q.id]; const v = clean[q.id]; const hid = `${idPrefix}_${q.id}`;
     return <div key={q.id} data-qid={q.id} className={cn('glass-nested grid gap-2 p-3.5 transition-colors', err && '!border-critical bg-critical-soft')} role="group" aria-labelledby={hid}>
@@ -74,6 +76,7 @@ function Control({ q, v, a, set, ctx }: { q: Question; v: any; a: Answers; set: 
     }
     case 'kecamatan': return <KecPicker q={q} v={v} set={set} ctx={ctx} />;
     case 'photo': return <PhotoInput q={q} v={v} set={set} ctx={ctx} />;
+    case 'gps': return <GpsInput q={q} v={v} set={set} />;
   }
   return null;
 }
@@ -133,5 +136,27 @@ function History({ q, v, set, ctx }: { q: Question; v: any; set: (v: unknown) =>
     {items.map((x: any) => <button key={key(x)} type="button" onClick={() => pick(x)} data-hist={q.id}
       className="max-w-[16rem] truncate rounded-full border border-line-strong bg-white/70 px-2.5 py-1 text-xs font-medium text-ink-secondary transition-colors hover:border-ink hover:bg-white hover:text-ink">
       {q.type === 'kecamatan' ? x.nama : q.type === 'number' ? Number(x).toLocaleString('id-ID') : String(x)}</button>)}
+  </div>;
+}
+
+/** Lokasi: sekali ketuk (atau otomatis saat form dibuka) → lat, lon, akurasi tercatat. */
+function GpsInput({ q, v, set }: { q: Question; v?: Gps; set: (v: unknown) => void }) {
+  const [busy, setBusy] = useState(false); const [err, setErr] = useState(''); const tried = useRef(false);
+  const take = async () => {
+    setBusy(true); setErr('');
+    try { set(await getGps()); } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
+  };
+  useEffect(() => { if (q.auto && !v && !tried.current) { tried.current = true; take(); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return <div className="grid gap-2">
+    {v ? <div className="flex flex-wrap items-center gap-3 rounded-glass-sm bg-ink px-3 py-2.5 text-white">
+        <MapPin className="h-5 w-5 shrink-0" aria-hidden />
+        <div className="min-w-0 flex-1 leading-tight"><div className="num text-sm font-semibold">{v.lat.toFixed(5)}, {v.lon.toFixed(5)}</div>
+          <div className="text-2xs text-white/65">{v.acc != null ? `akurasi ± ${v.acc} m` : 'akurasi tidak diketahui'} · <a className="underline underline-offset-2" href={mapsLink(v)} target="_blank" rel="noreferrer">lihat di peta</a></div></div>
+        <button type="button" onClick={take} disabled={busy} className="rounded-glass-sm border border-white/30 px-3 py-1.5 text-xs font-semibold hover:bg-white/10" data-gps={q.id}>{busy ? 'Mengambil…' : 'Perbarui'}</button></div>
+      : <button type="button" onClick={take} disabled={busy} data-gps={q.id}
+          className="flex h-12 items-center justify-center gap-2 rounded-glass-sm border border-dashed border-ink/40 bg-white/60 font-semibold text-ink transition-colors hover:bg-white disabled:opacity-60">
+          <LocateFixed className={busy ? 'h-5 w-5 animate-pulse' : 'h-5 w-5'} />{busy ? 'Mencari lokasi kamu…' : 'Ambil lokasi saya'}</button>}
+    {v?.acc != null && v.acc > 150 && <p className="text-xs font-medium text-warn-text">Akurasinya kurang bagus. Coba ketuk "Perbarui" di tempat yang lebih terbuka.</p>}
+    {err && <p role="alert" className="text-xs font-medium text-critical-text">{err}</p>}
   </div>;
 }

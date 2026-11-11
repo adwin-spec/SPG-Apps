@@ -24,9 +24,10 @@ import { useToast } from '@/components/ui/toast';
 import { shortKab } from '@/features/field/engine';
 import { Bars, ChartCard, Funnel, Segments, Sparkline, Stack, Trend, tableOf } from './charts';
 import { selectCls, useWilayah } from './hooks';
+import { PointsMap } from './map';
 
 type Cell = string | number | { text: string; geo?: string; tipe?: string };
-interface Panel { kind: 'bars' | 'table' | 'gallery' | 'trend' | 'segments' | 'funnel' | 'stack'; title: string; sub: string; span: number; [k: string]: any }
+interface Panel { kind: 'bars' | 'table' | 'gallery' | 'trend' | 'segments' | 'funnel' | 'stack' | 'map'; title: string; sub: string; span: number; [k: string]: any }
 interface Dash { title: string; reports: number; truncated: boolean; spgOptions: string[]; tipeOptions: string[]; coverage: string[] | null; tiles: { k: string; v: string; d: string; spark?: number[] }[]; panels: Panel[]; insights: string[] }
 /** Perubahan 7 hari terakhir dibanding 7 hari sebelumnya, dari grafik mini 14 hari. */
 const deltaOf = (spark?: number[]) => { if (!spark || spark.length < 14) return null; const a = spark.slice(7).reduce((x, y) => x + y, 0), b = spark.slice(0, 7).reduce((x, y) => x + y, 0); return b ? { pct: Math.round(((a - b) / b) * 100), label: 'vs 7 hari sebelumnya' } : null; };
@@ -84,7 +85,7 @@ export function DashboardView() {
       {d && !!d.tiles.length && <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">{d.tiles.map((t, i) =>
         <KpiCard key={t.k} label={t.k} value={t.v} detail={t.d} featured={i === 0} delta={deltaOf(t.spark)} spark={t.spark ? <Sparkline values={t.spark} dark={i === 0} /> : null} />)}</div>}
       {d && <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">{d.panels.map((p, i) => <Fragment key={`${f.type}-${i}`}>
-        <PanelView p={p} onCell={onCell} />
+        <PanelView p={p} onCell={onCell} onKec={(k) => set({ prov: k.provKode, kab: k.kabKode, kec: k.kode })} />
         {i === 0 && !!d.insights?.length && <Insights items={d.insights} />}
       </Fragment>)}</div>}
     </div>
@@ -99,9 +100,12 @@ function Insights({ items }: { items: string[] }) {
   </GlassPanel>;
 }
 
-function PanelView({ p, onCell }: { p: Panel; onCell: (c: Cell) => void }) {
+function PanelView({ p, onCell, onKec }: { p: Panel; onCell: (c: Cell) => void; onKec: (k: { kode: string; kabKode: string; provKode: string }) => void }) {
   const span = SPAN[p.span] ?? 'lg:col-span-4';
-  if (p.kind === 'table') return <GlassPanel title={p.title} subtitle={p.sub} className={span} bodyClassName="px-0 pb-0 pt-2"><Table p={p} onCell={onCell} /></GlassPanel>;
+  if (p.kind === 'map') return <ChartCard title={p.title} sub={p.sub} span={span} lazy={false}
+    table={{ columns: ['Lokasi', 'Keterangan', 'Lat', 'Lon'], rows: (p.points as any[]).map((x) => [x.label, x.sub, x.lat.toFixed(5), x.lon.toFixed(5)]) }}>
+    <PointsMap points={p.points} onPickKec={onKec} /></ChartCard>;
+  if (p.kind === 'table') return <GlassPanel lazy title={p.title} subtitle={p.sub} className={span} bodyClassName="px-0 pb-0 pt-2"><Table p={p} onCell={onCell} /></GlassPanel>;
   if (p.kind === 'gallery') return <ChartCard title={p.title} sub={p.sub} span={span}><Gallery items={p.items} /></ChartCard>;
   return <ChartCard title={p.title} sub={p.sub} span={span} table={tableOf(p)}>
     {p.kind === 'trend' ? <Trend points={p.points} unit={p.unit} /> : p.kind === 'segments' ? <Segments rows={p.rows} /> : p.kind === 'funnel' ? <Funnel steps={p.steps} />

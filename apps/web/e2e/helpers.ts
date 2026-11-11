@@ -29,3 +29,11 @@ export async function pickKec(page: Page, q: string, name: string) {
   await page.getByRole('option', { name: new RegExp('^' + name) }).first().click();
 }
 export const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGP8z8DAwMDAxMDAwMDAAAANHQEDasKb6QAAAABJRU5ErkJggg==', 'base64');
+
+export async function userApi(username: string, password: string, path: string, method = 'GET', body?: unknown) {
+  const t = await token(username, password);
+  const r = await fetch(`${API}${path}`, { method, headers: { authorization: `Bearer ${t}`, 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json(); if (!r.ok) throw new Error(JSON.stringify(j)); return j.data;
+}
+/** Tunggu lokasi GPS otomatis tercatat di form. */
+export const gpsReady = (page: Page, q = 'lokasi') => expect(page.locator(`button[data-gps="${q}"]`, { hasText: 'Perbarui' })).toBeVisible();

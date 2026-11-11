@@ -9,6 +9,8 @@ services:
   db:
     image: postgres:16.4-alpine
     restart: unless-stopped
+    # 4 proses API × 15 koneksi = 60; sisakan ruang untuk migrasi, backup, dan admin
+    command: ["postgres", "-c", "max_connections=150", "-c", "shared_buffers=256MB"]
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-tanda}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
@@ -35,6 +37,9 @@ services:
       DATABASE_URL: *db-url
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      WEB_CONCURRENCY: ${API_WORKERS:-4}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-10}
     volumes: [photos:/data/storage]
     expose: ["4000"]
 

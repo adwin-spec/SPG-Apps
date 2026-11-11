@@ -18,6 +18,9 @@ class Settings:
     storage_dir: str = os.getenv("STORAGE_DIR", os.path.join(os.path.dirname(os.path.dirname(__file__)), "storage"))
     max_photo_mb: int = int(os.getenv("MAX_PHOTO_MB", "8"))
     login_rate_limit: int = int(os.getenv("LOGIN_RATE_LIMIT_MAX", "10"))
+    # Koneksi database per proses API. Total = jumlah proses × (pool + overflow); harus < max_connections PostgreSQL.
+    db_pool_size: int = int(os.getenv("DB_POOL_SIZE", "5"))
+    db_max_overflow: int = int(os.getenv("DB_MAX_OVERFLOW", "10"))
     timezone_offset_hours: int = 7  # Asia/Jakarta (WIB); data disimpan dalam UTC
 
     def check(self) -> None:

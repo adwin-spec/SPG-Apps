@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
+from ..services.dashboard import invalidate_cache
 from ..deps import audit, current_user, ok, require
 from ..errors import ApiError
 from ..forms import FORMS, O, TYPES
@@ -69,7 +70,7 @@ def put_settings(body: SettingsIn, u: User = Depends(require("ADMIN")), db: Sess
     grosirs = sorted({title_case(g)[:120] for g in body.grosirs if norm(g)})
     val = save_app_settings(db, {"brand": norm(body.brand), "variants": variants, "grosirs": grosirs})
     audit(db, u, "UPDATE", "settings", "app", val)
-    db.commit()
+    db.commit(); invalidate_cache()
     return ok(val)
 
 

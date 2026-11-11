@@ -24,10 +24,11 @@ const SLOTS = [
   { cls: '-left-[2vw] bottom-[24vh] text-[6vw]', rot: -14, op: 0.045, show: 'hidden lg:block' },
 ];
 
-export function TypographyBackground({ preset, className, density = 'full' }: { preset: BgPreset; className?: string; density?: 'full' | 'light' }) {
+/** `animate`: gerak sangat lambat – hanya untuk halaman login; di halaman kerja latar diam supaya gulir tetap ringan. */
+export function TypographyBackground({ preset, className, density = 'full', animate = false }: { preset: BgPreset; className?: string; density?: 'full' | 'light'; animate?: boolean }) {
   const words = BG_WORDS[preset];
   return <div aria-hidden className={cn('bg-layer pointer-events-none fixed inset-0 z-0 overflow-hidden', className)}>
     {SLOTS.slice(0, density === 'light' ? 2 : 5).map((s, i) => <span key={i} className={cn('bg-word', s.cls, s.show)}
-      style={{ opacity: s.op, ['--rot' as string]: `${s.rot}deg`, transform: `rotate(${s.rot}deg)`, animation: i < 2 ? `tt-drift ${60 + i * 20}s ease-in-out infinite alternate` : undefined }}>{words[i]}</span>)}
+      style={{ opacity: s.op, ['--rot' as string]: `${s.rot}deg`, transform: `rotate(${s.rot}deg)`, animation: animate && i < 2 ? `tt-drift ${60 + i * 20}s ease-in-out infinite alternate` : undefined }}>{words[i]}</span>)}
   </div>;
 }

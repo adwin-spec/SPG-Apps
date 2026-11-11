@@ -34,9 +34,9 @@ function Tip({ tip }: { tip: { x: number; y: number; value: string; label: strin
 }
 
 /** Bingkai panel grafik (glass) + tombol tampilan tabel. */
-export function ChartCard({ title, sub, span, table, children }: { title: string; sub?: string; span: string; table?: { columns: string[]; rows: (string | number)[][] }; children: React.ReactNode }) {
+export function ChartCard({ title, sub, span, table, children, lazy = true }: { title: string; sub?: string; span: string; table?: { columns: string[]; rows: (string | number)[][] }; children: React.ReactNode; lazy?: boolean }) {
   const [asTable, setAsTable] = useState(false);
-  return <GlassPanel title={title} subtitle={sub} className={span} interactive
+  return <GlassPanel title={title} subtitle={sub} className={span} interactive lazy={lazy}
     actions={table && <button type="button" onClick={() => setAsTable((v) => !v)} aria-pressed={asTable}
       className="rounded-full border border-line-strong bg-white/60 px-2.5 py-1 text-2xs font-semibold text-ink-secondary transition-colors hover:bg-white aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-white">{asTable ? 'Grafik' : 'Tabel'}</button>}>
     {asTable && table ? <MiniTable {...table} /> : children}

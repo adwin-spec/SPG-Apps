@@ -22,7 +22,9 @@ def report_out(r: Report, spvs: list[User] | None = None, full: bool = True) -> 
          "startedAt": r.started_at.isoformat(), "endedAt": r.ended_at.isoformat() if r.ended_at else None,
          "submittedAt": r.submitted_at.isoformat() if r.submitted_at else None, "decidedAt": r.decided_at.isoformat() if r.decided_at else None,
          "revision": r.revision, "reviewNote": r.review_note, "reviewedBy": r.reviewed_by, "version": r.version,
-         "spg": {"id": r.spg_id, "name": r.spg.name if r.spg else None}, "entryCount": len(r.data.get("entries") or []), "packs": packs(r.data)}
+         "spg": {"id": r.spg_id, "name": r.spg.name if r.spg else None}, "entryCount": len(r.data.get("entries") or []), "packs": packs(r.data),
+         "gps": (r.data.get("header") or {}).get("lokasi"),
+         **({"deletedAt": r.deleted_at.isoformat(), "deletedBy": r.deleted_by, "deleteReason": r.delete_reason, "prevStatus": r.prev_status} if r.deleted_at else {})}
     if spvs is not None:
         d["spvNames"] = [s.name for s in spvs_for(spvs, loc)]
     if full:
@@ -35,12 +37,14 @@ def _own(db: Session, u: User, rid: str, lock: bool = False) -> Report:
     r = db.scalar(q.with_for_update(of=Report) if lock else q)
     if not r or r.spg_id != u.id:
         raise ApiError(404, "NOT_FOUND", "Laporan tidak ditemukan")
+    if r.status == "DELETED":
+        raise ApiError(410, "DELETED", "Laporan ini sudah dihapus admin pusat")
     return r
 
 
 @router.get("/mine")
 def mine(u: User = Depends(current_user), db: Session = Depends(get_db)):
-    rs = db.scalars(select(Report).where(Report.spg_id == u.id).options(selectinload(Report.spg)).order_by(Report.started_at.desc()).limit(60)).all()
+    rs = db.scalars(select(Report).where(Report.spg_id == u.id, Report.status != "DELETED").options(selectinload(Report.spg)).order_by(Report.started_at.desc()).limit(60)).all()
     spvs = active_spvs(db)
     return ok([report_out(r, spvs, full=r.status in OPEN + ("REJECTED",) or i < 20) for i, r in enumerate(rs)])
 
@@ -62,6 +66,8 @@ def save(rid: str, body: ReportIn, u: User = Depends(current_user), db: Session 
     r = db.scalar(select(Report).where(Report.id == rid).with_for_update())
     if r and r.spg_id != u.id:
         raise ApiError(404, "NOT_FOUND", "Laporan tidak ditemukan")
+    if r and r.status == "DELETED":
+        raise ApiError(410, "DELETED", "Laporan ini sudah dihapus admin pusat. Mulai laporan baru.")
     if r and r.type != body.type:
         raise ApiError(422, "VALIDATION_ERROR", "Jenis laporan tidak boleh diubah")
     if not r and body.type not in (u.tugas or []):

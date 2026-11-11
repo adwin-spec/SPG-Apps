@@ -5,7 +5,8 @@ import type { Kec, ReportType } from '@/lib/types';
 export type Opt = string | [string, string];
 export interface Cond { f?: string; eq?: unknown; ne?: unknown; in?: unknown[]; sum_gt?: number; sum_eq?: number; all?: Cond[]; any?: Cond[] }
 export interface Question {
-  id: string; label: string; type: 'single' | 'multi' | 'text' | 'textarea' | 'number' | 'variants' | 'stok' | 'confirm' | 'kecamatan' | 'photo' | 'brandcounts';
+  id: string; label: string; type: 'single' | 'multi' | 'text' | 'textarea' | 'number' | 'variants' | 'stok' | 'confirm' | 'kecamatan' | 'photo' | 'brandcounts' | 'gps';
+  /** gps: langsung ambil lokasi saat form dibuka. */ auto?: boolean;
   required: boolean; hint?: string; placeholder?: string; text?: string; options?: Opt[] | { by: string; map: Record<string, Opt[]> } | { variants: true; extra: string[] };
   show?: Cond; suggest?: 'brands' | 'grosirs' | 'outlets'; capture?: 'user' | 'environment'; rows?: number; titlecase?: boolean; location?: boolean;
   rules?: { min?: number; min_message?: string; lte_field?: string; lte_message?: string };
@@ -65,7 +66,7 @@ export function validate(qs: Question[], a: Answers, variants: string[]): Record
   for (const q of shown) {
     const v = clean[q.id];
     if (q.required && (empty(v) || (q.type === 'stok' && variants.some((x) => !(v ?? {})[x]))))
-      e[q.id] = q.type === 'stok' ? 'Pilih stok tiap varian dulu ya' : ({ confirm: 'Centang dulu ya', single: 'Pilih salah satu dulu', kecamatan: 'Pilih kecamatannya dari daftar', photo: 'Ambil foto dulu' } as Record<string, string>)[q.type] ?? 'Ini belum diisi';
+      e[q.id] = q.type === 'stok' ? 'Pilih stok tiap varian dulu ya' : ({ confirm: 'Centang dulu ya', single: 'Pilih salah satu dulu', kecamatan: 'Pilih kecamatannya dari daftar', photo: 'Ambil foto dulu', gps: 'Lokasinya belum tercatat' } as Record<string, string>)[q.type] ?? 'Ini belum diisi';
     if (q.required && q.type === 'brandcounts' && !(v ?? []).some((r: any) => norm(r?.merek))) e[q.id] = 'Isi minimal satu merek ya';
     const r = q.rules;
     if (r && typeof v === 'number') {
@@ -93,3 +94,17 @@ export const kecFull = (x: any) => (!x ? '–' : typeof x === 'string' ? x : `${
 
 export const STATUS_LABEL: Record<string, string> = { DRAFT: 'Draf', REVISION: 'Sedang diperbaiki', SUBMITTED: 'Menunggu', APPROVED: 'Disetujui', REJECTED: 'Ditolak' };
 export const labelOfStatus = (s: string) => STATUS_LABEL[s] ?? s;
+
+export interface Gps { lat: number; lon: number; acc?: number | null; at?: string }
+/** Ambil lokasi HP. Butuh HTTPS (atau localhost) dan izin lokasi dari pengguna. */
+export function getGps(): Promise<Gps> {
+  return new Promise((res, rej) => {
+    if (!('geolocation' in navigator)) return rej(new Error('HP/browser ini tidak mendukung lokasi.'));
+    navigator.geolocation.getCurrentPosition(
+      (p) => res({ lat: +p.coords.latitude.toFixed(6), lon: +p.coords.longitude.toFixed(6), acc: Math.round(p.coords.accuracy), at: new Date().toISOString() }),
+      (e) => rej(new Error(e.code === 1 ? 'Izin lokasi ditolak. Buka pengaturan browser → izinkan Lokasi untuk aplikasi ini, lalu coba lagi.'
+        : e.code === 3 ? 'Lokasi belum ketemu (sinyal GPS lemah). Coba di tempat lebih terbuka, lalu ketuk lagi.' : 'Lokasi tidak bisa diambil. Pastikan GPS HP menyala.')),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
+  });
+}
+export const mapsLink = (g: Gps) => `https://www.google.com/maps?q=${g.lat},${g.lon}`;

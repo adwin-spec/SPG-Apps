@@ -105,6 +105,37 @@ Pulihkan database: `docker compose exec -T db pg_restore -U tanda -d tanda_tamba
 
 **Melihat log**: `cd /opt/tanda-tambah && docker compose logs -f api web`.
 
+## Kapasitas (lebih dari 50 pengguna serentak)
+
+Bawaan sudah disetel untuk ±100 pengguna aktif bersamaan di server 2–4 vCPU / 4 GB RAM:
+
+| Pengaturan | Bawaan | Arti |
+|---|---|---|
+| `API_WORKERS` (di `.env`) | 4 | jumlah proses API; samakan dengan jumlah vCPU (minimal 2) |
+| `DB_POOL_SIZE` / `DB_MAX_OVERFLOW` | 5 / 10 | koneksi database per proses API |
+| Postgres `max_connections` | 150 | harus ≥ `API_WORKERS × (DB_POOL_SIZE + DB_MAX_OVERFLOW)` + 10 |
+
+Setelah mengubah `.env`: `docker compose up -d`.
+
+**Hasil uji beban** (4 proses API, 4 vCPU, generator beban di mesin yang sama – kondisi lebih berat dari aslinya):
+
+| Skenario | Permintaan | Error | p95 simpan draf | p95 kirim | p95 dashboard |
+|---|---|---|---|---|---|
+| 60 SPG + 5 admin serentak | 1.120 | 0 | 0,8 dtk | 0,6 dtk | 0,6 dtk |
+| 100 SPG + 8 admin serentak | 1.860 | 0 | 1,3 dtk | 1,2 dtk | 1,2 dtk |
+
+Login paling lambat (p95 5–8 dtk) **hanya bila semua orang menekan Masuk di detik yang sama**, karena password
+diperiksa dengan bcrypt yang sengaja berat (pengaman terhadap pencurian password). Di lapangan login menyebar
+sepanjang pagi, dan sesi bertahan berhari-hari tanpa login ulang.
+
+Ulangi uji di server **uji** (skrip membuat akun `lt-…` yang perlu dinonaktifkan setelahnya):
+`python infrastructure/scripts/load_test.py --api https://<domain>/api/v1 --admin-pass '<password admin>' --spg 60`
+
+Dashboard disimpan sementara 30 detik per proses API, jadi persetujuan baru bisa tampil sampai 30 detik kemudian.
+
+**Peta**: memakai ubin peta OpenStreetMap. Cukup untuk uji coba dan pemakaian internal kecil; untuk pemakaian
+produksi yang ramai, gunakan penyedia ubin berbayar (mis. MapTiler/Stadia) sesuai kebijakan OSM.
+
 ## Catatan keamanan
 
 * Port 3000 hanya terbuka untuk server itu sendiri; akses publik hanya lewat HTTPS (443).

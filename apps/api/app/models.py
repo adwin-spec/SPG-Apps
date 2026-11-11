@@ -92,7 +92,7 @@ class Report(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     spg_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
     type: Mapped[str] = mapped_column(String(10), index=True)  # GROSIR | HORECA | REGULER
-    status: Mapped[str] = mapped_column(String(10), index=True)  # DRAFT | SUBMITTED | REJECTED | REVISION | APPROVED
+    status: Mapped[str] = mapped_column(String(10), index=True)  # DRAFT | SUBMITTED | REJECTED | REVISION | APPROVED | DELETED
     date: Mapped[date] = mapped_column(Date, index=True)
     loc_kode: Mapped[str | None] = mapped_column(String(32), index=True)  # kecamatan lokasi → menentukan supervisor
     data: Mapped[dict] = mapped_column(JsonType)  # {header, entries, sections, closing}
@@ -104,6 +104,11 @@ class Report(Base):
     reviewed_by: Mapped[str | None] = mapped_column(String(120))
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     version: Mapped[int] = mapped_column(Integer, default=1)
+    # Dihapus admin: laporan tidak benar-benar dibuang (bisa dipulihkan & tetap ada untuk audit)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deleted_by: Mapped[str | None] = mapped_column(String(120))
+    delete_reason: Mapped[str | None] = mapped_column(Text)
+    prev_status: Mapped[str | None] = mapped_column(String(10))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     spg: Mapped[User] = relationship()

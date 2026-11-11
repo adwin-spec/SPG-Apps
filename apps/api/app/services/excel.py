@@ -73,6 +73,8 @@ def _columns(questions: list[dict], variants: list[str]) -> list[tuple[str, str,
         label = q.get("col") or q["label"].rstrip("?")
         if q["type"] in ("variants", "stok"):
             cols += [(q["id"], f"{label} – {v}", v) for v in variants]
+        elif q["type"] == "gps":
+            cols += [(q["id"], f"{label} – lat", "lat"), (q["id"], f"{label} – lon", "lon"), (q["id"], f"{label} – akurasi (m)", "acc")]
         elif q["type"] == "kecamatan":
             cols += [(q["id"], label, "nama"), (q["id"], f"{label} – kab/kota", "kab")]
         else:
@@ -88,6 +90,8 @@ def _value(q: dict, v, sub: str | None, answers: dict, variants: list[str]):
         return int((v or {}).get(sub) or 0)
     if t == "stok":
         return {"ADA": "Ada", "KOSONG": "Kosong", "TIDAK": "Tidak jual"}.get((v or {}).get(sub), "")
+    if t == "gps":
+        return (v or {}).get(sub, "") if isinstance(v, dict) else ""
     if t == "kecamatan":
         return (v.get("nama") if sub == "nama" else short_kab(v.get("kab", ""))) if isinstance(v, dict) else str(v)
     if t in ("single", "multi"):
@@ -144,7 +148,7 @@ def _analysis(wb: Workbook, panels: list[dict]) -> None:
     bold = Font(bold=True, size=12)
     for p in panels:
         kind = p["kind"]
-        if kind in ("gallery", "trend"):
+        if kind in ("gallery", "trend", "map"):
             continue
         ws.cell(row=r, column=1, value=p["title"]).font = bold
         if p.get("sub"):

@@ -15,6 +15,7 @@ Jenis panel (pilih sesuai pertanyaan yang dijawab grafiknya):
     stack(judul, ket, kunci, baris)                     komposisi per baris (mis. stok Ada/Kosong/Tidak jual per varian)
     table(judul, ket, kolom, baris)                     angka rinci; kolom yang diawali "#" rata kanan
     gallery(judul, ket, items)                          foto
+    peta (map)                                          otomatis: titik GPS laporan / outlet yang lolos filter
     tile(label, nilai, keterangan, spark=nilai_per_hari)   kotak angka di atas, dengan grafik mini opsional
 Setiap fungsi juga mengembalikan daftar kalimat "insight" (panel gelap di samping grafik utama).
 `span` = lebar panel dalam 12 kolom (4 = sepertiga, 6 = setengah, 8 = dua pertiga, 12 = penuh).
@@ -22,6 +23,8 @@ Setiap panel juga otomatis masuk ke lembar "Analisis" file Excel (lihat services
 
 Sumber data hanya laporan yang SUDAH DISETUJUI (tabel approvals).
 """
+import threading
+import time
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 
@@ -462,7 +465,62 @@ def spv_recap(db: Session, me: User, days: int) -> dict:
                  ["Supervisor", "Wilayah", "#Laporan disetujui", "#Disetujui sendiri", "#Menunggu", "#SPG"], rows)
 
 
+MAP_LIMIT = 3000
+
+
+def map_panel(ss: list[dict], ents: list[dict], t: str) -> dict:
+    """Peta lokasi: Reguler = satu titik per kunjungan outlet; Grosir & HORECA = satu titik per laporan (lokasi awal).
+    Hanya data yang lolos filter dashboard, jadi peta selalu sama dengan angka di sekitarnya."""
+    def kec(x):
+        return {k: x.get(k) for k in ("kode", "nama", "kab", "kabKode", "provKode")} if isinstance(x, dict) else None
+    pts, missing = [], 0
+    if t == "REGULER":
+        for e in ents:
+            g = e.get("gps")
+            if not isinstance(g, dict):
+                missing += 1; continue
+            p = packs(e)
+            pts.append({"lat": g["lat"], "lon": g["lon"], "label": e.get("namaOutlet") or "Outlet", "sub": f"{e['_s']['_spg']} · {e['_s'].get('date')} · order {fmt(p)} bks",
+                        "tone": "tt" if p else "ink", "kec": kec(e.get("kecOutlet"))})
+    else:
+        for s in ss:
+            g = (s.get("header") or {}).get("lokasi")
+            if not isinstance(g, dict):
+                missing += 1; continue
+            n = [e for e in ents if e["_s"] is s]; p = sum(packs(e) for e in n)
+            pts.append({"lat": g["lat"], "lon": g["lon"], "label": s["header"].get(FORMS[t]["title_field"]) or "–",
+                        "sub": f"{s['_spg']} · {s.get('date')} · {len(n)} {FORMS[t]['entry_word']} · {fmt(p)} bks", "tone": "tt" if p else "ink", "kec": kec(loc_of(s, t))})
+    word = "kunjungan outlet" if t == "REGULER" else "laporan"
+    sub = f"{fmt(len(pts))} titik {word} · mengikuti filter" + (f" · {fmt(missing)} tanpa GPS" if missing else "")
+    return {"kind": "map", "title": "Peta lokasi", "sub": sub, "span": 12, "points": pts[:MAP_LIMIT], "truncated": len(pts) > MAP_LIMIT}
+
+
+# Cache singkat: dashboard yang sama dibuka banyak orang dalam waktu berdekatan dihitung sekali saja.
+# Dikosongkan otomatis setiap ada laporan disetujui/ditolak/dihapus, data contoh, atau perubahan pengaturan.
+_CACHE: dict = {}
+_CACHE_LOCK = threading.Lock()
+CACHE_TTL = 30
+
+
+def invalidate_cache() -> None:
+    with _CACHE_LOCK:
+        _CACHE.clear()
+
+
 def build(db: Session, me: User, f: Filters) -> dict:
+    key = (me.id, me.role, tuple(sorted(c.id for c in active_items(me))), tuple(sorted(vars(f).items())))
+    hit = _CACHE.get(key)
+    if hit and time.monotonic() - hit[0] < CACHE_TTL:
+        return hit[1]
+    out = _build(db, me, f)
+    with _CACHE_LOCK:
+        if len(_CACHE) > 500:
+            _CACHE.clear()
+        _CACHE[key] = (time.monotonic(), out)
+    return out
+
+
+def _build(db: Session, me: User, f: Filters) -> dict:
     s = app_settings(db)
     brand, variants = s["brand"], s["variants"]
     reports, trunc = load_approved(db, me, f)
@@ -474,6 +532,7 @@ def build(db: Session, me: User, f: Filters) -> dict:
     if not ss:
         return {**head, "tiles": [], "insights": [], "panels": [spv_recap(db, me, f.days)] if me.role == "ADMIN" else []}
     tiles, panels, insights = {"GROSIR": grosir, "HORECA": horeca, "REGULER": reguler}[f.type](ss, ents, variants, brand, Axis(f.days))
+    panels.insert(1, map_panel(ss, ents, f.type))
     el = FORMS[f.type]["entry_location"]
     panels.append(geo_table(ents, el, {"GROSIR": "Pembeli", "HORECA": "Domisili responden", "REGULER": "Kunjungan outlet"}[f.type], "Order" if f.type == "REGULER" else "Membeli", f))
     panels.append(spg_table(ss, ents, f.type, brand))
@@ -490,7 +549,7 @@ def export_rows(db: Session, me: User, f: Filters) -> tuple[list[str], list[list
     variants = app_settings(db)["variants"]
     cols = ["tanggal", "spg", "lokasi_laporan", "kecamatan_laporan", "kab_kota"]
     for x in q:
-        cols += [f"{x['id']}_{v}" for v in variants] if x["type"] in ("variants", "stok") else [x["id"]]
+        cols += [f"{x['id']}_{v}" for v in variants] if x["type"] in ("variants", "stok") else [f"{x['id']}_lat", f"{x['id']}_lon"] if x["type"] == "gps" else [x["id"]]
     rows = []
     for e in ents:
         s = e["_s"]; loc = loc_of(s, f.type) or {}
@@ -499,6 +558,8 @@ def export_rows(db: Session, me: User, f: Filters) -> tuple[list[str], list[list
             v = e.get(x["id"])
             if x["type"] in ("variants", "stok"):
                 row += [(v or {}).get(k, "") for k in variants]
+            elif x["type"] == "gps":
+                row += [(v or {}).get("lat", ""), (v or {}).get("lon", "")]
             else:
                 row.append(kec_name(v) if x["type"] == "kecamatan" else ("ya" if v is True else v if v is not None else ""))
         rows.append(row)

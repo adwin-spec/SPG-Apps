@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { ADMIN, adminApi, login, makeUser } from './helpers';
+import { ADMIN, adminApi, login, makeUser, userApi } from './helpers';
 
 test('admin: semua halaman tampil tanpa error, data contoh mengisi ketiga dashboard, wilayah SPV bisa diatur', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', (e) => errors.push(e.message));
@@ -19,6 +19,9 @@ test('admin: semua halaman tampil tanpa error, data contoh mengisi ketiga dashbo
   await page.getByRole('button', { name: 'Tabel' }).first().click();                       // setiap grafik punya tampilan tabel
   await expect(page.locator('table').first()).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Insight' })).toBeVisible();
+  await expect(page.locator('.tt-map')).toBeVisible();                                   // peta lokasi
+  await expect(page.locator('.tt-map canvas').first()).toBeAttached();                   // titik digambar di canvas (ringan untuk ribuan titik)
+  await expect(page.getByText(/[1-9][\d.]* titik kunjungan outlet · mengikuti filter/)).toBeVisible();
   // Setiap kotak yang bereaksi saat disentuh kursor harus tetap terbaca (bug: kotak gelap berubah putih)
   const cards = page.locator('.glass-hover');
   for (let i = 0; i < Math.min(await cards.count(), 10); i++) {
@@ -48,4 +51,26 @@ test('SPG tidak bisa membuka halaman manajemen', async ({ page }) => {
   const spg = await makeUser('SPG', 'Citra Dewi', ['GROSIR']);
   await login(page, spg.username, spg.password); await expect(page).toHaveURL(/\/m$/);
   await page.goto('/dashboard'); await expect(page).toHaveURL(/\/m$/);
+});
+
+test('admin menghapus laporan dengan alasan, lalu memulihkannya', async ({ page }) => {
+  const errors: string[] = []; page.on('pageerror', (e) => errors.push(e.message));
+  const spg = await makeUser('SPG', 'Hapus Uji', ['REGULER']);
+  const id = crypto.randomUUID(); const gps = { lat: -7.43, lon: 109.25, acc: 10 };
+  await userApi(spg.username, spg.password, `/reports/${id}`, 'PUT', { type: 'REGULER', header: { kecRute: { kode: '33.02.20' }, lokasi: gps }, entries: [
+    { gps, namaOutlet: 'Toko Hapus', tipeOutlet: 'Kios', kecOutlet: { kode: '33.02.20' }, statusOutlet: 'BELUM', facingTotal: 10, posm: 'Tidak ada', beli: { Original: 1 }, kompetitor: 'Surya 16', promoKomp: 'Diskon' }] });
+  await userApi(spg.username, spg.password, `/reports/${id}/submit`, 'POST');
+  await login(page, ADMIN.username, ADMIN.password); await expect(page).toHaveURL(/dashboard/); await page.goto('/review');
+  const row = page.locator('tr', { hasText: 'Hapus Uji' }).first();
+  await row.getByRole('button', { name: 'Detail' }).click();
+  const drawer = page.getByRole('dialog'); await expect(drawer.getByText('GPS awal rute:')).toBeVisible();
+  await drawer.getByRole('button', { name: 'Hapus' }).click();
+  await page.getByLabel('Alasan penghapusan').fill('Laporan ganda');
+  await page.getByRole('dialog', { name: 'Hapus laporan ini?' }).getByRole('button', { name: 'Hapus' }).click();
+  await expect(page.getByText('1 laporan dihapus')).toBeVisible();
+  await page.getByRole('button', { name: 'Dihapus', exact: true }).click();
+  const gone = page.locator('tr', { hasText: 'Hapus Uji' }).first(); await expect(gone).toContainText('Laporan ganda');
+  await gone.getByRole('button', { name: 'Pulihkan' }).click();
+  await expect(page.getByText('Dipulihkan')).toBeVisible();
+  expect(errors).toEqual([]);
 });

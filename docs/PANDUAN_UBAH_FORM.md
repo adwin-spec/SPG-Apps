@@ -24,6 +24,9 @@ Aturan aman:
 * Pilihan teks biasa (`"Kios"`) ikut tersimpan di laporan. Kalau diganti, laporan lama tetap memakai teks lama.
 * Menghapus pertanyaan: hapus satu baris `q(...)`-nya. Kalau dashboard punya grafik untuk pertanyaan itu,
   hapus juga barisnya di `apps/api/app/services/dashboard.py` (cari id pertanyaannya).
+* Pertanyaan lokasi: `q("lokasi", "Lokasi kamu sekarang", "gps", True, auto=True)` – `auto=True` mengambil lokasi
+  otomatis saat form dibuka; ganti `True` (wajib) menjadi `False` bila lokasi boleh kosong. Jangan hapus pertanyaan
+  `lokasi` (awal laporan) / `gps` (outlet Reguler) karena peta dashboard memakainya.
 * Jangan mengubah `id` pertanyaan yang sudah dipakai (mis. `"statusTT"`), karena data lama memakai id itu.
 
 ## 2. Menerapkan perubahan

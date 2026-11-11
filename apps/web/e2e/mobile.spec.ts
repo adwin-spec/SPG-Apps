@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { adminApi, chip, login, makeUser, pickKec, PNG } from './helpers';
+import { adminApi, chip, gpsReady, login, makeUser, pickKec, PNG } from './helpers';
 
 test('SPG Grosir+HORECA mengisi survei dengan foto → SPV wilayah menyetujui → masuk dashboard', async ({ page, browser }) => {
   const errors: string[] = []; page.on('pageerror', (e) => errors.push(e.message));
@@ -14,6 +14,8 @@ test('SPG Grosir+HORECA mengisi survei dengan foto → SPV wilayah menyetujui �
   await pickKec(page, 'kecVenue', 'Sokaraja');
   await expect(page.getByText('Disetujui oleh:')).toContainText('Sari Wulandari');
   await chip(page, 'Cafe'); await chip(page, 'Area merokok khusus');
+  await gpsReady(page);                                                                  // lokasi otomatis tercatat
+  await expect(page.getByText('-7.45650, 109.28640')).toBeVisible();
   await page.getByRole('button', { name: 'Mulai' }).click();
   await expect(page.getByRole('heading', { name: 'Survei Konsumen HORECA' })).toBeVisible();
 
@@ -57,8 +59,9 @@ test('SPG Reguler: stok per varian, share of shelf, submit; tugas yang tidak dib
   const spg = await makeUser('SPG', 'Budi Santoso', ['REGULER']);
   await login(page, spg.username, spg.password);
   await expect(page.locator('input[name=tugasPick]')).toHaveCount(0);
-  await pickKec(page, 'kecRute', 'Kembaran'); await page.getByRole('button', { name: 'Mulai' }).click();
+  await pickKec(page, 'kecRute', 'Kembaran'); await gpsReady(page); await page.getByRole('button', { name: 'Mulai' }).click();
   await page.getByRole('button', { name: '+ Tambah kunjungan outlet' }).click();
+  await gpsReady(page, 'gps');                                                           // lokasi outlet otomatis
   await page.locator('input[name=namaOutlet]').fill('toko berkah'); await chip(page, 'Minimarket'); await pickKec(page, 'kecOutlet', 'Kembaran'); await chip(page, 'Udah jual TT');
   for (const v of ['Original', 'Watermelon', 'Guava']) await page.getByRole('radiogroup', { name: `Stok ${v}` }).locator('label').first().click();
   await page.locator('input[name=facingTotal]').fill('40'); await page.locator('input[name=facingTT]').fill('50');

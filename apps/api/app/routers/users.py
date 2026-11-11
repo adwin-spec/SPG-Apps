@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from ..db import get_db
+from ..services.dashboard import invalidate_cache
 from ..deps import audit, current_user, ok, require
 from ..errors import ApiError
 from ..forms import TYPES
@@ -151,7 +152,7 @@ def add_coverage(uid: str, body: CoverageIn, me: User = Depends(require("ADMIN")
     cov = Coverage(spv_id=u.id, level=body.level, kode=body.kode, label=label, since=now())
     db.add(cov)
     audit(db, me, "ADD_COVERAGE", "user", u.id, {"level": body.level, "kode": body.kode})
-    db.commit(); db.refresh(u)
+    db.commit(); invalidate_cache(); db.refresh(u)
     return ok(user_out(u))
 
 
@@ -162,6 +163,6 @@ def remove_coverage(uid: str, cid: str, me: User = Depends(require("ADMIN")), db
         raise ApiError(404, "NOT_FOUND", "Wilayah tidak ditemukan")
     c.until = now()  # tidak dihapus: riwayat menjaga keabsahan persetujuan lama
     audit(db, me, "REMOVE_COVERAGE", "user", uid, {"kode": c.kode})
-    db.commit()
+    db.commit(); invalidate_cache()
     u = db.get(User, uid, options=[selectinload(User.coverage)])
     return ok(user_out(u))

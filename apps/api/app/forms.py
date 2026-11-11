@@ -19,6 +19,7 @@ Jenis pertanyaan:
     confirm    satu centang wajib (mis. konfirmasi 18+)
     kecamatan  pilih kecamatan dari master wilayah
     photo      foto dari kamera HP              → capture="user" (kamera depan) | "environment" (belakang)
+    gps        lokasi HP saat ini (lat, lon, akurasi) → auto=True: langsung diambil saat form dibuka
     brandcounts  beberapa baris "merek + jumlah batang" → rows=3
 
 Kapan pertanyaan tampil (show) – kondisi sederhana yang dimengerti server dan aplikasi HP:
@@ -128,9 +129,12 @@ SUPERVISOR_HINT = "Ini nentuin supervisor yang bakal ngecek laporanmu."
 retail = when("jenis", eq="RETAIL")
 ada_status = when("statusTT")
 
+GPS_HINT = "Ketuk tombolnya kalau lokasi belum muncul. Nyalakan GPS & izinkan lokasi untuk aplikasi ini."
+
 GROSIR_START = [
     q("grosir", "Nama grosirnya apa?", "text", True, suggest="grosirs", titlecase=True),
     q("kecGrosir", "Grosirnya di kecamatan mana?", "kecamatan", True, hint=SUPERVISOR_HINT, location=True),
+    q("lokasi", "Lokasi kamu sekarang", "gps", True, auto=True, hint=GPS_HINT),
 ]
 GROSIR_ENTRY = [
     q("jenis", "Rokoknya buat dijual lagi atau dirokok sendiri?", "single", True, options=O["jenisPembeli"], hint="Tanya langsung ke pembelinya."),
@@ -183,6 +187,7 @@ HORECA_START = [
     q("kecVenue", "Tempatnya di kecamatan mana?", "kecamatan", True, hint=SUPERVISOR_HINT, location=True),
     q("jenisVenue", "Tempatnya jenis apa?", "single", True, options=O["jenisVenue"]),
     q("kebijakan", "Di sini boleh ngerokok nggak?", "single", True, options=O["kebijakan"]),
+    q("lokasi", "Lokasi kamu sekarang", "gps", True, auto=True, hint=GPS_HINT),
 ]
 HORECA_ENTRY = [
     q("dewasa", "Cek dulu ya", "confirm", True, text="Orangnya perokok & umurnya 18 tahun ke atas", hint="Survei & sampel cuma buat perokok dewasa."),
@@ -223,8 +228,10 @@ REGULER_START = [
     q("rute", "Nama rutenya (boleh dikosongin)", "text", False, placeholder="Misal: Rute Sokaraja – Selasa", titlecase=True),
     q("kecRute", "Rute hari ini utamanya di kecamatan mana?", "kecamatan", True, location=True,
       hint="Ini nentuin supervisor yang ngecek. Outlet di kecamatan lain tetap bisa kamu catat."),
+    q("lokasi", "Lokasi kamu sekarang", "gps", True, auto=True, hint=GPS_HINT),
 ]
 REGULER_ENTRY = [
+    q("gps", "Lokasi outlet ini", "gps", True, auto=True, hint="Diambil otomatis saat kamu di depan outlet. " + GPS_HINT),
     q("namaOutlet", "Nama outletnya?", "text", True, suggest="outlets", placeholder="Misal: Toko Berkah", titlecase=True),
     q("tipeOutlet", "Outletnya jenis apa?", "single", True, options=O["tipeOutlet"]),
     q("kecOutlet", "Outletnya di kecamatan mana?", "kecamatan", True),
@@ -253,7 +260,7 @@ def _cols(questions: list[dict], names: dict[str, str]) -> None:
             x["col"] = names[x["id"]]
 
 
-_cols(GROSIR_START, {"grosir": "Nama grosir", "kecGrosir": "Kecamatan grosir"})
+_cols(GROSIR_START, {"grosir": "Nama grosir", "kecGrosir": "Kecamatan grosir", "lokasi": "GPS"})
 _cols(GROSIR_ENTRY, {"jenis": "Jenis pembeli", "tipeToko": "Tipe toko", "namaToko": "Nama toko", "namaPembeli": "Nama pembeli", "kecamatan": "Kecamatan",
                      "statusTT": "Status TT sebelum ditawari", "tahuDari": "Tahu TT dari", "beli": "TT dibeli", "kupon": "Kupon",
                      "alasanBeli": "Alasan membeli", "alasanTidak": "Alasan tidak membeli", "tier2": "Merek lain", "hargaGrosir": "Harga grosir merek lain",
@@ -261,14 +268,14 @@ _cols(GROSIR_ENTRY, {"jenis": "Jenis pembeli", "tipeToko": "Tipe toko", "namaTok
 for _sec in GROSIR_SECTIONS:
     _cols(_sec["questions"], {"merek": "Merek", "aktivitas": "Aktivitas", "detail": "Detail", "sejak": "Sejak", "jumlah": "Jumlah orang"})
 _cols(GROSIR_CLOSING, {"terlaris": "Merek terlaris (batang)", "catatan": "Catatan", "pic": "PIC grosir"})
-_cols(HORECA_START, {"venue": "Nama venue", "alamat": "Alamat", "kecVenue": "Kecamatan venue", "jenisVenue": "Jenis venue", "kebijakan": "Kebijakan merokok"})
+_cols(HORECA_START, {"venue": "Nama venue", "alamat": "Alamat", "kecVenue": "Kecamatan venue", "jenisVenue": "Jenis venue", "kebijakan": "Kebijakan merokok", "lokasi": "GPS"})
 _cols(HORECA_ENTRY, {"dewasa": "Konfirmasi 18+", "usia": "Usia", "domisili": "Domisili", "rokokBiasa": "Rokok biasa", "tempatBeli": "Tempat beli",
                      "rasa": "Rasa disukai", "statusTT": "Status TT", "alasan": "Alasan", "tahuDari": "Tahu TT dari", "sampel": "Sampel dicoba",
                      "kekuatan": "Kesan kekuatan", "asap": "Kesan asap", "beli": "TT dibeli", "alasanBeli": "Alasan membeli",
                      "alasanTidak": "Alasan tidak membeli", "fotoSetuju": "Bersedia difoto", "foto": "Foto", "catatan": "Catatan"})
 _cols(HORECA_CLOSING, {"terlaris": "Merek terbanyak dihisap (batang)", "korek": "Korek dibagikan", "catatan": "Catatan", "pic": "PIC venue"})
-_cols(REGULER_START, {"rute": "Nama rute", "kecRute": "Kecamatan rute"})
-_cols(REGULER_ENTRY, {"namaOutlet": "Nama outlet", "tipeOutlet": "Tipe outlet", "kecOutlet": "Kecamatan outlet", "statusOutlet": "Status TT di outlet",
+_cols(REGULER_START, {"rute": "Nama rute", "kecRute": "Kecamatan rute", "lokasi": "GPS awal rute"})
+_cols(REGULER_ENTRY, {"gps": "GPS outlet", "namaOutlet": "Nama outlet", "tipeOutlet": "Tipe outlet", "kecOutlet": "Kecamatan outlet", "statusOutlet": "Status TT di outlet",
                       "stok": "Stok", "hargaJual": "Harga eceran TT", "facingTotal": "Facing total", "facingTT": "Facing TT", "posm": "POSM",
                       "beli": "TT diorder", "alasanTidak": "Alasan tidak order", "kompetitor": "Kompetitor terlaris", "hargaKompetitor": "Harga kompetitor",
                       "promoKomp": "Promo kompetitor", "fotoDisplay": "Foto display", "catatan": "Catatan"})

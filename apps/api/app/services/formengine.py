@@ -61,6 +61,21 @@ def cond(c: dict | None, a: dict) -> bool:
     return bool(v)
 
 
+def clean_gps(v: Any) -> dict | None:
+    """Lokasi dari HP: {lat, lon, acc (meter), at}. Nilai di luar rentang dianggap tidak ada."""
+    if not isinstance(v, dict):
+        return None
+    try:
+        lat, lon = float(v.get("lat")), float(v.get("lon"))
+        acc = float(v.get("acc")) if v.get("acc") is not None else None
+    except (TypeError, ValueError):
+        return None
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180) or (lat == 0 and lon == 0) or (acc is not None and not 0 <= acc <= 100_000):
+        return None
+    at = v.get("at") if isinstance(v.get("at"), str) and len(v["at"]) <= 40 else None
+    return {"lat": round(lat, 6), "lon": round(lon, 6), "acc": round(acc) if acc is not None else None, "at": at}
+
+
 @dataclass
 class Ctx:
     variants: list[str]
@@ -123,6 +138,8 @@ def clean(questions: list[dict], raw: dict | None, ctx: Ctx, strict: bool = True
                 v = {"id": pid} if pid and ctx.photo_ok(str(pid)) else ({"sample": True} if isinstance(v, dict) and v.get("sample") else None)
                 if pid and not v:
                     errs[qid] = "Fotonya nggak ketemu, ambil ulang ya"
+            elif t == "gps":
+                v = clean_gps(v)
             elif t == "brandcounts":
                 rows = []
                 for r in (v or [])[: q.get("rows", 3)]:
@@ -138,7 +155,7 @@ def clean(questions: list[dict], raw: dict | None, ctx: Ctx, strict: bool = True
         if v is not None:
             out[qid] = v
         if strict and q.get("required") and v is None and qid not in errs:
-            errs[qid] = {"confirm": "Centang dulu ya", "single": "Pilih salah satu dulu", "kecamatan": "Pilih kecamatannya dari daftar", "photo": "Ambil foto dulu"}.get(t, "Ini belum diisi")
+            errs[qid] = {"confirm": "Centang dulu ya", "single": "Pilih salah satu dulu", "kecamatan": "Pilih kecamatannya dari daftar", "photo": "Ambil foto dulu", "gps": "Lokasinya belum tercatat"}.get(t, "Ini belum diisi")
         rules = q.get("rules") or {}
         if v is not None and "min" in rules and isinstance(v, (int, float)) and v < rules["min"]:
             errs[qid] = rules.get("min_message", f"Minimal {rules['min']}")

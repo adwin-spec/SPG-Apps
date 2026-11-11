@@ -30,15 +30,20 @@
   --tt-shadow: 0 8px 32px rgba(0, 0, 0, 0.045), inset 0 1px 0 rgba(255, 255, 255, 0.85);
   --tt-shadow-hover: 0 14px 40px rgba(0, 0, 0, 0.075), inset 0 1px 0 rgba(255, 255, 255, 0.9);
   --tt-shadow-elevated: 0 24px 64px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  --tt-blur: 24px; --tt-blur-strong: 34px;
+  --tt-blur: 18px; --tt-blur-strong: 28px;
   --tt-ease: cubic-bezier(0.22, 0.61, 0.36, 1); --tt-dur: 220ms;
 }
-@media (max-width: 640px) { :root { --tt-blur: 14px; --tt-blur-strong: 20px; } } /* hemat performa di HP */
+@media (max-width: 640px) { :root { --tt-blur: 10px; --tt-blur-strong: 16px; } } /* hemat performa di HP */
 
 html, body { background: var(--tt-soft-white); color: var(--tt-black); }
 body { font-family: var(--font-sans), "Helvetica Neue", ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
 .num { font-variant-numeric: tabular-nums; }
 *:focus-visible { outline: 2px solid var(--tt-black); outline-offset: 2px; }
+/* Ketukan terasa langsung di HP: tanpa jeda 300 ms dan tanpa kilatan biru */
+a, button, label, input, select, textarea, [role="button"] { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+html { -webkit-text-size-adjust: 100%; overscroll-behavior-y: none; }
+/* Panel di luar layar tidak digambar dulu → gulir halaman panjang (dashboard) tetap ringan */
+.cv-auto { content-visibility: auto; contain-intrinsic-size: auto 380px; }
 ::selection { background: var(--tt-black); color: var(--tt-white); }
 
 @layer components {
@@ -95,3 +100,8 @@ body { font-family: var(--font-sans), "Helvetica Neue", ui-sans-serif, system-ui
 @keyframes tt-spin-plus { to { transform: rotate(90deg); } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 @media print { aside, header, .no-print, .bg-layer { display: none !important; } .glass, .glass-elevated { backdrop-filter: none; background: #fff; box-shadow: none; } }
+
+/* Peta: ubin peta dibuat abu-abu agar serasi dengan desain monokrom; titik data tetap berwarna */
+.tt-map .leaflet-tile-pane { filter: grayscale(1) contrast(1.05) brightness(1.04); }
+.tt-map .leaflet-popup-content-wrapper { border-radius: 14px; box-shadow: var(--tt-shadow-elevated); }
+.tt-map .leaflet-control-attribution { font-size: 10px; }
