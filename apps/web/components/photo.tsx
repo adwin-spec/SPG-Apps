@@ -13,13 +13,13 @@ export function Photo({ value, alt, className }: { value: any; alt: string; clas
     if (!cache.has(id)) cache.set(id, blobUrl(`/photos/${id}`));
     cache.get(id)!.then(setSrc).catch(() => { cache.delete(id); setErr(true); });
   }, [id]);
-  const box = cn('h-16 w-16 shrink-0 rounded-md border border-border bg-surface object-cover', className);
+  const box = cn('h-16 w-16 shrink-0 rounded-md border border-line bg-black/[.03] object-cover', className);
   if (value?.sample) return <span className={cn(box, 'inline-grid place-items-center text-center text-[10px] text-ink-muted')}>Contoh<br />foto</span>;
   if (!id || err) return <span className={cn(box, 'inline-grid place-items-center text-center text-[10px] text-ink-muted')}>Foto tidak tersedia</span>;
   if (!src) return <span className={cn(box, 'inline-block animate-pulse')} />;
   return <>
     <button type="button" onClick={() => setBig(true)} className="shrink-0 cursor-zoom-in" aria-label={`Perbesar ${alt}`}><img src={src} alt={alt} className={box} /></button>
-    {big && <div role="dialog" aria-label={alt} className="fixed inset-0 z-50 grid cursor-zoom-out place-items-center bg-navy-950/85 p-4" onClick={() => setBig(false)}>
+    {big && <div role="dialog" aria-label={alt} className="fixed inset-0 z-50 grid cursor-zoom-out place-items-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setBig(false)}>
       <img src={src} alt={alt} className="max-h-full max-w-full rounded-lg" /></div>}
   </>;
 }

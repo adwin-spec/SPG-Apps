@@ -8,6 +8,7 @@ import { PageHeader, Panel, PanelBody, PanelHeader } from '@/components/ui/card'
 import { Field, Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
 import { useSettings } from './hooks';
+import { PageContainer } from '@/components/layout/page-container';
 
 export function SettingsView() {
   const s = useSettings(); const toast = useToast(); const qc = useQueryClient();
@@ -23,8 +24,8 @@ export function SettingsView() {
     try { const r = await api<any>('/admin/samples', { method: load ? 'POST' : 'DELETE', query: load ? { n: 60 } : undefined }); toast('success', load ? `${r.created} laporan contoh dimuat` : `${r.deleted} laporan contoh dihapus`); qc.invalidateQueries({ queryKey: ['dash'] }); }
     catch (e) { toast('error', e instanceof ApiError ? e.message : 'Gagal'); } finally { setBusy(false); }
   };
-  return <>
-    <PageHeader title="Pengaturan" description="Merek, varian, dan daftar grosir langsung dipakai di aplikasi HP SPG. Pertanyaan form diubah di file apps/api/app/forms.py." />
+  return <PageContainer preset="data">
+    <PageHeader eyebrow="Sistem" title="Pengaturan" description="Merek, varian, dan daftar grosir langsung dipakai di aplikasi HP SPG. Pertanyaan form diubah di file apps/api/app/forms.py." />
     <div className="grid gap-4 lg:grid-cols-2">
       <Panel><PanelHeader title="Merek & varian" subtitle="Varian muncul sebagai isian bungkus, stok, dan order di semua form" /><PanelBody className="grid gap-3">
         <Field label="Nama merek" htmlFor="brand"><Input id="brand" value={v.brand} onChange={(e) => setV({ ...v, brand: e.target.value })} /></Field>
@@ -39,5 +40,5 @@ export function SettingsView() {
         <div className="flex gap-2"><Input placeholder="Nama grosir" aria-label="Nama grosir" value={ng} onChange={(e) => setNg(e.target.value)} /><Button variant="secondary" onClick={() => { if (ng.trim()) { save({ ...v, grosirs: [...v.grosirs, ng.trim()] }); setNg(''); } }}>Tambah grosir</Button></div></PanelBody></Panel>
       <Panel className="lg:col-span-2"><PanelHeader title="Data contoh untuk demo" subtitle="60 laporan bernama fiktif, langsung berstatus disetujui dan ditandai sebagai contoh. Hapus sebelum dipakai sungguhan." />
         <PanelBody className="flex flex-wrap gap-2"><Button loading={busy} onClick={() => samples(true)}>Muat 60 laporan contoh</Button><Button variant="secondary" className="text-critical-text" disabled={busy} onClick={() => samples(false)}>Hapus data contoh</Button></PanelBody></Panel>
-    </div></>;
+    </div></PageContainer>;
 }

@@ -4,18 +4,18 @@ import { humanize } from '@/lib/format';
 
 type Tone = 'neutral' | 'info' | 'good' | 'warn' | 'serious' | 'critical';
 const tones: Record<Tone, string> = {
-  neutral: 'bg-paper-deep text-ink-secondary border-ink/20',
-  info: 'bg-primary-soft text-ink border-ink/20',
-  good: 'bg-good-soft text-good-text border-green-200',
-  warn: 'bg-warn-soft text-warn-text border-amber-200',
-  serious: 'bg-serious-soft text-serious-text border-orange-200',
-  critical: 'bg-critical-soft text-critical-text border-red-200',
+  neutral: 'bg-black/[.05] text-ink-secondary border-line',
+  info: 'bg-black/[.05] text-ink border-line',
+  good: 'bg-good-soft text-good-text border-good/30',
+  warn: 'bg-warn-soft text-warn-text border-warn/30',
+  serious: 'bg-warn-soft text-warn-text border-warn/30',
+  critical: 'bg-critical-soft text-critical-text border-critical/30',
 };
 const icons: Partial<Record<Tone, React.ElementType>> = { good: CheckCircle2, warn: AlertTriangle, serious: AlertTriangle, critical: AlertOctagon, info: CircleDot, neutral: MinusCircle };
 
 export function Badge({ tone = 'neutral', children, icon = false, className }: { tone?: Tone; children: React.ReactNode; icon?: boolean; className?: string }) {
   const Icon = icons[tone];
-  return <span className={cn('inline-flex items-center gap-1 whitespace-nowrap rounded border px-1.5 py-0.5 text-2xs font-medium', tones[tone], className)}>
+  return <span className={cn('inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-2xs font-semibold', tones[tone], className)}>
     {icon && Icon && <Icon className="h-3 w-3" aria-hidden />}{children}</span>;
 }
 

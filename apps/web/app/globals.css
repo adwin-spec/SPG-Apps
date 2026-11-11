@@ -2,15 +2,94 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: light; }
-html, body { background: #f3efe6; color: #141210; }
-body { font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
-/* butiran kertas yang sangat halus di latar */
-body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: .35;
-  background-image: radial-gradient(rgba(20,18,16,.06) 1px, transparent 1px); background-size: 3px 3px; }
-body > * { position: relative; z-index: 1; }
+/* ════════════ TANDA TAMBAH · Expressive Glassmorphism · design tokens ════════════
+   Putih = primary, hitam = secondary. Aksen merah/oranye/hijau hanya untuk sorotan & status.
+   Semua komponen membaca token ini; jangan menulis warna mentah di halaman. */
+:root {
+  color-scheme: light;
+  /* warna */
+  --tt-white: #ffffff;
+  --tt-soft-white: #f7f7f7;
+  --tt-glass: rgba(255, 255, 255, 0.62);
+  --tt-glass-strong: rgba(255, 255, 255, 0.84);
+  --tt-glass-nested: rgba(255, 255, 255, 0.55);
+  --tt-glass-dark: rgba(17, 17, 17, 0.86);
+  --tt-black: #111111;
+  --tt-deep-black: #1d1d1d;
+  --tt-soft-black: #333333;
+  --tt-muted: #6e6e6e;          /* teks pendukung (≥ 4.5:1 di atas putih) */
+  --tt-muted-gray: #858585;     /* ikon, garis, dekorasi (bukan teks kecil) */
+  --tt-border: rgba(0, 0, 0, 0.10);
+  --tt-border-strong: rgba(0, 0, 0, 0.18);
+  --tt-glass-border: rgba(255, 255, 255, 0.78);
+  --tt-red: #d94a43;  --tt-red-text: #b0322c;  --tt-red-soft: rgba(217, 74, 67, 0.10);
+  --tt-orange: #e77b43; --tt-orange-text: #9a4a1c; --tt-orange-soft: rgba(231, 123, 67, 0.12);
+  --tt-green: #779a75; --tt-green-text: #4a6b48; --tt-green-soft: rgba(119, 154, 117, 0.14);
+  /* bentuk */
+  --tt-radius-lg: 20px; --tt-radius-md: 14px; --tt-radius-sm: 11px;
+  --tt-shadow: 0 8px 32px rgba(0, 0, 0, 0.045), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  --tt-shadow-hover: 0 14px 40px rgba(0, 0, 0, 0.075), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --tt-shadow-elevated: 0 24px 64px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --tt-blur: 24px; --tt-blur-strong: 34px;
+  --tt-ease: cubic-bezier(0.22, 0.61, 0.36, 1); --tt-dur: 220ms;
+}
+@media (max-width: 640px) { :root { --tt-blur: 14px; --tt-blur-strong: 20px; } } /* hemat performa di HP */
+
+html, body { background: var(--tt-soft-white); color: var(--tt-black); }
+body { font-family: var(--font-sans), "Helvetica Neue", ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
 .num { font-variant-numeric: tabular-nums; }
-*:focus-visible { outline: 2px solid #d42a1f; outline-offset: 2px; }
-a { text-underline-offset: 3px; }
-@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
-@media print { aside, header, .no-print { display: none !important; } body::before { display: none; } }
+*:focus-visible { outline: 2px solid var(--tt-black); outline-offset: 2px; }
+::selection { background: var(--tt-black); color: var(--tt-white); }
+
+@layer components {
+  /* A · Primary glass: KPI, panel, grafik */
+  .glass {
+    background: var(--tt-glass);
+    backdrop-filter: blur(var(--tt-blur)) saturate(140%); -webkit-backdrop-filter: blur(var(--tt-blur)) saturate(140%);
+    border: 1px solid var(--tt-glass-border); border-radius: var(--tt-radius-lg); box-shadow: var(--tt-shadow);
+  }
+  /* B · Elevated glass: modal, drawer, dropdown, panel filter */
+  .glass-elevated {
+    background: var(--tt-glass-strong);
+    backdrop-filter: blur(var(--tt-blur-strong)) saturate(150%); -webkit-backdrop-filter: blur(var(--tt-blur-strong)) saturate(150%);
+    border: 1px solid var(--tt-glass-border); border-radius: var(--tt-radius-lg); box-shadow: var(--tt-shadow-elevated);
+  }
+  /* C · Dark glass: sorotan KPI, insight (dipakai terbatas) */
+  .glass-dark {
+    background: var(--tt-glass-dark); color: var(--tt-white);
+    backdrop-filter: blur(var(--tt-blur)) saturate(120%); -webkit-backdrop-filter: blur(var(--tt-blur)) saturate(120%);
+    border: 1px solid rgba(255, 255, 255, 0.12); border-radius: var(--tt-radius-lg); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  }
+  /* Level 2 · nested: kontras cukup di dalam glass */
+  .glass-nested { background: var(--tt-glass-nested); border: 1px solid var(--tt-border); border-radius: var(--tt-radius-md); }
+  /* Level 3 · permukaan minimal */
+  .glass-minimal { background: rgba(255, 255, 255, 0.35); border: 1px dashed var(--tt-border-strong); border-radius: var(--tt-radius-md); }
+  /* Interaksi */
+  .glass-hover { transition: transform var(--tt-dur) var(--tt-ease), box-shadow var(--tt-dur) var(--tt-ease), background-color var(--tt-dur) var(--tt-ease), border-color var(--tt-dur) var(--tt-ease); }
+  .glass-hover:hover { transform: translateY(-2px); box-shadow: var(--tt-shadow-hover); background-color: rgba(255, 255, 255, 0.72); border-color: rgba(255, 255, 255, 0.95); }
+  .glass-hover:active { transform: translateY(0); }
+  /* Tabel: header lebih solid, pemisah tipis, hover & baris terpilih */
+  .glass-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+  .glass-table thead th { position: sticky; top: 0; z-index: 1; background: rgba(247, 247, 247, 0.96); backdrop-filter: blur(8px);
+    text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--tt-muted); padding: 10px 12px; white-space: nowrap; border-bottom: 1px solid var(--tt-border); }
+  .glass-table tbody td { padding: 10px 12px; border-bottom: 1px solid rgba(0, 0, 0, 0.06); vertical-align: top; background: rgba(255, 255, 255, 0.55); }
+  .glass-table tbody tr:hover td { background: rgba(255, 255, 255, 0.92); }
+  .glass-table tbody tr[aria-selected="true"] td { background: rgba(17, 17, 17, 0.05); }
+  .glass-table .r { text-align: right; font-variant-numeric: tabular-nums; }
+  /* Teks latar (ekspresif) */
+  .bg-word { position: absolute; font-family: var(--font-marker), cursive; color: var(--tt-black); pointer-events: none; user-select: none; white-space: nowrap; line-height: .85; }
+  .shimmer { background: linear-gradient(100deg, rgba(0,0,0,.04) 30%, rgba(0,0,0,.08) 50%, rgba(0,0,0,.04) 70%); background-size: 200% 100%; animation: tt-shimmer 1.4s linear infinite; }
+  .enter { animation: tt-enter 320ms var(--tt-ease) both; }
+}
+/* Fallback bila backdrop-filter tidak didukung: glass dibuat hampir solid agar tetap terbaca */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass, .glass-nested { background: rgba(255, 255, 255, 0.95); }
+  .glass-elevated { background: #ffffff; }
+  .glass-dark { background: #1d1d1d; }
+}
+@keyframes tt-shimmer { to { background-position: -200% 0; } }
+@keyframes tt-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes tt-drift { from { transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg)); } to { transform: translate3d(-24px, 10px, 0) rotate(var(--rot, 0deg)); } }
+@keyframes tt-spin-plus { to { transform: rotate(90deg); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+@media print { aside, header, .no-print, .bg-layer { display: none !important; } .glass, .glass-elevated { backdrop-filter: none; background: #fff; box-shadow: none; } }

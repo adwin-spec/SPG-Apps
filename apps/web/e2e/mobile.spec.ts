@@ -41,8 +41,9 @@ test('SPG Grosir+HORECA mengisi survei dengan foto → SPV wilayah menyetujui �
   await s.goto('/review');
   const row = s.locator('tr', { hasText: 'Kopi Senja' }).first();
   await row.getByRole('button', { name: 'Detail' }).click();
-  await expect(s.getByRole('button', { name: /Perbesar Foto SPG bersama responden/ })).toBeVisible();
-  await row.getByRole('button', { name: 'Setujui' }).click();
+  const drawer = s.getByRole('dialog');
+  await expect(drawer.getByRole('button', { name: /Perbesar Foto SPG bersama responden/ })).toBeVisible();
+  await drawer.getByRole('button', { name: 'Setujui laporan' }).click();
   await expect(s.getByText('Disetujui – masuk ke dashboard')).toBeVisible();
   await s.goto('/dashboard'); await s.getByRole('button', { name: 'HORECA', exact: true }).click();
   await expect(s.getByText('Responden difoto')).toBeVisible();
@@ -68,7 +69,10 @@ test('SPG Reguler: stok per varian, share of shelf, submit; tugas yang tidak dib
   await page.locator('input[name=facingTT]').fill('6'); await page.getByRole('button', { name: 'Simpan' }).click();
   await expect(page.getByText('Toko Berkah', { exact: true })).toBeVisible();
   await page.screenshot({ path: 'test-results/reguler-session.png', fullPage: true });
-  const ovf = await page.evaluate(() => { const vw = document.documentElement.clientWidth; return [...document.querySelectorAll('body *')].filter((e) => e.getBoundingClientRect().right > vw + 1).slice(0, 6).map((e) => `${e.tagName}.${String(e.className).slice(0, 70)}`); });
+  // Teks latar dekoratif (aria-hidden) sengaja terpotong di tepi layar; selain itu tidak boleh ada yang melebar.
+  const ovf = await page.evaluate(() => { const vw = document.documentElement.clientWidth;
+    const wide = [...document.querySelectorAll('body *')].filter((e) => !e.closest('[aria-hidden="true"]') && e.getBoundingClientRect().right > vw + 1).slice(0, 6).map((e) => `${e.tagName}.${String(e.className).slice(0, 70)}`);
+    return document.documentElement.scrollWidth > vw ? [...wide, `scrollWidth ${document.documentElement.scrollWidth} > ${vw}`] : wide; });
   expect(ovf, 'tidak boleh ada geser horizontal di HP').toEqual([]);
   await page.getByRole('button', { name: 'Kirim laporan' }).click();
   await expect(page.getByText('Laporan terkirim')).toBeVisible();

@@ -1,10 +1,10 @@
 import type { Metadata, Viewport } from 'next';
-import { Permanent_Marker, Space_Grotesk } from 'next/font/google';
+import { Inter, Permanent_Marker } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/lib/providers';
 
-/** Huruf: Space Grotesk untuk semua teks & angka; Permanent Marker (gaya spidol) hanya untuk judul. */
-const sans = Space_Grotesk({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
+/** Huruf: Inter untuk semua konten, angka, tabel, form, navigasi. Permanent Marker HANYA untuk teks latar & sorotan dekoratif. */
+const sans = Inter({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
 const marker = Permanent_Marker({ subsets: ['latin'], weight: '400', variable: '--font-marker', display: 'swap' });
 
 export const metadata: Metadata = {
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, title: 'Tanda Tambah', statusBarStyle: 'black' },
 };
-export const viewport: Viewport = { themeColor: '#141210', width: 'device-width', initialScale: 1 };
+export const viewport: Viewport = { themeColor: '#111111', width: 'device-width', initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return <html lang="id" className={`${sans.variable} ${marker.variable}`}><body><Providers>{children}</Providers></body></html>;

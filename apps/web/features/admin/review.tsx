@@ -1,6 +1,6 @@
 'use client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Fragment, useState } from 'react';
+import { useState } from 'react';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { fmtDate, fmtDateTime, fmtIdr, fmtNum, fmtTime } from '@/lib/format';
@@ -8,7 +8,13 @@ import { type AuthUser, type ReportType, TYPE_LABEL } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ErrorBox, PageHeader } from '@/components/ui/card';
+import { ErrorBox, Skeleton } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { GlassContainer } from '@/components/ui/glass-container';
+import { GlassDrawer } from '@/components/ui/glass-drawer';
+import { GlassInput } from '@/components/ui/glass-input';
+import { GlassTable, Pagination, usePaged } from '@/components/ui/glass-table';
+import { PageContainer, PageHeader } from '@/components/layout/page-container';
 import { useToast } from '@/components/ui/toast';
 import { Photo } from '@/components/photo';
 import { type FormsPayload, kecFull, lab, labelOfStatus, val } from '@/features/field/engine';
@@ -21,48 +27,56 @@ const TONE: Record<string, 'good' | 'warn' | 'critical' | 'neutral'> = { APPROVE
 export function ReviewView() {
   const { user } = useAuth(); const toast = useToast(); const qc = useQueryClient();
   const [status, setStatus] = useState('SUBMITTED'); const [scope, setScope] = useState('mine'); const [spv, setSpv] = useState('');
-  const [open, setOpen] = useState<string | null>(null); const [rej, setRej] = useState<string | null>(null); const [note, setNote] = useState(''); const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState<Row | null>(null); const [rejecting, setRejecting] = useState(false); const [note, setNote] = useState(''); const [busy, setBusy] = useState(false);
   const q = useQuery({ queryKey: ['review', status, scope, spv], queryFn: () => api<Row[]>('/review', { query: { status, scope, spv } }) });
   const spvs = useQuery({ queryKey: ['users', 'SPV'], queryFn: () => api<AuthUser[]>('/users', { query: { role: 'SPV' } }), enabled: user?.role === 'ADMIN' });
+  const pg = usePaged(q.data ?? [], 25);
+  const show = (r: Row, reject = false) => { setOpen(r); setRejecting(reject); setNote(''); };
   const decide = async (id: string, action: 'approve' | 'reject') => {
     if (action === 'reject' && note.trim().length < 5) return toast('error', 'Tulis alasan penolakan agar SPG tahu apa yang harus diperbaiki');
     setBusy(true);
     try { await api(`/review/${id}/${action}`, { method: 'POST', body: action === 'reject' ? { note } : undefined });
-      toast('success', action === 'approve' ? 'Disetujui – masuk ke dashboard' : 'Ditolak – dikembalikan ke SPG'); setRej(null); setNote(''); qc.invalidateQueries({ queryKey: ['review'] }); qc.invalidateQueries({ queryKey: ['dash'] }); }
+      toast('success', action === 'approve' ? 'Disetujui – masuk ke dashboard' : 'Ditolak – dikembalikan ke SPG'); setOpen(null); setNote(''); qc.invalidateQueries({ queryKey: ['review'] }); qc.invalidateQueries({ queryKey: ['dash'] }); }
     catch (e) { toast('error', e instanceof ApiError ? e.message : 'Gagal'); } finally { setBusy(false); }
   };
-  const seg = (items: [string, string][], cur: string, set: (v: string) => void, label: string) => <div className="inline-flex flex-wrap rounded-md border-2 border-ink bg-paper-card p-0.5 shadow-hard-sm" role="group" aria-label={label}>
-    {items.map(([v, l]) => <button key={v} aria-pressed={cur === v} onClick={() => set(v)} className={cn('h-8 rounded px-3 text-sm font-bold', cur === v ? 'bg-ink text-paper-card' : 'text-ink-secondary hover:text-ink')}>{l}</button>)}</div>;
-  return <>
-    <PageHeader title="Persetujuan laporan" description={user?.role === 'SPV' ? `Anda supervisor untuk: ${user.coverage.map((c) => c.label).join(', ') || 'belum ada wilayah – hubungi admin pusat'}. Laporan masuk dashboard setelah disetujui.`
+  const seg = (items: [string, string][], cur: string, set: (v: string) => void, label: string) => <div className="inline-flex flex-wrap rounded-glass-sm bg-black/[.05] p-1" role="group" aria-label={label}>
+    {items.map(([v, l]) => <button key={v} aria-pressed={cur === v} onClick={() => set(v)} className={cn('h-8 rounded-[8px] px-3 text-sm font-semibold transition-colors', cur === v ? 'bg-ink text-white shadow-sm' : 'text-ink-secondary hover:text-ink')}>{l}</button>)}</div>;
+  return <PageContainer preset="review">
+    <PageHeader eyebrow="Persetujuan" title="Laporan masuk" description={user?.role === 'SPV' ? `Anda supervisor untuk: ${user.coverage.map((c) => c.label).join(', ') || 'belum ada wilayah – hubungi admin pusat'}. Laporan masuk dashboard setelah disetujui.`
       : 'Laporan otomatis diarahkan ke supervisor yang memegang kecamatan lokasinya. Wilayah tanpa supervisor ditangani admin pusat.'} />
-    <div className="mb-3 flex flex-wrap items-center gap-2">
+    <GlassContainer level="elevated" className="enter mb-5 flex flex-wrap items-center gap-2 !rounded-glass-md p-2.5">
       {user?.role === 'SPV' ? seg([['mine', 'Wilayah saya'], ['all', 'Semua (baca saja)']], scope, setScope, 'Cakupan')
         : <select aria-label="Wilayah supervisor" className={selectCls} value={spv} onChange={(e) => setSpv(e.target.value)}><option value="">Semua wilayah</option><option value="_none">Tanpa SPV (ditangani pusat)</option>
           {(spvs.data ?? []).map((s) => <option key={s.id} value={s.id}>Wilayah {s.name}</option>)}</select>}
       {seg([['SUBMITTED', 'Menunggu'], ['APPROVED', 'Disetujui'], ['REJECTED', 'Ditolak / diperbaiki'], ['', 'Semua']], status, setStatus, 'Status')}
-    </div>
+    </GlassContainer>
     {q.error && <ErrorBox error={q.error} />}
-    <div className="overflow-x-auto rounded-md border-2 border-ink bg-paper-card shadow-hard"><table className="w-full text-[13px]"><thead><tr className="bg-paper-deep text-left text-2xs uppercase tracking-wide text-ink-secondary">
-      {['Tanggal', 'SPG', 'Lokasi', 'Supervisor', 'Kontak', 'Bks TT', 'Pemeriksaan', 'Status', ''].map((h) => <th key={h} className="whitespace-nowrap px-3 py-2 font-semibold">{h}</th>)}</tr></thead>
-      <tbody>{(q.data ?? []).map((r) => <Fragment key={r.id}><tr className="border-t border-border align-top">
-        <td className="px-3 py-2">{fmtDate(r.startedAt)}<div className="text-2xs text-ink-muted">{fmtTime(r.startedAt)}–{fmtTime(r.endedAt)}</div></td>
-        <td className="px-3 py-2">{r.spg.name}<div className="text-2xs text-ink-muted">{TYPE_LABEL[r.type]}</div></td>
-        <td className="px-3 py-2">{r.title}<div className="text-2xs text-ink-muted">{kecFull(r.loc)}</div></td>
-        <td className="px-3 py-2">{r.spvNames.join(', ') || 'Admin pusat (belum ada SPV)'}{r.reviewedBy && <div className="text-2xs text-ink-muted">diputus: {r.reviewedBy}</div>}</td>
-        <td className="num px-3 py-2 text-right">{r.entryCount}</td><td className="num px-3 py-2 text-right">{fmtNum(r.packs)}</td>
-        <td className="px-3 py-2">{r.flags.length ? r.flags.map((f) => <div key={f}><Badge tone="warn" icon>{f}</Badge></div>) : <Badge tone="good" icon>Wajar</Badge>}</td>
-        <td className="px-3 py-2"><Badge tone={TONE[r.status] ?? 'neutral'} icon>{labelOfStatus(r.status)}</Badge>{!!r.revision && <div className="text-2xs text-tt">Revisi ke-{r.revision}</div>}
+    {q.isLoading ? <Skeleton className="h-64" /> : !q.data?.length ? <GlassContainer><EmptyState title={status === 'SUBMITTED' ? 'Tidak ada laporan yang menunggu' : 'Tidak ada laporan'} hint="Laporan baru dari SPG di cakupan ini akan muncul di sini." /></GlassContainer> :
+    <GlassContainer className="enter overflow-hidden"><GlassTable plain><thead><tr>{['Tanggal', 'SPG', 'Lokasi', 'Supervisor', 'Kontak', 'Bks TT', 'Pemeriksaan', 'Status', ''].map((h, i) => <th key={h || i} className={i === 4 || i === 5 ? 'r' : ''}>{h}</th>)}</tr></thead>
+      <tbody>{pg.slice.map((r) => <tr key={r.id} aria-selected={open?.id === r.id}>
+        <td>{fmtDate(r.startedAt)}<div className="text-2xs text-ink-muted">{fmtTime(r.startedAt)}–{fmtTime(r.endedAt)}</div></td>
+        <td className="font-medium">{r.spg.name}<div className="text-2xs font-normal text-ink-muted">{TYPE_LABEL[r.type]}</div></td>
+        <td>{r.title}<div className="text-2xs text-ink-muted">{kecFull(r.loc)}</div></td>
+        <td>{[...new Set(r.spvNames)].join(', ') || 'Admin pusat (belum ada SPV)'}{r.reviewedBy && <div className="text-2xs text-ink-muted">diputus: {r.reviewedBy}</div>}</td>
+        <td className="r">{r.entryCount}</td><td className="r">{fmtNum(r.packs)}</td>
+        <td>{r.flags.length ? <div className="grid gap-1">{r.flags.map((f) => <Badge key={f} tone="warn" icon>{f}</Badge>)}</div> : <Badge tone="good" icon>Wajar</Badge>}</td>
+        <td><Badge tone={TONE[r.status] ?? 'neutral'} icon>{labelOfStatus(r.status)}</Badge>{!!r.revision && <div className="mt-1 text-2xs text-ink-muted">Revisi ke-{r.revision}</div>}
           {r.reviewNote && ['REJECTED', 'REVISION'].includes(r.status) && <div className="text-2xs text-ink-muted">Alasan: {r.reviewNote}</div>}</td>
-        <td className="px-3 py-2"><div className="flex gap-1.5">
-          <Button size="sm" variant="secondary" onClick={() => setOpen(open === r.id ? null : r.id)}>Detail</Button>
-          {r.status === 'SUBMITTED' && (r.canDecide ? <><Button size="sm" variant="success" disabled={busy} data-approve={r.id} onClick={() => decide(r.id, 'approve')}>Setujui</Button>
-            <Button size="sm" variant="secondary" className="text-critical-text" onClick={() => { setRej(rej === r.id ? null : r.id); setNote(''); }}>Tolak</Button></> : <span className="text-2xs text-ink-muted">Wilayah SPV lain</span>)}</div></td></tr>
-        {rej === r.id && <tr><td colSpan={9} className="px-3 pb-3"><div className="flex flex-wrap gap-2"><input autoFocus className="h-9 min-w-[16rem] flex-1 rounded-md border border-border px-2.5" placeholder="Alasan ditolak & apa yang harus diperbaiki SPG (wajib)" aria-label="Alasan penolakan" value={note} onChange={(e) => setNote(e.target.value)} />
-          <Button size="sm" variant="danger" disabled={busy} onClick={() => decide(r.id, 'reject')}>Tolak &amp; kembalikan ke SPG</Button></div></td></tr>}
-        {open === r.id && <tr><td colSpan={9} className="bg-surface/60 px-3 py-3"><Detail id={r.id} /></td></tr>}</Fragment>)}
-        {!q.isLoading && !q.data?.length && <tr><td colSpan={9} className="py-10 text-center text-ink-muted">{status === 'SUBMITTED' ? 'Tidak ada laporan yang menunggu di cakupan ini.' : 'Tidak ada laporan.'}</td></tr>}</tbody></table></div>
-  </>;
+        <td><div className="flex gap-1.5">
+          <Button size="sm" variant="secondary" onClick={() => show(r)}>Detail</Button>
+          {r.status === 'SUBMITTED' && (r.canDecide ? <><Button size="sm" disabled={busy} data-approve={r.id} onClick={() => decide(r.id, 'approve')}>Setujui</Button>
+            <Button size="sm" variant="ghost" className="text-critical-text" onClick={() => show(r, true)}>Tolak</Button></> : <span className="text-2xs text-ink-muted">Wilayah SPV lain</span>)}</div></td></tr>)}</tbody></GlassTable>
+      <Pagination {...pg} /></GlassContainer>}
+
+    <GlassDrawer open={!!open} onOpenChange={(o) => !o && setOpen(null)} title={open ? `${open.title} · ${TYPE_LABEL[open.type]}` : ''}
+      description={open ? `${open.spg.name} · ${fmtDate(open.startedAt)} · ${kecFull(open.loc)}` : undefined}
+      footer={open?.status === 'SUBMITTED' && open.canDecide ? (rejecting
+        ? <div className="flex w-full flex-wrap gap-2"><GlassInput autoFocus className="min-w-[14rem] flex-1" placeholder="Alasan ditolak & apa yang harus diperbaiki SPG (wajib)" aria-label="Alasan penolakan" value={note} onChange={(e) => setNote(e.target.value)} />
+          <Button variant="ghost" onClick={() => setRejecting(false)}>Batal</Button><Button variant="danger" loading={busy} onClick={() => decide(open.id, 'reject')}>Tolak &amp; kembalikan</Button></div>
+        : <><Button variant="secondary" className="text-critical-text" onClick={() => setRejecting(true)}>Tolak…</Button><Button loading={busy} onClick={() => decide(open.id, 'approve')}>Setujui laporan</Button></>) : undefined}>
+      {open && <Detail id={open.id} />}
+    </GlassDrawer>
+  </PageContainer>;
 }
 
 function Detail({ id }: { id: string }) {
@@ -84,8 +98,8 @@ function Detail({ id }: { id: string }) {
     return String(v);
   };
   return <div className="grid gap-3 text-[13px]">
-    <div className="overflow-x-auto rounded-md border-2 border-ink bg-paper-card"><table className="w-full"><thead><tr className="bg-surface text-left text-2xs uppercase text-ink-muted"><th className="px-2 py-1.5">#</th>{qs.map((q) => <th key={q.id} className="whitespace-nowrap px-2 py-1.5">{q.label.replace(/\?$/, '').slice(0, 28)}</th>)}</tr></thead>
-      <tbody>{r.data.entries.map((e: any, i: number) => <tr key={i} className="border-t border-border align-top"><td className="px-2 py-1.5">{i + 1}</td>{qs.map((q) => <td key={q.id} className="px-2 py-1.5">{show(q, e[q.id])}</td>)}</tr>)}</tbody></table></div>
+    <div className="glass-nested overflow-x-auto"><table className="glass-table"><thead><tr><th>#</th>{qs.map((q) => <th key={q.id}>{q.label.replace(/\?$/, '').slice(0, 28)}</th>)}</tr></thead>
+      <tbody>{r.data.entries.map((e: any, i: number) => <tr key={i}><td>{i + 1}</td>{qs.map((q) => <td key={q.id}>{show(q, e[q.id])}</td>)}</tr>)}</tbody></table></div>
     {F.sections.map((s) => { const x = r.data.sections?.[s.key]; return <div key={s.key}><b>{s.title}:</b> {x?.none ? 'tidak ada' : (x?.items ?? []).map((it: any) => Object.values(it).join(' · ')).join('; ') || '–'}</div>; })}
     {F.closing.map((q) => <div key={q.id}><b>{q.label}:</b> {q.type === 'brandcounts' ? (r.data.closing?.[q.id] ?? []).map((t: any) => `${t.merek} (${t.batang ?? '–'} btg)`).join(', ') || '–' : show(q, r.data.closing?.[q.id])}</div>)}
     <div><b>Riwayat:</b> {r.log.map((l: any) => `${l.action.replace(/_/g, ' ').toLowerCase()}${l.by ? ' oleh ' + l.by : ''} ${fmtDateTime(l.at)}${l.note ? ` (“${l.note}”)` : ''}`).join(' → ')}</div>

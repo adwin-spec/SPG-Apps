@@ -1,18 +1,20 @@
 'use client';
 /** Grafik dashboard (SVG murni). Aturan: satu sumbu, label angka selektif, tooltip di setiap mark,
- *  tampilan tabel untuk setiap grafik, warna sesuai fungsi:
- *   merah  = Tanda Tambah / sorotan        abu = kompetitor / pembanding
- *   tinta  = satu seri netral              tingkatan merah (terang→gelap) = kategori berurutan
- *  Palet divalidasi dengan validator dataviz (lihat docs). */
+ *  tampilan tabel untuk setiap grafik. Palet monokrom; aksen hanya untuk sorotan:
+ *   hitam = satu seri netral        merah redup = Tanda Tambah / sorotan        abu = kompetitor / pembanding
+ *   tingkatan abu (terang→hitam) = kategori berurutan
+ *  Palet divalidasi dengan validator dataviz terhadap permukaan kaca #fbfbfb. */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { fmtNum } from '@/lib/format';
+import { EmptyState } from '@/components/ui/empty-state';
+import { GlassPanel } from '@/components/ui/glass-panel';
 
-export const C = { tt: '#d42a1f', ink: '#3a3733', comp: '#a39d93', light: '#c4bfb6', grid: '#e4ddcf', axis: '#c9c1b1', surface: '#fffdf8' };
-/** Tingkatan merah untuk kategori berurutan (lolos uji --ordinal di atas permukaan #fffdf8). */
-export const RAMP = ['#ee9a88', '#e46a55', '#d23a27', '#a8261a', '#6e1710'];
+export const C = { tt: '#d94a43', ink: '#111111', comp: '#a6a6a6', light: '#c9c9c9', grid: 'rgba(0,0,0,.07)', axis: 'rgba(0,0,0,.18)', surface: '#fbfbfb' };
+/** Tingkatan abu → hitam untuk kategori berurutan (lolos uji --ordinal di atas #fbfbfb). */
+export const RAMP = ['#a8a8a8', '#858585', '#5e5e5e', '#3a3a3a', '#111111'];
 const rampFor = (n: number) => (n <= 1 ? [RAMP[2]] : Array.from({ length: n }, (_, i) => RAMP[Math.round((i * (RAMP.length - 1)) / (n - 1))]));
-const inkOn = (hex: string) => (['#ee9a88', '#c4bfb6', '#a39d93'].includes(hex) ? '#141210' : '#ffffff');
+const inkOn = (hex: string) => (['#a8a8a8', '#858585', '#a6a6a6', '#c9c9c9'].includes(hex) ? '#111111' : '#ffffff');
 const toneColor = (t?: string | null) => (t === 'tt' ? C.tt : t === 'comp' ? C.comp : t === 'muted' ? C.light : C.ink);
 const pctText = (a: number, b: number) => (b ? `${((a / b) * 100).toLocaleString('id-ID', { maximumFractionDigits: 1 })}%` : '–');
 const shortDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
@@ -27,35 +29,32 @@ function niceMax(v: number) { if (v <= 0) return 1; const p = 10 ** Math.floor(M
 /** Tooltip: nilai di depan (tebal), label sesudahnya. Teks disisipkan sebagai teks biasa (aman). */
 function Tip({ tip }: { tip: { x: number; y: number; value: string; label: string } | null }) {
   if (!tip) return null;
-  return <div role="status" className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded border-2 border-ink bg-paper-card px-2 py-1 text-xs shadow-hard-sm"
+  return <div role="status" className="glass-elevated pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-full whitespace-nowrap !rounded-glass-sm px-2.5 py-1.5 text-xs"
     style={{ left: tip.x, top: tip.y - 8 }}><b className="num">{tip.value}</b> <span className="text-ink-secondary">{tip.label}</span></div>;
 }
 
-/** Bingkai panel grafik + tombol tampilan tabel. */
+/** Bingkai panel grafik (glass) + tombol tampilan tabel. */
 export function ChartCard({ title, sub, span, table, children }: { title: string; sub?: string; span: string; table?: { columns: string[]; rows: (string | number)[][] }; children: React.ReactNode }) {
   const [asTable, setAsTable] = useState(false);
-  return <section className={cn('min-w-0 rounded-md border-2 border-ink bg-paper-card shadow-hard', span)}>
-    <div className="flex items-start justify-between gap-2 border-b-2 border-ink px-4 py-3">
-      <div className="min-w-0"><h2 className="text-sm font-bold uppercase tracking-wide">{title}</h2>{sub && <p className="text-xs text-ink-muted">{sub}</p>}</div>
-      {table && <button type="button" onClick={() => setAsTable((v) => !v)} aria-pressed={asTable}
-        className="shrink-0 rounded border-2 border-ink px-2 py-0.5 text-2xs font-bold uppercase tracking-wide hover:bg-paper-deep aria-pressed:bg-ink aria-pressed:text-paper-card">{asTable ? 'Grafik' : 'Tabel'}</button>}
-    </div>
-    <div className="p-4">{asTable && table ? <MiniTable {...table} /> : children}</div>
-  </section>;
+  return <GlassPanel title={title} subtitle={sub} className={span} interactive
+    actions={table && <button type="button" onClick={() => setAsTable((v) => !v)} aria-pressed={asTable}
+      className="rounded-full border border-line-strong bg-white/60 px-2.5 py-1 text-2xs font-semibold text-ink-secondary transition-colors hover:bg-white aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-white">{asTable ? 'Grafik' : 'Tabel'}</button>}>
+    {asTable && table ? <MiniTable {...table} /> : children}
+  </GlassPanel>;
 }
 export function MiniTable({ columns, rows }: { columns: string[]; rows: (string | number)[][] }) {
-  return <div className="-m-4 max-h-80 overflow-auto"><table className="w-full text-[13px]"><thead className="sticky top-0"><tr>{columns.map((c, i) => <th key={c} className={cn('bg-paper-deep px-3 py-2 text-2xs font-bold uppercase tracking-wide text-ink-secondary', i ? 'text-right' : 'text-left')}>{c}</th>)}</tr></thead>
-    <tbody>{rows.map((r, i) => <tr key={i} className="border-t border-border">{r.map((v, j) => <td key={j} className={cn('px-3 py-1.5', j && 'num text-right')}>{typeof v === 'number' ? fmtNum(v) : v}</td>)}</tr>)}</tbody></table></div>;
+  return <div className="glass-nested -mx-1 max-h-80 overflow-auto"><table className="glass-table"><thead><tr>{columns.map((c, i) => <th key={c} className={i ? 'r' : ''}>{c}</th>)}</tr></thead>
+    <tbody>{rows.map((r, i) => <tr key={i}>{r.map((v, j) => <td key={j} className={j ? 'r' : ''}>{typeof v === 'number' ? fmtNum(v) : v}</td>)}</tr>)}</tbody></table></div>;
 }
 
 /** Grafik mini 14 hari di kotak angka (dekoratif; angkanya ada di kotak). */
-export function Sparkline({ values }: { values: number[] }) {
+export function Sparkline({ values, dark }: { values: number[]; dark?: boolean }) {
   if (!values?.length || values.every((v) => !v)) return null;
   const max = Math.max(...values, 1); const w = 96, h = 26;
   const pts = values.map((v, i) => [(i / Math.max(1, values.length - 1)) * (w - 6) + 3, h - 3 - (v / max) * (h - 6)]);
-  return <svg viewBox={`0 0 ${w} ${h}`} className="mt-2 h-[26px] w-24" aria-hidden>
-    <polyline points={pts.map((p) => p.join(',')).join(' ')} fill="none" stroke={C.comp} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
-    <circle cx={pts.at(-1)![0]} cy={pts.at(-1)![1]} r={3} fill={C.tt} stroke={C.surface} strokeWidth={1.5} />
+  return <svg viewBox={`0 0 ${w} ${h}`} className="h-[26px] w-24 shrink-0" aria-hidden>
+    <polyline points={pts.map((p) => p.join(',')).join(' ')} fill="none" stroke={dark ? 'rgba(255,255,255,.55)' : C.comp} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+    <circle cx={pts.at(-1)![0]} cy={pts.at(-1)![1]} r={3} fill={dark ? '#ffffff' : C.ink} stroke={dark ? '#111111' : C.surface} strokeWidth={1.5} />
   </svg>;
 }
 
@@ -76,12 +75,12 @@ export function Trend({ points, unit }: { points: [string, number][]; unit?: str
       onKeyDown={(e) => { if (e.key === 'ArrowLeft') setI((v) => Math.max(0, (v ?? points.length) - 1)); if (e.key === 'ArrowRight') setI((v) => Math.min(points.length - 1, (v ?? -1) + 1)); }}
       onBlur={() => setI(null)}>
       {[0, max / 2, max].map((t) => <g key={t}><line x1={m.l} x2={m.l + iw} y1={y(t)} y2={y(t)} stroke={t ? C.grid : C.axis} strokeWidth={1} />
-        <text x={m.l - 6} y={y(t) + 4} textAnchor="end" className="num fill-ink-muted text-[10px]">{fmtNum(t)}</text></g>)}
-      <path d={area} fill={C.tt} opacity={0.1} /><path d={line} fill="none" stroke={C.tt} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+        <text x={m.l - 6} y={y(t) + 4} textAnchor="end" className="num fill-[#6e6e6e] text-[10px]">{fmtNum(t)}</text></g>)}
+      <path d={area} fill={C.ink} opacity={0.06} /><path d={line} fill="none" stroke={C.ink} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
       {last && <><circle cx={x(points.length - 1)} cy={y(last[1])} r={4} fill={C.tt} stroke={C.surface} strokeWidth={2} />
-        <text x={x(points.length - 1) + 8} y={y(last[1]) + 4} className="num fill-ink text-[11px] font-bold">{fmtNum(last[1])}</text></>}
+        <text x={x(points.length - 1) + 8} y={y(last[1]) + 4} className="num fill-[#111111] text-[11px] font-bold">{fmtNum(last[1])}</text></>}
       {[0, Math.floor((points.length - 1) / 2), points.length - 1].filter((k, j, a) => a.indexOf(k) === j && points[k]).map((k) =>
-        <text key={k} x={x(k)} y={h - 6} textAnchor={k === 0 ? 'start' : k === points.length - 1 ? 'end' : 'middle'} className="fill-ink-muted text-[10px]">{shortDate(points[k][0])}</text>)}
+        <text key={k} x={x(k)} y={h - 6} textAnchor={k === 0 ? 'start' : k === points.length - 1 ? 'end' : 'middle'} className="fill-[#6e6e6e] text-[10px]">{shortDate(points[k][0])}</text>)}
       {i != null && <><line x1={x(i)} x2={x(i)} y1={m.t} y2={m.t + ih} stroke={C.ink} strokeWidth={1} /><circle cx={x(i)} cy={y(points[i][1])} r={4} fill={C.ink} stroke={C.surface} strokeWidth={2} /></>}
     </svg>}
     <Tip tip={i != null && w ? { x: x(i), y: y(points[i][1]), value: `${fmtNum(points[i][1])} ${unit ?? ''}`, label: shortDate(points[i][0]) } : null} />
@@ -100,8 +99,8 @@ export function Bars({ rows, pct, unit, limit = 10 }: { rows: { label: string; n
       aria-label={`${r.label}: ${fmtNum(r.n)}${unit ?? ''}${pct ? `, ${share}` : ''}`}>
       <span className="truncate text-ink-secondary" title={r.label}>{r.label}</span>
       <span className="flex items-center gap-2">
-        <span className="h-3.5 rounded-r-[4px] transition-opacity" style={{ width: `${Math.max(1.5, (r.n / max) * 78)}%`, background: toneColor(r.tone), opacity: hover == null || hover === i ? 1 : 0.55 }} />
-        <span className="num shrink-0 font-bold">{fmtNum(r.n)}{unit}{pct && <span className="ml-1 text-2xs font-normal text-ink-muted">{share}</span>}</span>
+        <span className="h-3 rounded-r-[4px] transition-opacity" style={{ width: r.n > 0 ? `${Math.max(1.5, (r.n / max) * 78)}%` : 0, background: toneColor(r.tone), opacity: hover == null || hover === i ? 1 : 0.55 }} />
+        <span className="num shrink-0 font-semibold">{fmtNum(r.n)}{unit}{pct && <span className="ml-1 text-2xs font-normal text-ink-muted">{share}</span>}</span>
       </span></li>; })}</ul>;
 }
 
@@ -118,7 +117,7 @@ export function Segments({ rows }: { rows: { label: string; n: number }[] }) {
         onPointerLeave={() => setTip(null)}>{r.n / total >= 0.09 ? pctText(r.n, total).replace(/,\d%$/, '%') : ''}</div>)}
     </div>
     <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-ink-secondary">{rows.map((r, i) => <li key={r.label} className="flex items-center gap-1.5">
-      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: colors[i] }} />{r.label}</li>)}</ul>
+      <span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: colors[i] }} />{r.label}</li>)}</ul>
     <Tip tip={tip} />
   </div>;
 }
@@ -130,7 +129,7 @@ export function Funnel({ steps }: { steps: { label: string; n: number }[] }) {
   return <ol className="grid gap-2">{steps.map((s, i) => <li key={s.label} className="grid gap-1">
     <div className="flex items-baseline justify-between gap-2 text-[13px]"><span className="truncate font-semibold">{s.label}</span>
       <span className="num shrink-0"><b>{fmtNum(s.n)}</b>{i > 0 && <span className="ml-1.5 text-2xs text-ink-muted">{pctText(s.n, steps[i - 1].n)} dari tahap sebelumnya</span>}</span></div>
-    <div className="h-4 rounded-r-[4px]" style={{ width: `${Math.max(1.5, (s.n / first) * 100)}%`, background: colors[i] }} role="presentation" />
+    <div className="h-3.5 rounded-r-[4px]" style={{ width: s.n > 0 ? `${Math.max(1.5, (s.n / first) * 100)}%` : 0, background: colors[i] }} role="presentation" />
   </li>)}</ol>;
 }
 
@@ -151,7 +150,7 @@ export function Stack({ keys, rows }: { keys: { key: string; label: string; tone
   </div>;
 }
 
-function Empty() { return <p className="py-6 text-center text-sm text-ink-muted">Belum ada data</p>; }
+function Empty() { return <EmptyState compact title="Belum ada data" hint="Datanya akan muncul di sini setelah laporan disetujui." />; }
 
 /** Data tabel untuk setiap jenis grafik (tombol "Tabel"). */
 export function tableOf(p: any): { columns: string[]; rows: (string | number)[][] } | undefined {
