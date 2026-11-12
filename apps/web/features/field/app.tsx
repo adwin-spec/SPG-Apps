@@ -1,7 +1,7 @@
 'use client';
 /** Aplikasi HP SPG: pilih tugas → mulai laporan → isi pembeli/responden/outlet → kirim → (bila ditolak) perbaiki.
  *  Isian disimpan di HP lebih dulu, lalu dikirim ke server; bila sinyal putus, dikirim otomatis saat online lagi. */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LogOut, RefreshCw, WifiOff } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -56,19 +56,44 @@ export function FieldApp() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const w = store.get<any[]>('tt_wilayah'); if (w) setWil(indexKec(w)); load(); }, [load]);
 
-  /** Simpan ke HP lalu ke server. Gagal karena sinyal → ditandai belum terkirim dan dicoba lagi otomatis. */
-  const persist = useCallback(async (r: Report) => {
-    const local = { ...r, dirty: true }; setOpen(local);
-    try {
-      const s = fromServer(await api<any>(`/reports/${r.id}`, { method: 'PUT', body: body(r) }));
-      setOpen({ ...local, version: s.version, status: s.status, spvNames: s.spvNames, startedAt: s.startedAt, dirty: false }); setOnline(true); return true;
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 422) { const F0 = forms?.forms[r.type]; toast('error', (F0 && explain(e.details, F0)) || e.message); setOpen({ ...local, dirty: false }); return false; }
-      if (e instanceof ApiError && e.status === 409) { toast('error', e.message); await load(); return false; }
-      if (e instanceof ApiError) { toast('error', e.message); return false; }
-      setOnline(false); return true; // tersimpan di HP
-    }
-  }, [load, setOpen, toast, forms]);
+  /** Simpan ke HP lalu ke server. Gagal karena sinyal → ditandai belum terkirim dan dicoba lagi otomatis.
+   *  Simpanan dikirim SATU PER SATU (antrean): bila SPG menekan Simpan lagi / terus mengetik saat simpanan sebelumnya
+   *  belum selesai (sinyal lambat), simpanan berikutnya menunggu lalu memakai nomor versi terbaru. Tanpa antrean,
+   *  dua simpanan bersamaan saling bertabrakan ("diubah dari perangkat lain") dan ketikan terakhir bisa hilang. */
+  const saving = useRef<Promise<unknown> | null>(null);
+  const ver = useRef<Record<string, number>>({});
+  const persist = useCallback(async (r: Report): Promise<boolean> => {
+    const local: Report = { ...r, dirty: true }; setOpen(local);
+    while (saving.current) await saving.current.catch(() => undefined);
+    const send = (version?: number) => api<any>(`/reports/${r.id}`, { method: 'PUT', body: body({ ...r, version }) });
+    const run = (async (): Promise<boolean> => {
+      try {
+        let s: any;
+        try { s = await send(Math.max(ver.current[r.id] ?? 0, r.version ?? 0) || undefined); }
+        catch (e) {
+          // Versi di HP tertinggal (mis. simpanan sebelumnya baru selesai): ambil versi server lalu kirim ulang isian terbaru SPG.
+          if (!(e instanceof ApiError && e.code === 'CONFLICT')) throw e;
+          const srv = (await api<any[]>('/reports/mine')).find((x) => x.id === r.id);
+          if (!srv || !OPEN.includes(srv.status)) throw e;
+          s = await send(srv.version);
+        }
+        ver.current[r.id] = s.version;
+        // Gabungkan ke isian TERKINI (bukan salinan saat simpan dimulai) agar ketikan selama menyimpan tidak hilang.
+        setOpenState((cur) => {
+          const n = cur && cur.id === r.id ? { ...cur, version: s.version, status: s.status, spvNames: s.spvNames, startedAt: s.startedAt, dirty: cur === local ? false : cur.dirty } : cur;
+          store.set(key('open'), n); return n;
+        });
+        setOnline(true); return true;
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 422) { const F0 = forms?.forms[r.type]; toast('error', (F0 && explain(e.details, F0)) || e.message); setOpenState((cur) => { const n = cur && cur.id === r.id ? { ...cur, dirty: false } : cur; store.set(key('open'), n); return n; }); return false; }
+        if (e instanceof ApiError && (e.status === 409 || e.status === 410)) { toast('error', e.message); await load(); return false; }
+        if (e instanceof ApiError) { toast('error', e.message); return false; }
+        setOnline(false); return true; // tersimpan di HP
+      }
+    })();
+    saving.current = run;
+    try { return await run; } finally { if (saving.current === run) saving.current = null; }
+  }, [load, setOpen, toast, forms]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const retry = () => { const cur = store.get<Report>(key('open')); if (cur?.dirty) persist(cur); };
     window.addEventListener('online', retry); const t = setInterval(retry, 30_000);
@@ -182,8 +207,7 @@ export function FieldApp() {
       if (bad >= 0) { const ee = validate(F.entry, open.entries[bad], variants); toast('error', `${entryTitle(open.type, open.entries[bad], bad)} belum lengkap: ${labelsOf(F.entry, ee)}`); goFix({ [`entries.${bad}`]: ee }); return; }
       setBusy(true);
       try {
-        if (open.dirty && !(await persist(open))) return;
-        await api(`/reports/${open.id}`, { method: 'PUT', body: body(open) });
+        if (!(await persist(open))) return;                       // lewat antrean: menunggu simpanan lain selesai dulu
         await api(`/reports/${open.id}/submit`, { method: 'POST' });
         toast('success', open.status === 'REVISION' ? 'Revisi terkirim – menunggu persetujuan ulang' : 'Laporan terkirim – menunggu persetujuan supervisor');
         setOpen(null); setTugas(user!.tugas.length === 1 ? user!.tugas[0] : ''); await load(); scrollTo(0, 0);

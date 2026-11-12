@@ -16,6 +16,18 @@
    * Tab **Sedang dikerjakan** menampilkan draf yang belum dikirim SPG (mis. untuk membersihkan draf yang macet).
    Semua penghapusan & pemulihan tercatat di riwayat laporan dan log audit.
 
+## Menghapus satu isian yang salah (admin & supervisor)
+Untuk pembeli/responden/outlet yang salah atau dobel di laporan yang **sudah dikirim** (menunggu, disetujui, atau ditolak):
+1. **Persetujuan** → *Detail* laporan → ikon **tempat sampah** di baris isian itu.
+2. Tulis alasan (wajib) → **Hapus isian**.
+
+Hasilnya:
+* Bila laporan sudah disetujui, **dashboard & Excel langsung ikut berubah** tanpa isian itu.
+* Isian **tidak dibuang**: tampil di bagian *Isian dihapus* di detail laporan, di **Log aktivitas** laporan, di **Log audit**,
+  dan di lembar Excel **Log isian dihapus** (siapa, kapan, alasannya).
+* Supervisor hanya bisa menghapus isian di wilayahnya. Laporan yang masih dikerjakan SPG tidak bisa diubah dari sini.
+* Untuk menghapus **seluruh** laporan, gunakan *Hapus laporan* (khusus admin).
+
 ## Mengunduh hasil ke Excel
 Di **Dashboard**, atur periode, wilayah, dan SPG, lalu di kotak **Unduh Excel** pilih **SPG Grosir**, **Survei HORECA**,
 atau **SPG Reguler** (satu file per jenis), atau **Ketiganya (.zip)**. Setiap file berisi:
@@ -24,6 +36,7 @@ atau **SPG Reguler** (satu file per jenis), atau **Ketiganya (.zip)**. Setiap fi
 * **Analisis** – setiap grafik dashboard sebagai tabel kecil + grafik Excel asli (bisa diedit atau disalin ke slide)
 * **Tren harian** – angka per hari + grafik garis
 * **Laporan** – satu baris per laporan; **Detail** – satu baris per pembeli/responden/outlet
+* **Log isian dihapus** – isian yang dihapus admin/supervisor beserta alasannya
 * Grosir saja: **Promo** dan **Promotor** kompetitor
 
 Hanya laporan yang sudah disetujui yang ikut. Supervisor hanya mendapat data wilayahnya.

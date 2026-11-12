@@ -63,6 +63,15 @@ def clean_report(db: Session, user: User, rtype: str, body: dict, final: bool) -
     return {"header": header, "entries": entries, "sections": sections, "closing": closing}, errs
 
 
+def entry_label(t: str, e: dict, i: int) -> str:
+    """Nama singkat satu isian, sama seperti di aplikasi HP."""
+    if t == "GROSIR":
+        return e.get("namaToko") or e.get("namaPembeli") or f"Konsumen {i + 1}"
+    if t == "HORECA":
+        return f"Responden {i + 1}" + (f" ({e['usia']} th)" if e.get("usia") else "")
+    return e.get("namaOutlet") or f"Outlet {i + 1}"
+
+
 def title_of(r: Report | dict) -> str:
     t = r.type if isinstance(r, Report) else r["type"]
     data = r.data if isinstance(r, Report) else r

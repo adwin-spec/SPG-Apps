@@ -149,6 +149,49 @@ def delete_report(rid: str, body: DeleteIn, me: User = Depends(require("ADMIN"))
     return ok(report_out(r, full=False))
 
 
+class EntryDeleteIn(BaseModel):
+    index: int = Field(ge=0, le=299)
+    at: str | None = Field(default=None, max_length=40)   # jam input isian: memastikan yang dihapus memang isian yang dimaksud
+    reason: str = Field(min_length=5, max_length=500)
+
+
+EDITABLE = ("SUBMITTED", "APPROVED", "REJECTED")
+
+
+@router.post("/{rid}/entries/delete")
+def delete_entry(rid: str, body: EntryDeleteIn, me: User = Depends(require("ADMIN", "SPV")), db: Session = Depends(get_db)):
+    """Hapus satu isian (pembeli/responden/outlet) dari laporan yang sudah masuk. Admin: semua wilayah; supervisor: wilayahnya.
+    Bila laporan sudah disetujui, salinan untuk dashboard & Excel ikut diperbarui. Isian yang dihapus TIDAK dibuang:
+    disimpan di laporan (bagian "removed"), di riwayat laporan, dan di log audit."""
+    from ..services.reports import entry_label
+    reason = norm(body.reason)
+    if len(reason) < 5:
+        raise ApiError(422, "VALIDATION_ERROR", "Tulis alasan penghapusan")
+    r = db.scalar(select(Report).where(Report.id == rid).options(selectinload(Report.spg)).with_for_update(of=Report))
+    if not r or r.status == "DELETED" or (r.status == "DRAFT" and me.role != "ADMIN"):
+        raise ApiError(404, "NOT_FOUND", "Laporan tidak ditemukan")
+    if not can_decide(me, r):
+        raise ApiError(403, "OUT_OF_AREA", "Laporan ini di luar wilayah Anda")
+    if r.status not in EDITABLE:
+        raise ApiError(409, "IN_PROGRESS", "Laporan ini sedang dikerjakan SPG. Isiannya bisa dihapus setelah dikirim.")
+    ents = list(r.data.get("entries") or [])
+    if body.index >= len(ents) or (body.at and ents[body.index].get("at") != body.at):
+        raise ApiError(409, "CONFLICT", "Isian ini sudah berubah. Muat ulang halaman lalu coba lagi.")
+    e = ents.pop(body.index)
+    label = entry_label(r.type, e, body.index)
+    rec = {"entry": e, "index": body.index, "label": label, "by": _by(me), "byId": me.id, "role": me.role, "at": now().isoformat(), "reason": reason}
+    r.data = {**r.data, "entries": ents, "removed": [*(r.data.get("removed") or []), rec]}   # dict baru → tersimpan ke JSON
+    r.version += 1
+    a = db.get(Approval, r.id)
+    if a:  # dashboard & Excel hanya membaca salinan ini
+        a.snapshot = {**a.snapshot, "entries": [x for i, x in enumerate(a.snapshot.get("entries") or []) if not (i == body.index and x.get("at") == e.get("at"))],
+                      "removed": [*(a.snapshot.get("removed") or []), rec]}
+    db.add(ReportLog(report_id=r.id, action="ISIAN_DIHAPUS", user_id=me.id, by_name=_by(me), note=f"{label} – {reason}"))
+    audit(db, me, "DELETE_ENTRY", "report", r.id, {"index": body.index, "label": label, "reason": reason, "entry": e})
+    db.commit(); invalidate_cache()
+    return ok(report_out(r, active_spvs(db)))
+
+
 @router.post("/{rid}/restore")
 def restore_report(rid: str, me: User = Depends(require("ADMIN")), db: Session = Depends(get_db)):
     """Pulihkan laporan yang dihapus. Laporan yang sudah dikirim kembali ke antrean (perlu disetujui ulang);

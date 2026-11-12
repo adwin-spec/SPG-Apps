@@ -279,6 +279,13 @@ def build_xlsx(db: Session, me: User, f: Filters) -> bytes:
         name = sec.get("sheet") or sec["title"].split("·")[-1].strip()
         _sheet(wb, name, ["Tanggal", "SPG", "Grosir", *[h for _, h, _ in scols]], rows)
 
+    # Log isian yang dihapus admin/supervisor: angka di lembar lain sudah tanpa isian ini, tapi jejaknya tetap tercatat.
+    rows = [[s.get("date"), s["_spg"], s["header"].get(title_field) or "", x.get("label"), _wib((x.get("entry") or {}).get("at")),
+             x.get("by"), {"ADMIN": "Admin", "SPV": "Supervisor"}.get(x.get("role"), x.get("role")), _wib(x.get("at")), x.get("reason")]
+            for s in ss for x in (s.get("removed") or [])]
+    _sheet(wb, "Log isian dihapus", ["Tanggal laporan", "SPG", {"GROSIR": "Grosir", "HORECA": "Venue", "REGULER": "Rute"}[f.type], "Isian",
+                                     "Jam input", "Dihapus oleh", "Peran", "Dihapus pada", "Alasan"], rows)
+
     buf = io.BytesIO()
     wb.save(buf)
     return buf.getvalue()

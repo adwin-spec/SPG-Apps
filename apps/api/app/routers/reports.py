@@ -75,6 +75,8 @@ def save(rid: str, body: ReportIn, u: User = Depends(current_user), db: Session 
     data, errs = clean_report(db, u, body.type, body.model_dump(), final=False)
     if errs:
         raise ApiError(422, "FORM_INVALID", "Lengkapi isian yang ditandai", errs)
+    if r and r.data.get("removed"):
+        data["removed"] = r.data["removed"]  # catatan isian yang dihapus admin/supervisor tidak boleh hilang
     if r:
         if r.status not in OPEN:
             if r.data == data:
@@ -106,6 +108,8 @@ def submit(rid: str, u: User = Depends(current_user), db: Session = Depends(get_
     data, errs = clean_report(db, u, r.type, r.data, final=True)
     if errs:
         raise ApiError(422, "FORM_INVALID", "Laporan belum lengkap", errs)
+    if r.data.get("removed"):
+        data["removed"] = r.data["removed"]
     again = r.status == "REVISION"
     r.data, r.status, r.submitted_at = data, "SUBMITTED", now()
     if not r.ended_at:

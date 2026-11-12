@@ -181,7 +181,7 @@ def test_excel_export(admin, make_user):
     r = admin.get("/dashboard/export.xlsx?type=GROSIR&spg=Excel Uji")
     assert r.status_code == 200 and r.headers["content-type"].startswith("application/vnd.openxmlformats")
     wb = load_workbook(io.BytesIO(r.content))
-    assert wb.sheetnames[:5] == ["Ringkasan", "Analisis", "Tren harian", "Laporan", "Detail pembeli"] and len(wb.sheetnames) == 7
+    assert wb.sheetnames[:5] == ["Ringkasan", "Analisis", "Tren harian", "Laporan", "Detail pembeli"] and len(wb.sheetnames) == 8 and wb.sheetnames[-1] == "Log isian dihapus"
     assert len(wb["Analisis"]._charts) >= 5 and len(wb["Tren harian"]._charts) >= 2
     det = wb["Detail pembeli"]; head = [c.value for c in det[1]]; row = [c.value for c in det[2]]
     assert "TT dibeli – Original" in head and row[head.index("TT dibeli – Original")] == 3
@@ -242,3 +242,44 @@ def test_gps_map_delete_restore(admin, make_user):
     assert j in [x["id"] for x in admin.get("/review?status=DRAFT").json()["data"]]
     assert admin.post(f"/review/{j}/delete", json={"reason": "Draf tertinggal"}).status_code == 200
     assert g.put(f"/reports/{rid()}", json={"type": "REGULER", "header": {**head, "lokasi": GPS}}).status_code == 200   # SPG bisa mulai lagi
+
+
+def test_delete_entry_by_spv_and_admin_keeps_log_and_updates_excel(admin, make_user):
+    import io as _io
+    from openpyxl import load_workbook
+    spv = make_user("SPV", name="Sinta Hapus"); luar = make_user("SPV", name="Spv Luar")
+    assert admin.post(f"/users/{spv.user['id']}/coverage", json={"level": "KAB", "kode": "33.02"}).status_code == 200
+    g = make_user("SPG", ["HORECA"], name="Dewi Entri Hapus")
+    ents = [{**horeca_entry(setuju="TIDAK"), "usia": u, "at": f"2026-11-12T0{n}:00:00+00:00"} for n, u in enumerate(["18–24", "25–34", "35–44"], start=1)]
+    i = rid()
+    assert g.put(f"/reports/{i}", json=horeca_report(ents)).status_code == 200
+    body = {"index": 1, "at": ents[1]["at"], "reason": "Responden diisi dua kali"}
+    assert spv.post(f"/review/{i}/entries/delete", json=body).status_code == 404               # draf belum terlihat supervisor
+    assert admin.post(f"/review/{i}/entries/delete", json=body).status_code == 409             # SPG masih mengerjakan
+    assert g.post(f"/reports/{i}/submit").status_code == 200
+    assert g.post(f"/review/{i}/entries/delete", json=body).status_code == 403                 # SPG tidak boleh
+    assert luar.post(f"/review/{i}/entries/delete", json=body).status_code == 403              # di luar wilayah
+    assert spv.post(f"/review/{i}/entries/delete", json={**body, "reason": "x"}).status_code == 422
+    assert spv.post(f"/review/{i}/entries/delete", json={**body, "at": "salah"}).status_code == 409
+    r = spv.post(f"/review/{i}/entries/delete", json=body)
+    assert r.status_code == 200 and [e["usia"] for e in r.json()["data"]["data"]["entries"]] == ["18–24", "35–44"]
+    # ditolak → SPG memperbaiki & kirim ulang: catatan isian yang dihapus tetap ada
+    assert spv.post(f"/review/{i}/reject", json={"note": "Lengkapi PIC venue"}).status_code == 200
+    assert g.post(f"/reports/{i}/rework").status_code == 200
+    d = g.get("/reports/mine").json()["data"][0]["data"]
+    assert g.put(f"/reports/{i}", json={**horeca_report(d["entries"]), "version": None}).status_code == 200
+    assert g.post(f"/reports/{i}/submit").status_code == 200
+    assert spv.post(f"/review/{i}/approve").status_code == 200
+    # setelah disetujui: admin menghapus satu isian lagi → salinan dashboard/Excel ikut berubah
+    assert admin.post(f"/review/{i}/entries/delete", json={"index": 0, "at": ents[0]["at"], "reason": "Responden di bawah umur"}).status_code == 200
+    det = admin.get(f"/review/{i}").json()["data"]
+    assert len(det["data"]["entries"]) == 1 and [x["label"] for x in det["data"]["removed"]] == ["Responden 2 (25–34 th)", "Responden 1 (18–24 th)"]
+    notes = [l["note"] for l in det["log"] if l["action"] == "ISIAN_DIHAPUS"]
+    assert len(notes) == 2 and "Responden diisi dua kali" in notes[0] and det["log"][-1]["by"] == "Admin pusat"
+    wb = load_workbook(_io.BytesIO(admin.get("/dashboard/export.xlsx?type=HORECA").content))
+    detail = [row for row in wb["Detail responden"].iter_rows(values_only=True) if row[1] == "Dewi Entri Hapus"]
+    log = [row for row in wb["Log isian dihapus"].iter_rows(values_only=True) if row[1] == "Dewi Entri Hapus"]
+    assert len(detail) == 1 and len(log) == 2
+    assert {row[6] for row in log} == {"Supervisor", "Admin"} and "Responden di bawah umur" in {row[8] for row in log}
+    audit = admin.get("/admin/audit").json()["data"]
+    assert any(a["action"] == "DELETE_ENTRY" for a in (audit.get("items") if isinstance(audit, dict) else audit))

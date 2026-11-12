@@ -64,7 +64,7 @@ test('admin menghapus laporan dengan alasan, lalu memulihkannya', async ({ page 
   const row = page.locator('tr', { hasText: 'Hapus Uji' }).first();
   await row.getByRole('button', { name: 'Detail' }).click();
   const drawer = page.getByRole('dialog'); await expect(drawer.getByText('GPS awal rute:')).toBeVisible();
-  await drawer.getByRole('button', { name: 'Hapus' }).click();
+  await drawer.getByRole('button', { name: 'Hapus', exact: true }).click();
   await page.getByLabel('Alasan penghapusan').fill('Laporan ganda');
   await page.getByRole('dialog', { name: 'Hapus laporan ini?' }).getByRole('button', { name: 'Hapus' }).click();
   await expect(page.getByText('1 laporan dihapus')).toBeVisible();
@@ -72,5 +72,29 @@ test('admin menghapus laporan dengan alasan, lalu memulihkannya', async ({ page 
   const gone = page.locator('tr', { hasText: 'Hapus Uji' }).first(); await expect(gone).toContainText('Laporan ganda');
   await gone.getByRole('button', { name: 'Pulihkan' }).click();
   await expect(page.getByText('Dipulihkan')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('supervisor menghapus satu isian salah dari laporan SPG; jejaknya tetap tercatat', async ({ page }) => {
+  const errors: string[] = []; page.on('pageerror', (e) => errors.push(e.message));
+  const spv = await makeUser('SPV', 'Sinta Supervisor');
+  await adminApi(`/users/${spv.id}/coverage`, 'POST', { level: 'KAB', kode: '33.02' });
+  const spg = await makeUser('SPG', 'Isian Ganda', ['REGULER']);
+  const id = crypto.randomUUID(); const gps = { lat: -7.43, lon: 109.25, acc: 10 };
+  const outlet = (n: string, at: string) => ({ gps, namaOutlet: n, tipeOutlet: 'Kios', kecOutlet: { kode: '33.02.20' }, statusOutlet: 'BELUM', facingTotal: 10, posm: 'Tidak ada', beli: { Original: 1 }, kompetitor: 'Surya 16', promoKomp: 'Diskon', at });
+  await userApi(spg.username, spg.password, `/reports/${id}`, 'PUT', { type: 'REGULER', header: { kecRute: { kode: '33.02.20' }, lokasi: gps },
+    entries: [outlet('Toko Asli', '2026-11-12T01:00:00+00:00'), outlet('Toko Dobel', '2026-11-12T02:00:00+00:00')] });
+  await userApi(spg.username, spg.password, `/reports/${id}/submit`, 'POST');
+  await login(page, spv.username, spv.password); await expect(page).toHaveURL(/dashboard|review/); await page.goto('/review');
+  await page.locator('tr', { hasText: 'Isian Ganda' }).first().getByRole('button', { name: 'Detail' }).click();
+  const drawer = page.getByRole('dialog');
+  await drawer.getByRole('button', { name: 'Hapus Toko Dobel' }).click();
+  await page.getByLabel('Alasan penghapusan').fill('Outlet diisi dua kali');
+  await page.getByRole('dialog', { name: 'Hapus Toko Dobel?' }).getByRole('button', { name: 'Hapus isian' }).click();
+  await expect(page.getByText('Toko Dobel dihapus')).toBeVisible();
+  await expect(drawer.getByRole('button', { name: 'Hapus Toko Dobel' })).toHaveCount(0);
+  await expect(drawer.locator('[data-removed]')).toContainText('Isian dihapus (1)');
+  await expect(drawer.locator('[data-log]')).toContainText('Isian dihapus');
+  await expect(drawer.locator('[data-log]')).toContainText('Outlet diisi dua kali');
   expect(errors).toEqual([]);
 });

@@ -117,12 +117,32 @@ export function ReviewView() {
   </PageContainer>;
 }
 
+const LOG_LABEL: Record<string, string> = { DIBUAT: 'Dibuat', DIKIRIM: 'Dikirim', DIKIRIM_ULANG: 'Dikirim ulang', DISETUJUI: 'Disetujui', DITOLAK: 'Ditolak',
+  DIPERBAIKI: 'Dibuka untuk diperbaiki', DIHAPUS: 'Laporan dihapus', DIPULIHKAN: 'Dipulihkan', ISIAN_DIHAPUS: 'Isian dihapus' };
+const EDITABLE = ['SUBMITTED', 'APPROVED', 'REJECTED'];
+
 function Detail({ id }: { id: string }) {
   const d = useQuery({ queryKey: ['review', 'detail', id], queryFn: () => api<any>(`/review/${id}`) });
+  const qc = useQueryClient(); const toast = useToast();
+  const [del, setDel] = useState<{ index: number; at?: string; label: string } | null>(null); const [why, setWhy] = useState(''); const [busy, setBusy] = useState(false);
+  const removeEntry = async () => {
+    if (!del || why.trim().length < 5) return;
+    setBusy(true);
+    try {
+      await api(`/review/${id}/entries/delete`, { method: 'POST', body: { index: del.index, at: del.at, reason: why } });
+      toast('success', `${del.label} dihapus. Dashboard & Excel sudah ikut diperbarui; jejaknya tetap di riwayat.`);
+      setDel(null); setWhy('');
+      qc.invalidateQueries({ queryKey: ['review'] }); qc.invalidateQueries({ queryKey: ['dash'] });
+    } catch (e) { toast('error', e instanceof ApiError ? e.message : 'Gagal menghapus'); qc.invalidateQueries({ queryKey: ['review', 'detail', id] }); }
+    finally { setBusy(false); }
+  };
   const forms = useQuery({ queryKey: ['forms'], queryFn: () => api<FormsPayload>('/forms'), staleTime: 300_000 });
   if (!d.data || !forms.data) return <p className="text-sm text-ink-muted">Memuat…</p>;
   const r = d.data; const F = forms.data.forms[r.type as ReportType]; const variants = forms.data.settings.variants;
   const qs = F.entry.filter((x) => !['textarea'].includes(x.type));
+  const canEdit = r.canDecide && EDITABLE.includes(r.status);
+  const label = (e: any, i: number) => (r.type === 'GROSIR' ? e.namaToko || e.namaPembeli || `Konsumen ${i + 1}` : r.type === 'HORECA' ? `Responden ${i + 1}${e.usia ? ` (${e.usia} th)` : ''}` : e.namaOutlet || `Outlet ${i + 1}`);
+  const removed: any[] = r.data.removed ?? [];
   const show = (q: any, v: any) => {
     if (v == null || v === '') return '–';
     if (q.type === 'photo') return <Photo value={v} alt={q.label} className="h-12 w-12" />;
@@ -139,10 +159,25 @@ function Detail({ id }: { id: string }) {
   return <div className="grid gap-3 text-[13px]">
     {r.status === 'DELETED' && <div className="rounded-glass-sm bg-critical-soft px-3 py-2 text-critical-text"><b>Dihapus</b> oleh {r.deletedBy} · {fmtDateTime(r.deletedAt)} – {r.deleteReason}</div>}
     <dl className="glass-nested grid gap-x-6 gap-y-1.5 p-3 sm:grid-cols-2">{F.start.map((q) => <div key={q.id} className="flex gap-2"><dt className="shrink-0 text-ink-muted">{q.col ?? q.label}:</dt><dd className="min-w-0 font-medium">{show(q, r.data.header?.[q.id])}</dd></div>)}</dl>
-    <div className="glass-nested overflow-x-auto"><table className="glass-table"><thead><tr><th>#</th>{qs.map((q) => <th key={q.id}>{q.col ?? q.label.replace(/\?$/, '').slice(0, 28)}</th>)}</tr></thead>
-      <tbody>{r.data.entries.map((e: any, i: number) => <tr key={i}><td>{i + 1}</td>{qs.map((q) => <td key={q.id}>{show(q, e[q.id])}</td>)}</tr>)}</tbody></table></div>
+    {canEdit && <p className="text-xs text-ink-muted">Isian yang salah/ganda bisa dihapus satu per satu (ikon tempat sampah). Dashboard & Excel langsung ikut berubah; isian yang dihapus tetap tercatat di bawah dan di log audit.</p>}
+    <div className="glass-nested overflow-x-auto"><table className="glass-table"><thead><tr>{canEdit && <th className="w-10"><span className="sr-only">Hapus</span></th>}<th>#</th>{qs.map((q) => <th key={q.id}>{q.col ?? q.label.replace(/\?$/, '').slice(0, 28)}</th>)}</tr></thead>
+      <tbody>{r.data.entries.map((e: any, i: number) => <tr key={`${i}-${e.at}`}>
+        {canEdit && <td><button type="button" className="grid h-8 w-8 place-items-center rounded-md text-critical-text transition-colors hover:bg-critical-soft" data-del-entry={i}
+          aria-label={`Hapus ${label(e, i)}`} title={`Hapus ${label(e, i)}`} onClick={() => { setDel({ index: i, at: e.at, label: label(e, i) }); setWhy(''); }}><Trash2 className="h-4 w-4" /></button></td>}
+        <td>{i + 1}</td>{qs.map((q) => <td key={q.id}>{show(q, e[q.id])}</td>)}</tr>)}</tbody></table></div>
+    {!!removed.length && <details className="glass-nested p-3" data-removed>
+      <summary className="cursor-pointer font-semibold">Isian dihapus ({removed.length})</summary>
+      <ul className="mt-2 grid gap-1.5">{removed.map((x, i) => <li key={i} className="border-l-2 border-critical/50 pl-2"><b>{x.label}</b> – {x.reason}
+        <div className="text-2xs text-ink-muted">oleh {x.by}{x.role === 'SPV' ? ' (supervisor)' : ''} · {fmtDateTime(x.at)}</div></li>)}</ul></details>}
     {F.sections.map((s) => { const x = r.data.sections?.[s.key]; return <div key={s.key}><b>{s.title}:</b> {x?.none ? 'tidak ada' : (x?.items ?? []).map((it: any) => Object.values(it).join(' · ')).join('; ') || '–'}</div>; })}
     {F.closing.map((q) => <div key={q.id}><b>{q.col ?? q.label}:</b> {q.type === 'brandcounts' ? (r.data.closing?.[q.id] ?? []).map((t: any) => `${t.merek} (${t.batang ?? '–'} btg)`).join(', ') || '–' : show(q, r.data.closing?.[q.id])}</div>)}
-    <div><b>Riwayat:</b> {r.log.map((l: any) => `${l.action.replace(/_/g, ' ').toLowerCase()}${l.by ? ' oleh ' + l.by : ''} ${fmtDateTime(l.at)}${l.note ? ` (“${l.note}”)` : ''}`).join(' → ')}</div>
+    <div><b>Log aktivitas</b><ol className="mt-1 grid gap-1 border-l border-line pl-3" data-log>{r.log.map((l: any, i: number) => <li key={i}>
+      <span className={cn('font-medium', /HAPUS|TOLAK/.test(l.action) && 'text-critical-text')}>{LOG_LABEL[l.action] ?? l.action.replace(/_/g, ' ').toLowerCase()}</span>
+      {l.by ? ` · ${l.by}` : ''} <span className="text-ink-muted">· {fmtDateTime(l.at)}</span>{l.note ? <div className="text-ink-secondary">“{l.note}”</div> : null}</li>)}</ol></div>
+    <GlassModal open={!!del} onOpenChange={(o) => !o && setDel(null)} size="sm" title={`Hapus ${del?.label ?? 'isian'}?`}
+      description={r.status === 'APPROVED' ? 'Laporan ini sudah disetujui: angka dashboard & Excel langsung diperbarui tanpa isian ini.' : 'Isian dihapus dari laporan ini sebelum diputus.'}
+      footer={<><Button variant="ghost" onClick={() => setDel(null)}>Batal</Button><Button variant="danger" loading={busy} disabled={why.trim().length < 5} onClick={removeEntry}><Trash2 className="h-4 w-4" />Hapus isian</Button></>}>
+      <Field label="Alasan penghapusan" htmlFor="del-entry-reason" hint="Wajib, minimal 5 huruf. Tercatat di log aktivitas, log audit, dan Excel."><GlassTextarea id="del-entry-reason" autoFocus value={why} onChange={(e) => setWhy(e.target.value)} placeholder="Misal: responden diisi dua kali, salah input" /></Field>
+    </GlassModal>
   </div>;
 }
