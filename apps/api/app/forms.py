@@ -264,7 +264,7 @@ _cols(GROSIR_START, {"grosir": "Nama grosir", "kecGrosir": "Kecamatan grosir", "
 _cols(GROSIR_ENTRY, {"jenis": "Jenis pembeli", "tipeToko": "Tipe toko", "namaToko": "Nama toko", "namaPembeli": "Nama pembeli", "kecamatan": "Kecamatan",
                      "statusTT": "Status TT sebelum ditawari", "tahuDari": "Tahu TT dari", "beli": "TT dibeli", "kupon": "Kupon",
                      "alasanBeli": "Alasan membeli", "alasanTidak": "Alasan tidak membeli", "tier2": "Merek lain", "hargaGrosir": "Harga grosir merek lain",
-                     "hargaEceran": "Harga eceran merek lain", "ambil": "Sampel kompetitor dibeli", "catatan": "Catatan"})
+                     "hargaEceran": "Harga eceran merek lain", "ambil": "Merek lain dibeli di grosir (bks)", "catatan": "Catatan"})
 for _sec in GROSIR_SECTIONS:
     _cols(_sec["questions"], {"merek": "Merek", "aktivitas": "Aktivitas", "detail": "Detail", "sejak": "Sejak", "jumlah": "Jumlah orang"})
 _cols(GROSIR_CLOSING, {"terlaris": "Merek terlaris (batang)", "catatan": "Catatan", "pic": "PIC grosir"})
