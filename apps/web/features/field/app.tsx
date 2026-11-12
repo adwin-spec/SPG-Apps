@@ -1,7 +1,7 @@
 'use client';
 /** Aplikasi HP SPG: pilih tugas → mulai laporan → isi pembeli/responden/outlet → kirim → (bila ditolak) perbaiki.
  *  Isian disimpan di HP lebih dulu, lalu dikirim ke server; bila sinyal putus, dikirim otomatis saat online lagi. */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LogOut, RefreshCw, WifiOff } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -39,7 +39,13 @@ export function FieldApp() {
   const [tugas, setTugas] = useState<ReportType | ''>(user!.tugas.length === 1 ? user!.tugas[0] : '');
   const [busy, setBusy] = useState(false); const [online, setOnline] = useState(true);
 
-  const setOpen = useCallback((r: Report | null) => { setOpenState(r); store.set(key('open'), r); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  /** Salinan laporan di HP ditulis paling cepat tiap 0,4 detik (bukan setiap huruf): menulis laporan ber-ratus isian
+   *  ke penyimpanan HP pada setiap ketukan membuat mengetik terasa berat. Ditulis seketika saat aplikasi ditutup/disembunyikan. */
+  const pendingStore = useRef<{ r: Report | null } | null>(null); const storeTimer = useRef<number | undefined>(undefined);
+  const flushStore = useCallback(() => { window.clearTimeout(storeTimer.current); if (pendingStore.current) { store.set(key('open'), pendingStore.current.r); pendingStore.current = null; } }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const keep = useCallback((r: Report | null) => { pendingStore.current = { r }; window.clearTimeout(storeTimer.current); storeTimer.current = window.setTimeout(flushStore, 400); }, [flushStore]);
+  const setOpen = useCallback((r: Report | null) => { setOpenState(r); keep(r); }, [keep]);
+  const openRef = useRef(open); openRef.current = open;
 
   const load = useCallback(async () => {
     try {
@@ -49,11 +55,11 @@ export function FieldApp() {
       const srvOpen = list.find((r) => OPEN.includes(r.status));
       setOpenState((cur) => {
         const next = cur?.dirty && (!srvOpen || srvOpen.id === cur.id) ? cur : srvOpen ?? null; // perubahan offline di HP diutamakan
-        store.set(key('open'), next); return next;
+        keep(next); return next;
       });
       setOnline(true);
     } catch (e) { if (!(e instanceof ApiError)) setOnline(false); }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [keep]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const w = store.get<any[]>('tt_wilayah'); if (w) setWil(indexKec(w)); load(); }, [load]);
 
   /** Simpan ke HP lalu ke server. Gagal karena sinyal → ditandai belum terkirim dan dicoba lagi otomatis.
@@ -62,18 +68,19 @@ export function FieldApp() {
    *  dua simpanan bersamaan saling bertabrakan ("diubah dari perangkat lain") dan ketikan terakhir bisa hilang. */
   const saving = useRef<Promise<unknown> | null>(null);
   const ver = useRef<Record<string, number>>({});
-  const persist = useCallback(async (r: Report): Promise<boolean> => {
+  /** Hasil: true = tersimpan di server, 'local' = tersimpan di HP saja (tanpa sinyal), false = ditolak. */
+  const persist = useCallback(async (r: Report): Promise<boolean | 'local'> => {
     const local: Report = { ...r, dirty: true }; setOpen(local);
     while (saving.current) await saving.current.catch(() => undefined);
-    const send = (version?: number) => api<any>(`/reports/${r.id}`, { method: 'PUT', body: body({ ...r, version }) });
-    const run = (async (): Promise<boolean> => {
+    const send = (version?: number) => api<any>(`/reports/${r.id}`, { method: 'PUT', body: body({ ...r, version }), query: { lite: 1 } });
+    const run = (async (): Promise<boolean | 'local'> => {
       try {
         let s: any;
         try { s = await send(Math.max(ver.current[r.id] ?? 0, r.version ?? 0) || undefined); }
         catch (e) {
           // Versi di HP tertinggal (mis. simpanan sebelumnya baru selesai): ambil versi server lalu kirim ulang isian terbaru SPG.
           if (!(e instanceof ApiError && e.code === 'CONFLICT')) throw e;
-          const srv = (await api<any[]>('/reports/mine')).find((x) => x.id === r.id);
+          const srv = await api<any>(`/reports/${r.id}`, { query: { lite: 1 } });
           if (!srv || !OPEN.includes(srv.status)) throw e;
           s = await send(srv.version);
         }
@@ -81,32 +88,51 @@ export function FieldApp() {
         // Gabungkan ke isian TERKINI (bukan salinan saat simpan dimulai) agar ketikan selama menyimpan tidak hilang.
         setOpenState((cur) => {
           const n = cur && cur.id === r.id ? { ...cur, version: s.version, status: s.status, spvNames: s.spvNames, startedAt: s.startedAt, dirty: cur === local ? false : cur.dirty } : cur;
-          store.set(key('open'), n); return n;
+          keep(n); return n;
         });
         setOnline(true); return true;
       } catch (e) {
-        if (e instanceof ApiError && e.status === 422) { const F0 = forms?.forms[r.type]; toast('error', (F0 && explain(e.details, F0)) || e.message); setOpenState((cur) => { const n = cur && cur.id === r.id ? { ...cur, dirty: false } : cur; store.set(key('open'), n); return n; }); return false; }
+        if (e instanceof ApiError && e.status === 422) { const F0 = forms?.forms[r.type]; toast('error', (F0 && explain(e.details, F0)) || e.message); setOpenState((cur) => { const n = cur && cur.id === r.id ? { ...cur, dirty: false } : cur; keep(n); return n; }); return false; }
         if (e instanceof ApiError && (e.status === 409 || e.status === 410)) { toast('error', e.message); await load(); return false; }
         if (e instanceof ApiError) { toast('error', e.message); return false; }
-        setOnline(false); return true; // tersimpan di HP
+        setOnline(false); return 'local'; // tersimpan di HP
       }
     })();
     saving.current = run;
     try { return await run; } finally { if (saving.current === run) saving.current = null; }
-  }, [load, setOpen, toast, forms]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [load, setOpen, toast, forms, keep]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    const retry = () => { const cur = store.get<Report>(key('open')); if (cur?.dirty) persist(cur); };
-    window.addEventListener('online', retry); const t = setInterval(retry, 30_000);
-    return () => { window.removeEventListener('online', retry); clearInterval(t); };
-  }, [persist]); // eslint-disable-line react-hooks/exhaustive-deps
+    const retry = () => { const cur = openRef.current; if (cur?.dirty && !saving.current) persist(cur); };
+    const up = () => { setOnline(true); retry(); }; const down = () => setOnline(false);
+    window.addEventListener('online', up); window.addEventListener('offline', down); const t = setInterval(retry, 30_000);
+    return () => { window.removeEventListener('online', up); window.removeEventListener('offline', down); clearInterval(t); };
+  }, [persist]);
+  /** Aplikasi dibiarkan terbuka seharian (mis. SPG Grosir dari pagi sampai tutup):
+   *  - saat layar mati / pindah aplikasi: salinan di HP langsung ditulis (tidak ada isian yang hilang bila HP menutup aplikasinya);
+   *  - saat dibuka lagi: isian yang belum terkirim dikirim, dan data disegarkan bila sudah > 5 menit (sesi login diperbarui otomatis). */
+  const lastLoad = useRef(Date.now());
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') { flushStore(); return; }
+      const cur = openRef.current; if (cur?.dirty && !saving.current) persist(cur);
+      if (Date.now() - lastLoad.current > 5 * 60_000) { lastLoad.current = Date.now(); load(); }
+    };
+    document.addEventListener('visibilitychange', onVis); window.addEventListener('pagehide', flushStore);
+    return () => { document.removeEventListener('visibilitychange', onVis); window.removeEventListener('pagehide', flushStore); };
+  }, [persist, load, flushStore]);
+  const editEntry = useCallback((i: number) => { const o = openRef.current; if (!o?.entries[i]) return; setDraft(structuredClone(o.entries[i])); setErrs({}); setScreen({ k: 'entry', idx: i }); scrollTo(0, 0); }, []);
+  const deleteEntry = useCallback((i: number) => { const o = openRef.current; if (o) persist({ ...o, entries: o.entries.filter((_, j) => j !== i) }); }, [persist]);
 
   const variants = forms?.settings.variants ?? [];
+  // Daftar usulan dihitung dari isian, BUKAN dari penutup yang sedang diketik → tidak dihitung ulang di setiap huruf.
+  const oE = open?.entries, oS = open?.sections, oH = open?.header, oId = open?.id;
+  const openLite = useMemo(() => (oId ? { id: oId, header: oH ?? {}, entries: oE ?? [], sections: oS ?? {}, closing: {} } as unknown as Report : null), [oId, oH, oE, oS]);
   const brands = useMemo(() => {
-    const s = new Set<string>(); const all = [...mine, ...(open ? [open] : [])];
+    const s = new Set<string>(); const all = [...mine, ...(openLite ? [openLite] : [])];
     all.forEach((r) => { r.entries.forEach((e) => [e.tier2, e.rokokBiasa, e.kompetitor].forEach((b) => b && s.add(titleCase(b))));
       Object.values(r.sections ?? {}).forEach((x) => x.items?.forEach((i) => i.merek && s.add(titleCase(i.merek)))); (r.closing?.terlaris ?? []).forEach((t: any) => t.merek && s.add(titleCase(t.merek))); });
     return [...s].sort();
-  }, [mine, open]);
+  }, [mine, openLite]);
   /** Riwayat isian per pertanyaan dari laporan SPG ini (termasuk yang sedang dibuka): paling sering & terbaru dulu. */
   const history = useMemo(() => {
     const m = new Map<string, Map<string, { v: unknown; n: number; i: number }>>(); let order = 0;
@@ -118,7 +144,7 @@ export function FieldApp() {
       const bucket = m.get(qid) ?? new Map(); const cur = bucket.get(k.toLowerCase());
       bucket.set(k.toLowerCase(), { v, n: (cur?.n ?? 0) + 1, i: Math.min(cur?.i ?? Infinity, order++) }); m.set(qid, bucket);
     };
-    const all = [...(open ? [open] : []), ...mine.filter((r) => r.id !== open?.id)];
+    const all = [...(openLite ? [openLite] : []), ...mine.filter((r) => r.id !== openLite?.id)];
     for (const r of all) {
       const rows = [r.header ?? {}, r.closing ?? {}, ...[...(r.entries ?? [])].reverse(), ...Object.values(r.sections ?? {}).flatMap((x) => x.items ?? [])];
       for (const row of rows) for (const [k, v] of Object.entries(row)) { if (k !== 'at' && k !== 'terlaris') add(k, v); }
@@ -126,7 +152,7 @@ export function FieldApp() {
     }
     brands.forEach((b) => add('__brands', b));
     return (qid: string) => [...(m.get(qid)?.values() ?? [])].sort((a, b) => b.n - a.n || a.i - b.i).map((x) => x.v);
-  }, [mine, open, brands]);
+  }, [mine, openLite, brands]);
 
   const ctx: QCtx | null = forms && wil ? {
     history,
@@ -239,12 +265,7 @@ export function FieldApp() {
               : <><b>Data awal</b><div className="truncate text-xs text-ink-muted">{g ? `Lokasi ${g.lat.toFixed(5)}, ${g.lon.toFixed(5)}${g.acc != null ? ` · ± ${g.acc} m` : ''}` : 'Lengkap'}</div></>}</div>
             <button className={cn('shrink-0 rounded-md px-3 py-1.5 text-sm font-semibold', n ? 'bg-ink text-white' : 'underline decoration-ink/30 decoration-2 underline-offset-4')}
               data-edit-start onClick={() => goFix({ header: n ? he : {} })}>{n ? 'Lengkapi' : 'Ubah'}</button></div>; })()}
-        <div className="mt-2 divide-y divide-border">{open.entries.map((e, i) => <div key={i} className="flex items-center gap-2 py-2">
-          <div className="min-w-0 flex-1"><div className="truncate font-medium">{entryTitle(open.type, e, i)}</div><div className="truncate text-xs text-ink-muted">{entrySub(open.type, e, forms)}</div>
-            {Object.keys(validate(F.entry, e, variants)).length > 0 && <div className="text-xs font-semibold text-critical-text">Belum lengkap – ketuk Ubah</div>}</div>
-          {(e.foto || e.fotoDisplay) && <Photo value={e.foto || e.fotoDisplay} alt="Foto" className="h-10 w-10" />}
-          <button className="rounded-md px-2 py-1 text-sm font-semibold underline decoration-ink/30 decoration-2 underline-offset-4" onClick={() => { setDraft(structuredClone(e)); setErrs({}); setScreen({ k: 'entry', idx: i }); scrollTo(0, 0); }}>Ubah</button>
-          <button className="rounded-md px-2 py-1 text-sm text-critical-text" onClick={() => persist({ ...open, entries: open.entries.filter((_, j) => j !== i) })} aria-label={`Hapus ${entryTitle(open.type, e, i)}`}>Hapus</button></div>)}</div>
+        <EntryRows type={open.type} entries={open.entries} forms={forms} variants={variants} onEdit={editEntry} onDelete={deleteEntry} />
         {!open.entries.length && <p className="py-2 text-sm text-ink-muted">Belum ada {F.entry_word}.</p>}
         <button className={cn(btn, 'mt-3 border border-line-strong bg-white/80 text-ink hover:bg-white')} onClick={() => { setDraft({}); setErrs({}); setScreen({ k: 'entry', idx: null }); scrollTo(0, 0); }}>+ Tambah {F.entry_word}</button>
       </Card>
@@ -259,7 +280,7 @@ export function FieldApp() {
         <Questions qs={F.closing} value={open.closing} onChange={(a) => { setOpen({ ...open, closing: a, dirty: true }); setErrs({}); }} errors={errs} ctx={ctx} idPrefix="closing" />
       </Card>
       <Sticky><button className={cn(btn, 'bg-ink text-white shadow-[0_8px_20px_rgba(0,0,0,.2)] hover:bg-ink-deep')} disabled={busy} onClick={submit}>{open.status === 'REVISION' ? 'Kirim ulang' : 'Kirim laporan'}</button>
-        <button className="h-10 text-sm" disabled={busy} onClick={async () => { if (await persist(open)) toast('success', online ? 'Disimpan' : 'Disimpan di HP'); }}>Simpan sementara</button></Sticky></>;
+        <button className="h-10 text-sm" disabled={busy} onClick={async () => { const ok = await persist(open); if (ok) toast('success', ok === 'local' ? 'Disimpan di HP – terkirim otomatis saat ada sinyal' : 'Disimpan'); }}>Simpan sementara</button></Sticky></>;
   } else {
     const rejected = mine.filter((r) => r.status === 'REJECTED'); const done = mine.filter((r) => !OPEN.includes(r.status) && r.status !== 'REJECTED').slice(0, 8);
     const SF = tugas ? forms.forms[tugas] : null;
@@ -373,3 +394,16 @@ function History({ mine, forms, openId, onEdit, onContinue }: { mine: Report[]; 
         </div>}
       </div>; })}</div></Card>;
 }
+
+/** Daftar isian laporan yang sedang dibuka. Dibungkus memo: tidak digambar ulang saat SPG mengetik di bagian lain
+ *  (penting saat isiannya sudah ratusan, mis. SPG Grosir seharian). */
+const EntryRows = memo(function EntryRows({ type, entries, forms, variants, onEdit, onDelete }: { type: ReportType; entries: Answers[]; forms: FormsPayload; variants: string[];
+  onEdit: (i: number) => void; onDelete: (i: number) => void }) {
+  const F = forms.forms[type];
+  return <div className="mt-2 divide-y divide-border">{entries.map((e, i) => <div key={`${i}-${e.at ?? ''}`} className="flex items-center gap-2 py-2">
+    <div className="min-w-0 flex-1"><div className="truncate font-medium">{entryTitle(type, e, i)}</div><div className="truncate text-xs text-ink-muted">{entrySub(type, e, forms)}</div>
+      {Object.keys(validate(F.entry, e, variants)).length > 0 && <div className="text-xs font-semibold text-critical-text">Belum lengkap – ketuk Ubah</div>}</div>
+    {(e.foto || e.fotoDisplay) && <Photo value={e.foto || e.fotoDisplay} alt="Foto" className="h-10 w-10" />}
+    <button className="rounded-md px-2 py-1 text-sm font-semibold underline decoration-ink/30 decoration-2 underline-offset-4" onClick={() => onEdit(i)}>Ubah</button>
+    <button className="rounded-md px-2 py-1 text-sm text-critical-text" onClick={() => onDelete(i)} aria-label={`Hapus ${entryTitle(type, e, i)}`}>Hapus</button></div>)}</div>;
+});

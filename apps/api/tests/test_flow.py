@@ -21,9 +21,22 @@ def horeca_report(entries, kec=SOKARAJA):
             "entries": entries, "closing": {"terlaris": [{"merek": "camel purple", "batang": 12}], "pic": "Mas Dani"}}
 
 
-def test_auth_refresh_rotation_and_reuse(client, admin):
+def test_auth_refresh_rotation_and_reuse(client, admin, monkeypatch):
     from fastapi.testclient import TestClient
+    from app.config import settings
     from app.main import app
+    # Sinyal putus saat sesi diperbarui (jawaban server tidak sampai ke HP): token lama dipakai lagi dalam jendela
+    # tenggang → tetap dapat sesi baru, SPG tidak ter-logout.
+    c = TestClient(app)
+    assert c.post("/api/v1/auth/login", json={"username": "admin", "password": "admin-pass-1"}).status_code == 200
+    first = c.cookies.get("tt_refresh")
+    assert c.post("/api/v1/auth/refresh").status_code == 200                       # jawaban ini "hilang"
+    lost = TestClient(app); lost.cookies.set("tt_refresh", first, path="/api/v1/auth")
+    assert lost.post("/api/v1/auth/refresh").status_code == 200                    # HP mencoba lagi dengan token lama
+    assert c.post("/api/v1/auth/refresh").status_code == 200 and lost.post("/api/v1/auth/refresh").status_code == 200
+    import dataclasses
+    from app.routers import auth as auth_router
+    monkeypatch.setattr(auth_router, "settings", dataclasses.replace(settings, refresh_reuse_grace_s=0))   # di luar jendela tenggang: dianggap pencurian
     c = TestClient(app)
     assert c.post("/api/v1/auth/login", json={"username": "admin", "password": "salah"}).status_code == 401
     r = c.post("/api/v1/auth/login", json={"username": "admin", "password": "admin-pass-1"}); assert r.status_code == 200
@@ -57,6 +70,16 @@ def test_spg_tugas_validation_and_isolation(make_user):
     assert b.put(f"/reports/{i}", json={**horeca_report([]), "type": "HORECA"}).status_code == 404   # SPG lain tidak bisa menyentuh
     assert b.post(f"/reports/{i}/submit").status_code == 404
     assert a.delete(f"/reports/{i}").status_code == 200
+
+
+def test_save_lite_and_gzip(make_user):
+    s = make_user("SPG", ["HORECA"]); i = rid()
+    r = s.c.put(f"/api/v1/reports/{i}?lite=1", json=horeca_report([{**horeca_entry(setuju="TIDAK"), "at": "2026-11-12T01:00:00+00:00"}] * 40),
+                     headers={**s.h, "accept-encoding": "gzip"})
+    d = r.json()["data"]
+    assert r.status_code == 200 and "data" not in d and d["version"] == 1 and d["entryCount"] == 40   # HP cukup dapat versi & status
+    r = s.c.get("/api/v1/reports/mine", headers={**s.h, "accept-encoding": "gzip"})
+    assert r.headers.get("content-encoding") == "gzip"                                                 # data dikompres
 
 
 def test_hidden_answers_dropped_and_rules(make_user):

@@ -14,6 +14,9 @@ class Settings:
     jwt_secret: str = os.getenv("JWT_SECRET", "")
     access_ttl_min: int = int(os.getenv("ACCESS_TOKEN_TTL_MIN", "15"))
     refresh_ttl_days: int = int(os.getenv("REFRESH_TOKEN_TTL_DAYS", "14"))
+    # Sinyal HP sering putus tepat saat sesi diperbarui: token lama yang dipakai lagi dalam jendela ini dianggap
+    # kiriman ulang (bukan pencurian), jadi SPG tidak ter-logout di tengah hari.
+    refresh_reuse_grace_s: int = int(os.getenv("REFRESH_REUSE_GRACE_S", "120"))
     cookie_secure: bool = _bool(os.getenv("COOKIE_SECURE"), False)
     storage_dir: str = os.getenv("STORAGE_DIR", os.path.join(os.path.dirname(os.path.dirname(__file__)), "storage"))
     max_photo_mb: int = int(os.getenv("MAX_PHOTO_MB", "8"))

@@ -50,9 +50,12 @@ def mine(u: User = Depends(current_user), db: Session = Depends(get_db)):
 
 
 @router.get("/{rid}")
-def my_report(rid: str, u: User = Depends(current_user), db: Session = Depends(get_db)):
-    """Satu laporan milik SPG + riwayatnya (dibuat, disimpan, dikirim, disetujui, …) untuk tab Riwayat di HP."""
+def my_report(rid: str, lite: bool = False, u: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Satu laporan milik SPG + riwayatnya (dibuat, disimpan, dikirim, disetujui, …) untuk tab Riwayat di HP.
+    `lite=1`: hanya status & versi (dipakai HP untuk menyamakan versi tanpa mengunduh seluruh isi)."""
     r = _own(db, u, rid)
+    if lite:
+        return ok(report_out(r, full=False))
     log = db.scalars(select(ReportLog).where(ReportLog.report_id == rid).order_by(ReportLog.id)).all()
     return ok({**report_out(r, active_spvs(db)), "log": [{"at": l.at.isoformat(), "action": l.action, "by": l.by_name, "note": l.note} for l in log]})
 
@@ -67,7 +70,7 @@ class ReportIn(BaseModel):
 
 
 @router.put("/{rid}")
-def save(rid: str, body: ReportIn, u: User = Depends(current_user), db: Session = Depends(get_db)):
+def save(rid: str, body: ReportIn, lite: bool = False, u: User = Depends(current_user), db: Session = Depends(get_db)):
     """Simpan draf (buat baru atau perbarui). Aman diulang: id laporan dibuat di HP."""
     if len(rid) != 36:
         raise ApiError(422, "VALIDATION_ERROR", "Id laporan tidak valid")
@@ -88,7 +91,7 @@ def save(rid: str, body: ReportIn, u: User = Depends(current_user), db: Session 
     if r:
         if r.status not in OPEN:
             if r.data == data:
-                return ok(report_out(r))  # kiriman ulang yang sama (mis. dari antrean offline)
+                return ok(report_out(r, full=not lite))  # kiriman ulang yang sama (mis. dari antrean offline)
             raise ApiError(409, "LOCKED", "Laporan sudah dikirim dan tidak bisa diubah")
         if body.version is not None and body.version != r.version and r.data != data:
             raise ApiError(409, "CONFLICT", "Laporan diubah dari perangkat lain. Muat ulang dulu.")
@@ -111,7 +114,7 @@ def save(rid: str, body: ReportIn, u: User = Depends(current_user), db: Session 
         db.add(r); db.flush()
         db.add(ReportLog(report_id=rid, action="DIBUAT", user_id=u.id, by_name=u.name))
     db.commit(); db.refresh(r)
-    return ok(report_out(r, active_spvs(db)))
+    return ok(report_out(r, active_spvs(db), full=not lite))  # lite: HP cukup butuh versi & status, bukan seluruh isi
 
 
 @router.post("/{rid}/submit")

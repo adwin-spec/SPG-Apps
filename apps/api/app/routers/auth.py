@@ -64,15 +64,17 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
     t = db.scalar(select(RefreshToken).where(RefreshToken.token_hash == hash_secret(raw)))
     if not t or t.revoked_at or t.expires_at < now():
         raise ApiError(401, "UNAUTHENTICATED", "Sesi berakhir")
-    if t.used_at:  # token lama dipakai ulang → kemungkinan dicuri: cabut seluruh rangkaian sesi
+    grace = t.used_at and (now() - t.used_at).total_seconds() <= settings.refresh_reuse_grace_s
+    if t.used_at and not grace:  # token lama dipakai ulang di luar jendela tenggang → kemungkinan dicuri: cabut seluruh rangkaian sesi
         db.execute(update(RefreshToken).where(RefreshToken.family == t.family).values(revoked_at=now()))
         db.commit()
         raise ApiError(401, "UNAUTHENTICATED", "Sesi dicabut demi keamanan, silakan masuk lagi")
     u = db.get(User, t.user_id, options=[selectinload(User.coverage)])
     if not u or not u.active:
         raise ApiError(401, "UNAUTHENTICATED", "Akun nonaktif")
-    t.used_at = now()
-    out = _issue(db, response, u, t.family)
+    if not t.used_at:
+        t.used_at = now()
+    out = _issue(db, response, u, t.family)  # dalam jendela tenggang: terbitkan token baru di rangkaian yang sama
     db.commit()
     return ok(out)
 

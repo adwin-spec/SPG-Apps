@@ -55,3 +55,31 @@ test('tab Riwayat: SPG melihat riwayat simpan, menarik laporan yang sudah dikiri
   await page.locator('[data-tab=riwayat]').click(); await row.getByRole('button', { name: /Kafe Riwayat/ }).click();
   await expect(row.locator('[data-hist-log]')).toContainText('Ditarik untuk diubah');
 });
+
+test('dibiarkan terbuka seharian: layar mati tidak menghilangkan ketikan, sesi kedaluwarsa diperbarui otomatis', async ({ page, context }) => {
+  const s = await makeUser('SPG', 'Gita Seharian', ['HORECA']);
+  const id = crypto.randomUUID();
+  await userApi(s.username, s.password, `/reports/${id}`, 'PUT', { type: 'HORECA', header: { venue: 'Kafe Seharian', alamat: 'Jl 3', kecVenue: { kode: '33.02.19' }, jenisVenue: 'Cafe', kebijakan: 'Area merokok khusus', lokasi: GPS } });
+  await login(page, s.username, s.password);
+  const pic = page.locator('input[name=pic]'); await expect(pic).toBeVisible();
+  // Tanpa sinyal, SPG mengetik lalu layar mati → HP menutup aplikasi. Saat dibuka lagi ketikan masih ada.
+  await context.setOffline(true);
+  await pic.fill('Bu Sari');
+  await page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
+  await page.evaluate(() => { location.reload(); }).catch(() => undefined);
+  await expect(pic).toHaveValue('Bu Sari');
+  await context.setOffline(false);
+  // Sesi (token 15 menit) sudah kedaluwarsa saat dibuka lagi: server menjawab 401 sekali → aplikasi memperbarui sesi & mengulang.
+  let first = true;
+  await page.route('**/api/v1/reports/*?lite=1', async (route) => {
+    if (first && route.request().method() === 'PUT') { first = false; return route.fulfill({ status: 401, contentType: 'application/json', body: '{"error":{"code":"UNAUTHENTICATED","message":"Token kedaluwarsa"}}' }); }
+    return route.continue();
+  });
+  await page.getByRole('button', { name: 'Simpan sementara' }).click();
+  await expect(page.getByText('Disimpan', { exact: true })).toBeVisible();
+  expect(first).toBe(false);
+  await expect(page).not.toHaveURL(/login/);
+  await page.unroute('**/api/v1/reports/*?lite=1');
+  const d = await userApi(s.username, s.password, `/reports/${id}`);
+  expect(d.data.closing.pic).toBe('Bu Sari');
+});

@@ -93,3 +93,14 @@ Hanya laporan yang sudah disetujui yang ikut. Supervisor hanya mendapat data wil
    * **Ditolak** → *Perbaiki*.
    Hanya satu laporan yang bisa dibuka sekaligus – kirim laporan yang sedang dibuka dulu.
 9. Di bawah setiap isian ada **Pernah diisi:** – ketuk salah satu jawaban lama untuk mengisinya ulang dengan cepat.
+
+### Dipakai seharian (mis. SPG Grosir dari buka sampai tutup)
+Aplikasi boleh dibiarkan terbuka sepanjang hari – tidak perlu ditutup:
+* **Layar mati / pindah ke WhatsApp**: isian langsung disimpan di HP. Kalau HP menutup aplikasinya diam-diam, isian tetap ada saat dibuka lagi.
+* **Dibuka lagi**: isian yang belum terkirim dikirim otomatis, data disegarkan bila sudah lebih dari 5 menit, dan sesi login diperbarui
+  sendiri (tidak perlu masuk ulang selama aplikasi dipakai minimal sekali dalam 14 hari).
+* **Sinyal putus**: tanda *Offline / Belum terkirim* muncul di atas; tetap bisa mengisi. Semua terkirim sendiri saat sinyal kembali
+  (cek setiap 30 detik). *Simpan sementara* memberi tahu apakah tersimpan di server atau baru di HP.
+* **Satu laporan maksimal 300 isian.** Bila lebih (jarang), kirim laporan lalu mulai laporan baru di grosir yang sama.
+* Tips: aktifkan mode hemat baterai seperlunya saja (mode hemat ekstrem bisa menahan pengiriman), dan kirim laporan sebelum pulang.
+
