@@ -154,7 +154,7 @@ GROSIR_ENTRY = [
     q("tier2", "Biasanya dia beli / ngerokok merek apa?", "text", True, hint="Tulis bebas, misal: Camel Purple.", show=ada_status, suggest="brands", titlecase=True),
     q("hargaGrosir", "Merek itu harga grosirnya berapa di sini? (Rp/bungkus)", "number", False, show=ada_status),
     q("hargaEceran", "Kalau di tokonya dijual berapa? (Rp/bungkus)", "number", False, show=all_of(retail, ada_status)),
-    q("ambil", "Kamu beli sampel merek itu berapa bungkus?", "number", False, hint="Isi 0 kalau nggak. Simpan bungkus & struknya ya.", show=ada_status),
+    q("ambil", "Kamu beli merek itu berapa bungkus di grosir ini?", "number", False, hint="Isi 0 kalau nggak.", show=ada_status),
     q("catatan", "Ada catatan lain?", "textarea", False, show=ada_status),
 ]
 GROSIR_SECTIONS = [
