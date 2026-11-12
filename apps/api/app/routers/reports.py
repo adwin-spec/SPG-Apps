@@ -23,7 +23,7 @@ def report_out(r: Report, spvs: list[User] | None = None, full: bool = True) -> 
          "submittedAt": r.submitted_at.isoformat() if r.submitted_at else None, "decidedAt": r.decided_at.isoformat() if r.decided_at else None,
          "revision": r.revision, "reviewNote": r.review_note, "reviewedBy": r.reviewed_by, "version": r.version,
          "spg": {"id": r.spg_id, "name": r.spg.name if r.spg else None}, "entryCount": len(r.data.get("entries") or []), "packs": packs(r.data),
-         "gps": (r.data.get("header") or {}).get("lokasi"),
+         "gps": (r.data.get("header") or {}).get("lokasi"), "updatedAt": r.updated_at.isoformat() if r.updated_at else None,
          **({"deletedAt": r.deleted_at.isoformat(), "deletedBy": r.deleted_by, "deleteReason": r.delete_reason, "prevStatus": r.prev_status} if r.deleted_at else {})}
     if spvs is not None:
         d["spvNames"] = [s.name for s in spvs_for(spvs, loc)]
@@ -47,6 +47,14 @@ def mine(u: User = Depends(current_user), db: Session = Depends(get_db)):
     rs = db.scalars(select(Report).where(Report.spg_id == u.id, Report.status != "DELETED").options(selectinload(Report.spg)).order_by(Report.started_at.desc()).limit(60)).all()
     spvs = active_spvs(db)
     return ok([report_out(r, spvs, full=r.status in OPEN + ("REJECTED",) or i < 20) for i, r in enumerate(rs)])
+
+
+@router.get("/{rid}")
+def my_report(rid: str, u: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Satu laporan milik SPG + riwayatnya (dibuat, disimpan, dikirim, disetujui, …) untuk tab Riwayat di HP."""
+    r = _own(db, u, rid)
+    log = db.scalars(select(ReportLog).where(ReportLog.report_id == rid).order_by(ReportLog.id)).all()
+    return ok({**report_out(r, active_spvs(db)), "log": [{"at": l.at.isoformat(), "action": l.action, "by": l.by_name, "note": l.note} for l in log]})
 
 
 class ReportIn(BaseModel):
@@ -84,9 +92,15 @@ def save(rid: str, body: ReportIn, u: User = Depends(current_user), db: Session 
             raise ApiError(409, "LOCKED", "Laporan sudah dikirim dan tidak bisa diubah")
         if body.version is not None and body.version != r.version and r.data != data:
             raise ApiError(409, "CONFLICT", "Laporan diubah dari perangkat lain. Muat ulang dulu.")
+        changed = r.data != data
         r.data = data
         r.loc_kode = (data["header"].get(FORMS[r.type]["location_field"]) or {}).get("kode")
         r.version += 1
+        if changed:  # riwayat simpan: paling banyak satu catatan "Disimpan" per 10 menit agar log tetap ringkas
+            last = db.scalar(select(ReportLog).where(ReportLog.report_id == r.id).order_by(ReportLog.id.desc()).limit(1))
+            if not last or last.action != "DISIMPAN" or (now() - last.at).total_seconds() > 600:
+                db.add(ReportLog(report_id=r.id, action="DISIMPAN", user_id=u.id, by_name=u.name,
+                                 note=f"{len(data['entries'])} {FORMS[r.type]['entry_word']}"))
     else:
         other = db.scalar(select(Report.id).where(Report.spg_id == u.id, Report.status.in_(OPEN)))
         if other:
@@ -131,6 +145,31 @@ def rework(rid: str, u: User = Depends(current_user), db: Session = Depends(get_
         raise ApiError(409, "OPEN_REPORT", "Selesaikan atau kirim laporan yang sedang dibuka dulu")
     r.status = "REVISION"; r.version += 1
     db.add(ReportLog(report_id=r.id, action="DIKERJAKAN_ULANG", user_id=u.id, by_name=u.name))
+    db.commit()
+    return ok(report_out(r, active_spvs(db)))
+
+
+@router.post("/{rid}/edit")
+def reopen(rid: str, u: User = Depends(current_user), db: Session = Depends(get_db)):
+    """SPG membuka lagi laporannya untuk diubah dari tab Riwayat.
+    - Menunggu persetujuan → ditarik kembali (keluar dari antrean supervisor), lalu dikirim lagi.
+    - Sudah disetujui → jadi revisi; angka lama tetap di dashboard sampai versi baru disetujui lagi."""
+    r = _own(db, u, rid, lock=True)
+    if r.status in OPEN:
+        return ok(report_out(r, active_spvs(db)))
+    if r.status == "REJECTED":
+        raise ApiError(409, "USE_REWORK", "Laporan ini ditolak – pakai tombol Perbaiki")
+    if r.status not in ("SUBMITTED", "APPROVED"):
+        raise ApiError(409, "LOCKED", "Laporan ini tidak bisa diubah")
+    if db.scalar(select(Report.id).where(Report.spg_id == u.id, Report.status.in_(OPEN), Report.id != rid)):
+        raise ApiError(409, "OPEN_REPORT", "Selesaikan atau kirim laporan yang sedang dibuka dulu")
+    was = r.status
+    r.status = "REVISION" if was == "APPROVED" or r.revision else "DRAFT"
+    r.review_note = None
+    r.version += 1
+    db.add(ReportLog(report_id=r.id, action="DITARIK", user_id=u.id, by_name=u.name,
+                     note="Laporan yang sudah disetujui dibuka lagi untuk diubah (perlu disetujui ulang)" if was == "APPROVED"
+                     else "Ditarik dari antrean persetujuan untuk diubah"))
     db.commit()
     return ok(report_out(r, active_spvs(db)))
 

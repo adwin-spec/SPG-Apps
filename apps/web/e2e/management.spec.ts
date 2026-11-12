@@ -96,5 +96,11 @@ test('supervisor menghapus satu isian salah dari laporan SPG; jejaknya tetap ter
   await expect(drawer.locator('[data-removed]')).toContainText('Isian dihapus (1)');
   await expect(drawer.locator('[data-log]')).toContainText('Isian dihapus');
   await expect(drawer.locator('[data-log]')).toContainText('Outlet diisi dua kali');
+  await page.keyboard.press('Escape');
+  // Menu Log aktivitas: supervisor melihat penghapusan isian di wilayahnya
+  await page.getByRole('link', { name: 'Log aktivitas' }).first().click(); await expect(page).toHaveURL(/activity/);
+  await page.locator('[data-kind=isian]').click();
+  await expect(page.locator('[data-activity]')).toContainText('Outlet diisi dua kali');
+  await expect(page.locator('[data-activity]')).toContainText('Isian Ganda');
   expect(errors).toEqual([]);
 });

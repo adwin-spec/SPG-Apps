@@ -28,3 +28,30 @@ test('simpan sementara saat sinyal lambat: tidak bentrok, ketikan terakhir tidak
   await page.reload(); await expect(pic).toHaveValue('Mas Empat');
   expect(bad).toEqual([]);
 });
+
+test('tab Riwayat: SPG melihat riwayat simpan, menarik laporan yang sudah dikirim, mengubah, lalu mengirim lagi', async ({ page }) => {
+  const s = await makeUser('SPG', 'Tia Riwayat', ['HORECA']);
+  const id = crypto.randomUUID();
+  const rep = { type: 'HORECA', header: { venue: 'Kafe Riwayat', alamat: 'Jl 2', kecVenue: { kode: '33.02.19' }, jenisVenue: 'Cafe', kebijakan: 'Area merokok khusus', lokasi: GPS },
+    entries: [{ dewasa: true, usia: '25–34', domisili: { kode: '33.02.20' }, rokokBiasa: 'Camel', tempatBeli: 'Minimarket', rasa: 'Sedang', statusTT: 'TAHU_BELUM_COBA', alasan: 'Ragu dengan rasa',
+      tahuDari: 'Event', sampel: 'Guava', kekuatan: 'Pas', asap: 'Halus, nyaman', beli: { Guava: 1 }, alasanBeli: 'Rasa cocok', fotoSetuju: 'TIDAK', at: '2026-11-12T01:00:00+00:00' }],
+    closing: { terlaris: [{ merek: 'Camel', batang: 10 }], pic: 'Mas Kafe' } };
+  await userApi(s.username, s.password, `/reports/${id}`, 'PUT', rep);
+  await userApi(s.username, s.password, `/reports/${id}/submit`, 'POST');
+  await login(page, s.username, s.password);
+  await page.locator('[data-tab=riwayat]').click();
+  const row = page.locator(`[data-hist-row="${id}"]`);
+  await expect(row).toContainText('Kafe Riwayat'); await expect(row).toContainText('Menunggu');
+  await row.getByRole('button', { name: /Kafe Riwayat/ }).click();
+  await expect(row.locator('[data-hist-log]')).toContainText('Dibuat'); await expect(row.locator('[data-hist-log]')).toContainText('Dikirim');
+  await row.locator(`[data-reopen-ask="${id}"]`).click();
+  await expect(row).toContainText('ditarik dari antrean');
+  await row.locator(`[data-reopen="${id}"]`).click();
+  await expect(page.getByText('Laporan ditarik dari antrean')).toBeVisible();
+  await expect(page.locator('input[name=pic]')).toHaveValue('Mas Kafe');                    // laporan terbuka lagi untuk diedit
+  await page.locator('input[name=pic]').fill('Mbak Kafe');
+  await page.getByRole('button', { name: 'Kirim laporan' }).click();
+  await expect(page.getByText('Laporan terkirim')).toBeVisible();
+  await page.locator('[data-tab=riwayat]').click(); await row.getByRole('button', { name: /Kafe Riwayat/ }).click();
+  await expect(row.locator('[data-hist-log]')).toContainText('Ditarik untuk diubah');
+});

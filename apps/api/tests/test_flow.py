@@ -283,3 +283,44 @@ def test_delete_entry_by_spv_and_admin_keeps_log_and_updates_excel(admin, make_u
     assert {row[6] for row in log} == {"Supervisor", "Admin"} and "Responden di bawah umur" in {row[8] for row in log}
     audit = admin.get("/admin/audit").json()["data"]
     assert any(a["action"] == "DELETE_ENTRY" for a in (audit.get("items") if isinstance(audit, dict) else audit))
+
+
+def test_spg_history_reopen_and_activity_log(admin, make_user):
+    spv = make_user("SPV", name="Spv Riwayat")
+    assert admin.post(f"/users/{spv.user['id']}/coverage", json={"level": "KAB", "kode": "33.02"}).status_code == 200
+    luar = make_user("SPV", name="Spv Lain Riwayat")
+    g = make_user("SPG", ["HORECA"], name="Putri Riwayat")
+    ent = {**horeca_entry(setuju="TIDAK"), "at": "2026-11-12T01:00:00+00:00"}
+    i = rid()
+    assert g.put(f"/reports/{i}", json=horeca_report([ent])).status_code == 200
+    assert g.put(f"/reports/{i}", json=horeca_report([ent, {**ent, "at": "2026-11-12T02:00:00+00:00"}])).status_code == 200
+    assert g.post(f"/reports/{i}/submit").status_code == 200
+    # SPG menarik laporan yang belum diputus, mengubahnya, lalu mengirim lagi
+    r = g.post(f"/reports/{i}/edit"); assert r.status_code == 200 and r.json()["data"]["status"] == "DRAFT"
+    assert spv.get("/review").json()["data"] == [] or i not in [x["id"] for x in spv.get("/review").json()["data"]]
+    assert g.put(f"/reports/{i}", json=horeca_report([ent])).status_code == 200
+    assert g.post(f"/reports/{i}/submit").status_code == 200
+    assert spv.post(f"/review/{i}/approve").status_code == 200
+    before = spv.get("/dashboard?type=HORECA").json()["data"]["reports"]
+    # Sudah disetujui → dibuka lagi sebagai revisi; angka lama tetap di dashboard sampai disetujui ulang
+    j = rid()
+    assert g.put(f"/reports/{j}", json=horeca_report([ent])).status_code == 200
+    assert g.post(f"/reports/{i}/edit").status_code == 409                                   # masih ada laporan terbuka lain
+    assert g.delete(f"/reports/{j}").status_code == 200
+    r = g.post(f"/reports/{i}/edit"); assert r.json()["data"]["status"] == "REVISION"
+    from app.services.dashboard import invalidate_cache; invalidate_cache()
+    assert spv.get("/dashboard?type=HORECA").json()["data"]["reports"] == before             # angka lama tetap ada
+    assert g.put(f"/reports/{i}", json=horeca_report([ent, {**ent, "at": "2026-11-12T03:00:00+00:00"}])).status_code == 200
+    assert g.post(f"/reports/{i}/submit").json()["data"]["status"] == "SUBMITTED"
+    # Riwayat milik SPG lengkap dengan log
+    d = g.get(f"/reports/{i}").json()["data"]
+    acts = [l["action"] for l in d["log"]]
+    assert acts[0] == "DIBUAT" and "DISIMPAN" in acts and acts.count("DITARIK") == 2 and acts[-1] == "DIKIRIM_ULANG" and d["updatedAt"]
+    assert make_user("SPG", ["HORECA"]).get(f"/reports/{i}").status_code == 404                 # SPG lain tidak bisa melihat
+    # Log aktivitas: admin & supervisor wilayahnya; supervisor lain tidak melihat
+    a = admin.get("/review/activity", params={"q": "Putri Riwayat"}).json()["data"]
+    assert {x["action"] for x in a} >= {"DIBUAT", "DIKIRIM", "DITARIK", "DISETUJUI"} and all(x["spg"] == "Putri Riwayat" for x in a)
+    assert any(x["reportId"] == i for x in spv.get("/review/activity").json()["data"])
+    assert not any(x["reportId"] == i for x in luar.get("/review/activity").json()["data"])
+    assert {x["action"] for x in admin.get("/review/activity", params={"kind": "putus", "q": "Putri Riwayat"}).json()["data"]} == {"DISETUJUI"}
+    assert g.get("/review/activity").status_code == 403

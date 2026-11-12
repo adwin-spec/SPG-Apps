@@ -17,7 +17,7 @@ import { TypographyBackground } from '@/components/branding/typography-backgroun
 
 interface Report {
   id: string; type: ReportType; status: string; version?: number; header: Answers; entries: Answers[]; sections: Record<string, { none?: boolean; items: Answers[] }>; closing: Answers;
-  startedAt?: string; revision?: number; reviewNote?: string | null; reviewedBy?: string | null; spvNames?: string[]; title?: string; date?: string; entryCount?: number; dirty?: boolean;
+  startedAt?: string; updatedAt?: string; submittedAt?: string; revision?: number; reviewNote?: string | null; reviewedBy?: string | null; spvNames?: string[]; title?: string; date?: string; entryCount?: number; dirty?: boolean;
 }
 type Screen = { k: 'home' } | { k: 'start' } | { k: 'entry'; idx: number | null } | { k: 'section'; key: string };
 const OPEN = ['DRAFT', 'REVISION'];
@@ -34,7 +34,7 @@ export function FieldApp() {
   const [wil, setWil] = useState<KecIndex | null>(null);
   const [mine, setMine] = useState<Report[]>(() => store.get(key('mine')) ?? []);
   const [open, setOpenState] = useState<Report | null>(() => store.get(key('open')));
-  const [screen, setScreen] = useState<Screen>({ k: 'home' });
+  const [screen, setScreen] = useState<Screen>({ k: 'home' }); const [tab, setTab] = useState<'isi' | 'riwayat'>('isi');
   const [draft, setDraft] = useState<Answers>({}); const [errs, setErrs] = useState<Record<string, string>>({});
   const [tugas, setTugas] = useState<ReportType | ''>(user!.tugas.length === 1 ? user!.tugas[0] : '');
   const [busy, setBusy] = useState(false); const [online, setOnline] = useState(true);
@@ -151,6 +151,17 @@ export function FieldApp() {
   const btn = 'h-12 w-full rounded-glass-sm text-base font-semibold transition-[background-color,transform] duration-200 active:scale-[.99] disabled:opacity-50';
   let content: React.ReactNode;
 
+  /** Dari tab Riwayat: buka lagi laporan untuk diubah (ditolak → Perbaiki; menunggu → ditarik; disetujui → revisi). */
+  const reopen = async (r: Report) => {
+    try {
+      const res = await api<any>(`/reports/${r.id}/${r.status === 'REJECTED' ? 'rework' : 'edit'}`, { method: 'POST' });
+      setOpen(fromServer(res)); setTab('isi'); setScreen({ k: 'home' }); setDraft({}); setErrs({});
+      toast('success', r.status === 'APPROVED' ? 'Laporan dibuka lagi. Kirim ulang setelah diubah – supervisor akan memeriksa lagi.'
+        : r.status === 'SUBMITTED' ? 'Laporan ditarik dari antrean. Ubah, lalu kirim lagi.' : 'Laporan dibuka kembali untuk diperbaiki');
+      await load(); scrollTo(0, 0);
+    } catch (e) { toast('error', (e as Error).message); }
+  };
+
   /** Buka layar perbaikan untuk isian yang ditolak (data awal atau pembeli/responden/outlet ke-N). */
   const goFix = (d: unknown) => {
     if (!open || !F || !d || typeof d !== 'object') return;
@@ -218,7 +229,8 @@ export function FieldApp() {
       finally { setBusy(false); }
     };
     content = <>
-      {open.status === 'REVISION' && <div className="rounded-r-md border-l-4 border-critical bg-critical-soft px-3 py-2 text-sm"><b>Revisi</b> – alasan ditolak{open.reviewedBy ? ` oleh ${open.reviewedBy}` : ''}: {open.reviewNote}<div className="text-xs text-ink-muted">Perbaiki isian yang diminta, lalu tekan Kirim ulang.</div></div>}
+      {open.status === 'REVISION' && !open.reviewNote && <div className="rounded-r-md border-l-4 border-ink bg-white/80 px-3 py-2 text-sm"><b>Sedang diubah</b> – setelah selesai, tekan <b>Kirim ulang</b>. Supervisor akan memeriksa lagi; data lama tetap dipakai sampai disetujui.</div>}
+      {open.status === 'REVISION' && open.reviewNote && <div className="rounded-r-md border-l-4 border-critical bg-critical-soft px-3 py-2 text-sm"><b>Revisi</b> – alasan ditolak{open.reviewedBy ? ` oleh ${open.reviewedBy}` : ''}: {open.reviewNote}<div className="text-xs text-ink-muted">Perbaiki isian yang diminta, lalu tekan Kirim ulang.</div></div>}
       <Card title={reportTitle(open, F)} sub={`${kecFull(open.header[F.location_field])} · mulai ${fmtTime(open.startedAt)}`} badge={`${fmtNum(packs)} bks TT ${open.type === 'REGULER' ? 'diorder' : 'terjual'}`}>
         <div className="text-xs text-ink-secondary">Disetujui oleh: <b>{open.spvNames?.length ? [...new Set(open.spvNames)].join(', ') : ctx.spvFor!(open.header[F.location_field])}</b></div>
         {(() => { const he = validate(F.start, open.header, variants); const n = Object.keys(he).length; const g = open.header.lokasi;
@@ -272,10 +284,16 @@ export function FieldApp() {
         <button className={cn(btn, 'mt-3 bg-ink text-white shadow-[0_8px_20px_rgba(0,0,0,.2)] hover:bg-ink-deep')} disabled={busy} onClick={start}>Mulai</button></Card>}
       <Card title="Laporan terakhir">{done.length ? done.map((r) => <div key={r.id} className="flex items-center justify-between gap-2 border-t border-line py-2 first:border-t-0">
         <div className="min-w-0"><div className="truncate font-medium">{r.title}</div><div className="text-xs text-ink-muted">{TYPE_LABEL[r.type]} · {fmtDate(r.startedAt)} · {r.entryCount} {forms.forms[r.type].entry_word}</div></div>
-        <span className="shrink-0 text-xs font-semibold">{labelOfStatus(r.status)}</span></div>) : <p className="py-3 text-center text-sm text-ink-muted">Belum ada laporan.</p>}</Card></>;
+        <span className="shrink-0 text-xs font-semibold">{labelOfStatus(r.status)}</span></div>) : <p className="py-3 text-center text-sm text-ink-muted">Belum ada laporan.</p>}
+        {!!done.length && <button className="mt-2 text-sm font-semibold underline decoration-ink/30 decoration-2 underline-offset-4" onClick={() => { setTab('riwayat'); scrollTo(0, 0); }}>Lihat & ubah di Riwayat →</button>}</Card></>;
   }
   return <div className="relative min-h-screen"><TypographyBackground preset="mobile" density="light" /><div className="relative z-10">{head}<main className="mx-auto grid max-w-xl grid-cols-[minmax(0,1fr)] gap-3 p-3 pb-10">
-    {open && F && screen.k === 'home' && <div className="enter px-1 pt-3"><div className="mb-1 flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-[0.2em] text-ink-muted"><PlusMark className="h-2.5 w-2.5" />{TYPE_LABEL[open.type]}</div><h1 className="text-2xl font-bold tracking-tight">{F.title}</h1></div>}{content}</main></div></div>;
+    {screen.k === 'home' && <div className="glass-minimal sticky top-[4.6rem] z-10 grid grid-cols-2 gap-1 !rounded-full p-1" role="tablist" aria-label="Menu SPG">
+      {([['isi', open ? 'Laporan aktif' : 'Isi laporan'], ['riwayat', `Riwayat (${mine.length})`]] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} data-tab={k}
+        className={cn('h-10 rounded-full text-sm font-semibold transition-colors duration-200', tab === k ? 'bg-ink text-white shadow' : 'text-ink-secondary hover:bg-white/70')}
+        onClick={() => { setTab(k); scrollTo(0, 0); }}>{l}</button>)}</div>}
+    {screen.k === 'home' && tab === 'riwayat' ? <History mine={mine} forms={forms} openId={open?.id} onEdit={reopen} onContinue={() => { setTab('isi'); scrollTo(0, 0); }} /> : <>
+    {open && F && screen.k === 'home' && <div className="enter px-1 pt-3"><div className="mb-1 flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-[0.2em] text-ink-muted"><PlusMark className="h-2.5 w-2.5" />{TYPE_LABEL[open.type]}</div><h1 className="text-2xl font-bold tracking-tight">{F.title}</h1></div>}{content}</>}</main></div></div>;
 }
 
 function Card({ title, sub, badge, children }: { title: string; sub?: string; badge?: string; children: React.ReactNode }) {
@@ -312,4 +330,46 @@ function explain(d: unknown, F: FormDef): string {
     if (v && typeof v === 'object') out.push(`${where}: ${labelsOf(qs, v)}`);
   }
   return out.length ? 'Belum lengkap – ' + out.slice(0, 3).join(' · ') + (out.length > 3 ? ` (+${out.length - 3} lagi)` : '') : '';
+}
+
+const HIST_LABEL: Record<string, string> = { DIBUAT: 'Dibuat', DISIMPAN: 'Disimpan', DIKIRIM: 'Dikirim', DIKIRIM_ULANG: 'Dikirim ulang', DISETUJUI: 'Disetujui',
+  DITOLAK: 'Ditolak', DIKERJAKAN_ULANG: 'Dibuka untuk diperbaiki', DITARIK: 'Ditarik untuk diubah', ISIAN_DIHAPUS: 'Isian dihapus supervisor/admin',
+  DIHAPUS: 'Dihapus admin', DIPULIHKAN: 'Dipulihkan' };
+const STATUS_TONE: Record<string, string> = { DRAFT: 'bg-white text-ink border border-line-strong', REVISION: 'bg-white text-ink border border-line-strong',
+  SUBMITTED: 'bg-warn-soft text-warn-text', APPROVED: 'bg-good-soft text-good-text', REJECTED: 'bg-critical-soft text-critical-text' };
+
+/** Tab Riwayat: semua laporan SPG + riwayat simpannya, dan tombol untuk mengubah lagi. */
+function History({ mine, forms, openId, onEdit, onContinue }: { mine: Report[]; forms: FormsPayload; openId?: string; onEdit: (r: Report) => Promise<void>; onContinue: () => void }) {
+  const [show, setShow] = useState<string | null>(null); const [ask, setAsk] = useState<string | null>(null); const [busy, setBusy] = useState(false);
+  const [det, setDet] = useState<Record<string, any>>({});
+  useEffect(() => { if (show && !det[show]) api<any>(`/reports/${show}`).then((d) => setDet((x) => ({ ...x, [show]: d }))).catch(() => undefined); }, [show]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!mine.length) return <Card title="Riwayat laporan"><p className="py-3 text-center text-sm text-ink-muted">Belum ada laporan.</p></Card>;
+  return <Card title="Riwayat laporan" sub="Ketuk laporan untuk melihat isi & riwayat simpannya">
+    <div className="divide-y divide-border" data-history>{mine.map((r) => {
+      const F = forms.forms[r.type]; const isOpen = OPEN.includes(r.status); const d = det[r.id];
+      const action = isOpen ? (r.id === openId ? 'Lanjutkan mengisi' : null) : r.status === 'REJECTED' ? 'Perbaiki' : r.status === 'SUBMITTED' ? 'Tarik & ubah' : r.status === 'APPROVED' ? 'Ubah lagi' : null;
+      const blocked = !isOpen && !!openId && action != null;
+      const warn = r.status === 'SUBMITTED' ? 'Laporan ditarik dari antrean supervisor. Setelah diubah, kirim lagi.'
+        : r.status === 'APPROVED' ? 'Laporan sudah disetujui. Setelah diubah harus dikirim ulang dan disetujui lagi; data lama tetap dipakai sampai itu.' : null;
+      return <div key={r.id} className="py-2.5" data-hist-row={r.id}>
+        <button className="flex w-full items-center gap-2 text-left" onClick={() => setShow(show === r.id ? null : r.id)} aria-expanded={show === r.id}>
+          <div className="min-w-0 flex-1"><div className="truncate font-medium">{r.title || '–'}</div>
+            <div className="text-xs text-ink-muted">{TYPE_LABEL[r.type]} · {fmtDate(r.startedAt)} · {r.entryCount ?? r.entries.length} {F.entry_word}{r.updatedAt ? ` · disimpan ${fmtTime(r.updatedAt)}` : ''}</div></div>
+          <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-2xs font-semibold', STATUS_TONE[r.status] ?? 'bg-white')}>{labelOfStatus(r.status)}</span></button>
+        {show === r.id && <div className="mt-2 grid gap-2 rounded-glass-sm border border-line bg-white/60 p-3 text-sm">
+          {!d ? <p className="text-ink-muted">Memuat…</p> : <>
+            {r.reviewNote && <div className="rounded-r-md border-l-4 border-critical bg-critical-soft px-2 py-1"><b>Alasan ditolak:</b> {r.reviewNote}</div>}
+            <div><b>Isian ({(d.data?.entries ?? []).length}):</b> {(d.data?.entries ?? []).map((e: Answers, i: number) => entryTitle(r.type, e, i)).join(', ') || '–'}</div>
+            <ol className="grid gap-1 border-l border-line pl-3" data-hist-log>{(d.log ?? []).map((l: any, i: number) => <li key={i}>
+              <span className={cn('font-medium', /HAPUS|TOLAK/.test(l.action) && 'text-critical-text')}>{HIST_LABEL[l.action] ?? l.action}</span>
+              <span className="text-ink-muted"> · {fmtDate(l.at)} {fmtTime(l.at)}{l.by ? ` · ${l.by}` : ''}</span>{l.note ? <div className="text-xs text-ink-secondary">{l.note}</div> : null}</li>)}</ol>
+          </>}
+          {action && (blocked ? <p className="text-xs text-ink-muted">Kirim atau selesaikan laporan yang sedang dibuka dulu, baru laporan ini bisa diubah.</p>
+            : isOpen ? <button className="h-11 rounded-glass-sm bg-ink font-semibold text-white" onClick={onContinue}>{action}</button>
+            : ask === r.id || !warn ? <>{warn && <p className="text-xs text-ink-secondary">{warn}</p>}
+                <button className="h-11 rounded-glass-sm bg-ink font-semibold text-white disabled:opacity-50" disabled={busy} data-reopen={r.id}
+                  onClick={async () => { setBusy(true); await onEdit(r); setBusy(false); setAsk(null); }}>{warn ? `Ya, ${action.toLowerCase()}` : action}</button></>
+            : <button className="h-11 rounded-glass-sm border border-ink bg-white font-semibold" data-reopen-ask={r.id} onClick={() => setAsk(r.id)}>{action}</button>)}
+        </div>}
+      </div>; })}</div></Card>;
 }

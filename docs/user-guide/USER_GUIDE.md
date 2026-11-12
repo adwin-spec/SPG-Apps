@@ -28,6 +28,12 @@ Hasilnya:
 * Supervisor hanya bisa menghapus isian di wilayahnya. Laporan yang masih dikerjakan SPG tidak bisa diubah dari sini.
 * Untuk menghapus **seluruh** laporan, gunakan *Hapus laporan* (khusus admin).
 
+## Log aktivitas (admin & supervisor)
+Menu **Log aktivitas** berisi semua kejadian pada laporan SPG: dibuat, disimpan, dikirim, ditarik SPG, disetujui, ditolak,
+isian dihapus, laporan dihapus/dipulihkan – siapa, kapan, dan alasannya. Saring dengan tombol jenis (mis. **Isian dihapus**)
+atau cari nama. *Detail* membuka laporannya. Supervisor hanya melihat wilayahnya.
+**Log audit** (khusus admin) berisi perubahan akun, wilayah, pengaturan, dan penghapusan. Keduanya tidak bisa diubah/dihapus.
+
 ## Mengunduh hasil ke Excel
 Di **Dashboard**, atur periode, wilayah, dan SPG, lalu di kotak **Unduh Excel** pilih **SPG Grosir**, **Survei HORECA**,
 atau **SPG Reguler** (satu file per jenis), atau **Ketiganya (.zip)**. Setiap file berisi:
@@ -79,4 +85,11 @@ Hanya laporan yang sudah disetujui yang ikut. Supervisor hanya mendapat data wil
    (**Data awal belum lengkap**, mis. draf lama yang dibuat sebelum ada lokasi), ketuk **Lengkapi**. Pembeli/responden/
    outlet yang belum lengkap ditandai *Belum lengkap – ketuk Ubah*. Saat *Kirim laporan*, aplikasi langsung membuka isian
    yang masih kurang.
-8. Di bawah setiap isian ada **Pernah diisi:** – ketuk salah satu jawaban lama untuk mengisinya ulang dengan cepat.
+8. Tab **Riwayat** (atas layar) berisi semua laporan Anda. Ketuk satu laporan untuk melihat isinya dan riwayatnya
+   (dibuat, disimpan, dikirim, disetujui, …). Mengubah lagi:
+   * **Draf** → *Lanjutkan mengisi*.
+   * **Menunggu** → *Tarik & ubah*: laporan keluar dari antrean supervisor, ubah, lalu *Kirim laporan* lagi.
+   * **Disetujui** → *Ubah lagi*: setelah diubah harus *Kirim ulang* dan disetujui lagi; angka lama tetap di dashboard sampai itu.
+   * **Ditolak** → *Perbaiki*.
+   Hanya satu laporan yang bisa dibuka sekaligus – kirim laporan yang sedang dibuka dulu.
+9. Di bawah setiap isian ada **Pernah diisi:** – ketuk salah satu jawaban lama untuk mengisinya ulang dengan cepat.

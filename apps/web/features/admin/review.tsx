@@ -117,11 +117,12 @@ export function ReviewView() {
   </PageContainer>;
 }
 
-const LOG_LABEL: Record<string, string> = { DIBUAT: 'Dibuat', DIKIRIM: 'Dikirim', DIKIRIM_ULANG: 'Dikirim ulang', DISETUJUI: 'Disetujui', DITOLAK: 'Ditolak',
-  DIPERBAIKI: 'Dibuka untuk diperbaiki', DIHAPUS: 'Laporan dihapus', DIPULIHKAN: 'Dipulihkan', ISIAN_DIHAPUS: 'Isian dihapus' };
+export const LOG_LABEL: Record<string, string> = { DIBUAT: 'Dibuat', DISIMPAN: 'Disimpan', DIKIRIM: 'Dikirim', DIKIRIM_ULANG: 'Dikirim ulang', DISETUJUI: 'Disetujui',
+  DITOLAK: 'Ditolak', DIKERJAKAN_ULANG: 'Dibuka untuk diperbaiki', DITARIK: 'Ditarik SPG untuk diubah', DIHAPUS: 'Laporan dihapus', DIPULIHKAN: 'Dipulihkan',
+  ISIAN_DIHAPUS: 'Isian dihapus' };
 const EDITABLE = ['SUBMITTED', 'APPROVED', 'REJECTED'];
 
-function Detail({ id }: { id: string }) {
+export function Detail({ id }: { id: string }) {
   const d = useQuery({ queryKey: ['review', 'detail', id], queryFn: () => api<any>(`/review/${id}`) });
   const qc = useQueryClient(); const toast = useToast();
   const [del, setDel] = useState<{ index: number; at?: string; label: string } | null>(null); const [why, setWhy] = useState(''); const [busy, setBusy] = useState(false);
@@ -132,7 +133,7 @@ function Detail({ id }: { id: string }) {
       await api(`/review/${id}/entries/delete`, { method: 'POST', body: { index: del.index, at: del.at, reason: why } });
       toast('success', `${del.label} dihapus. Dashboard & Excel sudah ikut diperbarui; jejaknya tetap di riwayat.`);
       setDel(null); setWhy('');
-      qc.invalidateQueries({ queryKey: ['review'] }); qc.invalidateQueries({ queryKey: ['dash'] });
+      qc.invalidateQueries({ queryKey: ['review'] }); qc.invalidateQueries({ queryKey: ['dash'] }); qc.invalidateQueries({ queryKey: ['activity'] });
     } catch (e) { toast('error', e instanceof ApiError ? e.message : 'Gagal menghapus'); qc.invalidateQueries({ queryKey: ['review', 'detail', id] }); }
     finally { setBusy(false); }
   };

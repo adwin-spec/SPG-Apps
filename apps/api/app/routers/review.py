@@ -4,7 +4,7 @@ import copy
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import false, or_, select
+from sqlalchemy import false, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from ..db import get_db
@@ -56,6 +56,27 @@ def queue(status: str = "SUBMITTED", scope: str = "mine", spv: str | None = None
     out = [{**report_out(r, spvs, full=False), "flags": flags(r, me), "canDecide": can_decide(me, r)} for r in rows]
     pending = db.scalars(select(Report).where(Report.status == "SUBMITTED", *( [_area_filter(me)] if me.role == "SPV" else []))).all()
     return ok(out, {"pending": len(pending), "spvCount": len(spvs)})
+
+
+@router.get("/activity")
+def activity(kind: str = "", q: str = "", limit: int = Query(300, le=1000), me: User = Depends(require("ADMIN", "SPV")), db: Session = Depends(get_db)):
+    """Log aktivitas semua laporan (admin) atau laporan di wilayah supervisor: dibuat, disimpan, dikirim, disetujui,
+    ditolak, ditarik, isian dihapus, laporan dihapus/dipulihkan. Data dari tabel riwayat yang tidak bisa diubah."""
+    from ..services.reports import title_of
+    acts = {"hapus": ("ISIAN_DIHAPUS", "DIHAPUS", "DIPULIHKAN"), "isian": ("ISIAN_DIHAPUS",), "putus": ("DISETUJUI", "DITOLAK"),
+            "kirim": ("DIKIRIM", "DIKIRIM_ULANG", "DITARIK", "DIKERJAKAN_ULANG"), "simpan": ("DIBUAT", "DISIMPAN")}.get(kind)
+    stmt = select(ReportLog, Report).join(Report, Report.id == ReportLog.report_id).options(selectinload(Report.spg))
+    if me.role == "SPV":
+        stmt = stmt.where(_area_filter(me), Report.status != "DRAFT")
+    if acts:
+        stmt = stmt.where(ReportLog.action.in_(acts))
+    if q.strip():
+        like = f"%{q.strip().lower()}%"
+        stmt = stmt.where(or_(func.lower(ReportLog.by_name).like(like), func.lower(ReportLog.note).like(like),
+                              Report.spg_id.in_(select(User.id).where(func.lower(User.name).like(like)))))
+    rows = db.execute(stmt.order_by(ReportLog.id.desc()).limit(limit)).all()
+    return ok([{"at": l.at.isoformat(), "action": l.action, "by": l.by_name, "note": l.note, "reportId": r.id, "type": r.type,
+                "title": title_of(r), "spg": r.spg.name if r.spg else None, "status": r.status} for l, r in rows])
 
 
 @router.get("/{rid}")
