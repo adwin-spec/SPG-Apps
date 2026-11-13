@@ -7,7 +7,7 @@ mengubah pertanyaan di app/forms.py TIDAK memerlukan migrasi.
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Index, Integer, String, Text, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -31,6 +31,8 @@ class User(Base):
     area: Mapped[str | None] = mapped_column(String(120))
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     deactivated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # akun dihapus (diarsipkan); laporannya tetap ada
+    areas: Mapped[list] = mapped_column(JsonType, default=list, server_default=text("'[]'"))  # [{kode, nama}] kab/kota
     token_version: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     coverage: Mapped[list["Coverage"]] = relationship(back_populates="spv", order_by="Coverage.since")

@@ -141,7 +141,12 @@ def test_spv_routing_approval_and_dashboard(admin, make_user):
     assert spv.post(f"/review/{i1}/approve").status_code == 200
     assert spv.post(f"/review/{i1}/approve").status_code == 409                              # tidak bisa diputus dua kali
     d = spv.get("/dashboard?type=HORECA").json()["data"]
-    assert d["reports"] == 1 and any(t["k"] == "Responden difoto" and t["v"] == "100,0%" for t in d["tiles"])
+    assert d["reports"] == 1 and any(t["k"] == "Awareness Tanda Tambah" and t["v"] == "100,0%" for t in d["tiles"])
+    assert any(t["k"] == "Umur terbanyak · 25–34 th" and t["v"] == "100,0%" for t in d["tiles"])
+    assert not any("Responden 18+" in t["k"] or "difoto" in t["k"] for t in d["tiles"])
+    spg_t = next(p for p in d["panels"] if p["title"].startswith("Kinerja SPG"))
+    labels = [c["label"] for c in spg_t["columns"]]
+    assert "Pembeli" in labels and "Kontak" not in " ".join(labels) and {"label": "Bungkus", "num": True, "unit": "bks"} in spg_t["columns"]
     assert other.get("/dashboard?type=HORECA").json()["data"]["reports"] == 0                # SPV lain tidak melihat wilayah ini
     assert admin.get(f"/dashboard?type=HORECA&spv={spv.user['id']}").json()["data"]["reports"] >= 1
     assert spv.get(f"/photos/{pid}").status_code == 200
@@ -347,3 +352,81 @@ def test_spg_history_reopen_and_activity_log(admin, make_user):
     assert not any(x["reportId"] == i for x in luar.get("/review/activity").json()["data"])
     assert {x["action"] for x in admin.get("/review/activity", params={"kind": "putus", "q": "Putri Riwayat"}).json()["data"]} == {"DISETUJUI"}
     assert g.get("/review/activity").status_code == 403
+
+
+def test_user_areas_checklist_delete_and_restore(admin, make_user):
+    from fastapi.testclient import TestClient
+    from app.main import app
+    u = "spvarea" + uuid.uuid4().hex[:4]
+    r = admin.post("/users", json={"username": u, "name": "Spv Area", "password": "pass-12345", "role": "SPV", "areas": ["33.02", "33.01"]})
+    assert r.status_code == 200, r.text
+    d = r.json()["data"]
+    assert [a["kode"] for a in d["areas"]] == ["33.01", "33.02"] and {c["kode"] for c in d["coverage"]} == {"33.01", "33.02"}   # centang → wilayah persetujuan
+    assert admin.post("/users", json={"username": "x" + u, "name": "Salah", "password": "pass-12345", "role": "SPG", "tugas": ["GROSIR"], "areas": ["99.99"]}).status_code == 422
+    r = admin.patch(f"/users/{d['id']}", json={"areas": ["33.02"]})
+    assert {c["kode"] for c in r.json()["data"]["coverage"]} == {"33.02"}                                      # hapus centang → wilayah dilepas
+    g = make_user("SPG", ["HORECA"], name="Sinta Dihapus")
+    assert admin.patch(f"/users/{g.user['id']}", json={"areas": ["33.03"]}).json()["data"]["area"].startswith("Kab.")
+    i = rid()
+    assert g.put(f"/reports/{i}", json=horeca_report([{**horeca_entry(setuju="TIDAK"), "at": "2026-11-12T01:00:00+00:00"}])).status_code == 200
+    # hapus akun: tidak bisa masuk lagi, hilang dari daftar, laporan tetap ada
+    assert make_user("SPV").delete(f"/users/{g.user['id']}").status_code == 403
+    assert admin.delete(f"/users/{admin.user['id']}").status_code == 422                                     # tidak bisa hapus diri sendiri
+    r = admin.delete(f"/users/{g.user['id']}")
+    assert r.status_code == 200 and r.json()["data"]["reports"] == 1 and r.json()["data"]["openReports"] == 1
+    assert g.get("/reports/mine").status_code == 401
+    c = TestClient(app)
+    assert c.post("/api/v1/auth/login", json={"username": g.user["username"], "password": "pass-12345"}).status_code == 401
+    assert g.user["id"] not in [x["id"] for x in admin.get("/users").json()["data"]]
+    assert g.user["id"] in [x["id"] for x in admin.get("/users?deleted=1").json()["data"]]
+    assert admin.get(f"/review/{i}").json()["data"]["spg"]["name"] == "Sinta Dihapus"
+    assert admin.post("/users", json={"username": g.user["username"], "name": "Baru", "password": "pass-12345", "role": "SPG", "tugas": ["GROSIR"]}).json()["error"]["message"].startswith("Username ini milik akun yang sudah dihapus")
+    r = admin.delete(f"/users/{d['id']}")                                                                      # supervisor: wilayahnya dilepas
+    assert r.json()["data"]["released"] == ["Kab. Banyumas (seluruh)"] or r.json()["data"]["released"]
+    assert d["id"] not in [s["id"] for s in admin.get("/users?role=SPV").json()["data"]]
+    # pulihkan
+    assert admin.post(f"/users/{g.user['id']}/restore").status_code == 200
+    assert c.post("/api/v1/auth/login", json={"username": g.user["username"], "password": "pass-12345"}).status_code == 200
+    acts = {a["action"] for a in admin.get("/admin/audit").json()["data"]}
+    assert {"DELETE_USER", "RESTORE_USER"} <= acts
+
+
+def test_dashboard_produk_and_minat_filters(admin, make_user):
+    from app.services.dashboard import invalidate_cache
+    g = make_user("SPG", ["HORECA"], name="Filter Produk")
+    base = {**horeca_entry(setuju="TIDAK")}
+    ents = [{**base, "beli": {"Guava": 2, "Original": 1}, "at": "2026-11-13T01:00:00+00:00"},
+            {**base, "beli": {"Original": 3}, "at": "2026-11-13T02:00:00+00:00"},
+            {**base, "beli": {}, "alasanBeli": None, "alasanTidak": "Harga tidak sesuai", "at": "2026-11-13T03:00:00+00:00"}]
+    i = rid()
+    assert g.put(f"/reports/{i}", json=horeca_report(ents, kec=KUTASARI)).status_code == 200
+    r = g.post(f"/reports/{i}/submit"); assert r.status_code == 200, r.text
+    assert admin.post(f"/review/{i}/approve").status_code == 200
+    invalidate_cache()
+    q = {"type": "HORECA", "spg": "Filter Produk"}
+    def tiles(**kw):
+        d = admin.get("/dashboard", params={**q, **kw}).json()["data"]
+        return {t["k"]: t["v"] for t in d["tiles"]}, d
+    t, d = tiles()
+    assert t["Bungkus terjual"] == "6 bks" and d["produkOptions"] == ["Original", "Watermelon", "Guava"]
+    t, d = tiles(produk="Guava")
+    assert t["Bungkus terjual"] == "2 bks"                                              # hanya varian Guava
+    var = next(p for p in d["panels"] if p["title"] == "Penjualan per varian")
+    assert [r["label"] for r in var["rows"]] == ["Guava"] and var["unit"] == " bks"
+    spg_t = next(p for p in d["panels"] if p["title"].startswith("Kinerja SPG"))
+    assert spg_t["rows"][0][2:4] == [3, 1]                                              # 3 responden, 1 pembeli Guava
+    t, d = tiles(minat="beli")
+    spg_t = next(p for p in d["panels"] if p["title"].startswith("Kinerja SPG"))
+    assert spg_t["rows"][0][2:4] == [2, 2] and t["Bungkus terjual"] == "6 bks"         # hanya yang membeli
+    t, d = tiles(minat="tidak")
+    spg_t = next(p for p in d["panels"] if p["title"].startswith("Kinerja SPG"))
+    assert spg_t["rows"][0][2:4] == [1, 0] and t["Bungkus terjual"] == "0 bks"         # hanya yang tidak minat beli
+    t, d = tiles(produk="Watermelon", minat="beli")
+    assert d["reports"] == 0                                                            # tidak ada yang membeli Watermelon
+    assert admin.get("/dashboard", params={**q, "minat": "salah"}).status_code == 422
+    r = admin.get("/dashboard/export.xlsx", params={**q, "produk": "Guava", "minat": "beli"})
+    from openpyxl import load_workbook
+    import io as _io
+    wb = load_workbook(_io.BytesIO(r.content))
+    summary = {row[0]: row[1] for row in wb["Ringkasan"].iter_rows(values_only=True)}
+    assert summary["Filter produk"] == "Guava" and summary["Filter minat beli"].startswith("membeli")

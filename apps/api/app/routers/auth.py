@@ -22,6 +22,7 @@ _attempts: dict[str, deque] = defaultdict(deque)  # batas percobaan login per IP
 
 def user_out(u: User) -> dict:
     return {"id": u.id, "username": u.username, "name": u.name, "role": u.role, "tugas": u.tugas or [], "area": u.area, "active": u.active,
+            "areas": u.areas or [], "deletedAt": u.deleted_at.isoformat() if u.deleted_at else None,
             "coverage": [{"id": c.id, "level": c.level, "kode": c.kode, "label": c.label, "since": c.since.isoformat()} for c in active_items(u)] if u.role == "SPV" else []}
 
 

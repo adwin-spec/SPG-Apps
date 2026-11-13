@@ -123,6 +123,8 @@ Setelah mengubah `.env`: `docker compose up -d`.
 |---|---|---|---|---|---|
 | 60 SPG + 5 admin serentak | 1.120 | 0 | 0,8 dtk | 0,6 dtk | 0,6 dtk |
 | 100 SPG + 8 admin serentak | 1.860 | 0 | 1,3 dtk | 1,2 dtk | 1,2 dtk |
+| Ulang 13 Nov 2026 (filter produk/minat ikut diuji): 60 SPG + 5 admin | 1.120 | 0 | 1,1 dtk | 0,9 dtk | 1,8 dtk |
+| Ulang 13 Nov 2026: 100 SPG + 8 admin | 1.860 | 0 | 1,7 dtk | 1,6 dtk | 2,1 dtk |
 
 Login paling lambat (p95 5–8 dtk) **hanya bila semua orang menekan Masuk di detik yang sama**, karena password
 diperiksa dengan bcrypt yang sengaja berat (pengaman terhadap pencurian password). Di lapangan login menyebar

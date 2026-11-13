@@ -73,7 +73,7 @@ async def admin(api, s, user, pw, rounds):
         if not h:
             return
         for i in range(rounds * 3):
-            await s.call(c, "dashboard", "GET", "/dashboard", headers=h, params={"type": "HORECA"})
+            await s.call(c, "dashboard", "GET", "/dashboard", headers=h, params={"type": "HORECA", **([{}, {"produk": "Guava"}, {"minat": "beli"}][i % 3])})
             await s.call(c, "review", "GET", "/review", headers=h)
             if i == 0:
                 await s.call(c, "excel", "GET", "/dashboard/export.xlsx", headers=h, params={"type": "HORECA"})

@@ -2,7 +2,13 @@
 
 ## Admin pusat
 1. **SPG & Supervisor → Buat akun.** Pilih peran. Untuk SPG centang tugasnya (Grosir, HORECA, Reguler – boleh lebih dari satu).
+   **Area kab/kota** dipilih dengan centang (cari nama, atau *Pilih semua* per provinsi). Untuk **supervisor**, kab/kota yang
+   dicentang langsung menjadi wilayah persetujuannya. Area SPG bisa diubah lewat tombol *Ubah* di kolom Area.
    Berikan username & password ke orangnya langsung.
+2. **Menghapus akun.** Tombol **Hapus** di baris SPG/supervisor. Akun tidak bisa masuk lagi dan hilang dari daftar;
+   wilayah supervisornya dilepas. Laporan, persetujuan, dan riwayatnya **tetap tersimpan**. Salah hapus? Bagian
+   **Akun dihapus** → *Tampilkan* → **Pulihkan** (wilayah supervisor perlu dipasang lagi). Untuk berhenti sementara
+   (mis. cuti) pakai **Nonaktifkan**.
 2. **Wilayah supervisor.** Di blok supervisor, pilih kab/kota lalu "+ Seluruh kab/kota", atau cari kecamatan.
    Tanda ⚠ berarti wilayah itu juga dipegang supervisor lain (keduanya bisa menyetujui).
 3. **Pengaturan**: nama merek, varian (dipakai di semua form), daftar grosir. Data contoh untuk mencoba dashboard.
@@ -54,6 +60,17 @@ Hanya laporan yang sudah disetujui yang ikut. Supervisor hanya mendapat data wil
 * Teks di bawah judul peta menyebut berapa laporan **tanpa GPS** (mis. izin lokasi ditolak). Laporan dengan akurasi
   GPS buruk (> 150 m) diberi tanda di halaman Persetujuan.
 * Tabel di bawah peta berisi koordinat lengkap; kolom lat/lon/akurasi juga ada di Excel.
+
+## Filter dashboard
+Selain periode, supervisor, SPG, dan wilayah:
+* **Produk TT** (mis. *TT Guava*): bungkus, pembeli, konversi, dan stok dihitung hanya untuk varian itu.
+* **Minat beli**: *Minat beli (≥ 1 bks)* hanya menampilkan yang membeli; *Tidak minat beli (0 bks)* hanya yang tidak membeli
+  (Reguler: order / tidak order). Berguna untuk melihat alasan tidak membeli atau profil pembeli.
+* Filter produk & minat ikut terbawa ke **Unduh Excel** (tercatat di lembar Ringkasan).
+
+Dashboard HORECA: kartu **Awareness Tanda Tambah** (responden yang sudah kenal TT) dan **Umur terbanyak** (persentase per
+kelompok umur). Tabel **Kinerja SPG** memakai *Responden*, *Pembeli* (responden yang membeli ≥ 1 bks), *Pembeli / laporan*,
+konversi, dan bungkus. Angka di tabel diberi satuan (**bks**, **orang**, **outlet**, **%**).
 
 ## Membaca grafik dashboard
 * **Merah** = Tanda Tambah atau hal yang perlu diperhatikan; **abu-abu** = kompetitor/pembanding.

@@ -44,8 +44,10 @@ def _overlaps(db: Session, u: User) -> dict[str, list[str]]:
 
 
 @router.get("")
-def list_users(role: str | None = None, me: User = Depends(require("ADMIN", "SPV")), db: Session = Depends(get_db)):
+def list_users(role: str | None = None, deleted: bool = False, me: User = Depends(require("ADMIN", "SPV")), db: Session = Depends(get_db)):
+    """Akun aktif/nonaktif. `deleted=1` (admin): akun yang sudah dihapus, untuk dipulihkan."""
     q = select(User).options(selectinload(User.coverage)).order_by(User.role, User.name)
+    q = q.where(User.deleted_at.is_not(None) if deleted and me.role == "ADMIN" else User.deleted_at.is_(None))
     if me.role == "SPV":
         q = q.where(User.role == "SPG")
     elif role:
@@ -66,6 +68,39 @@ class UserIn(BaseModel):
     role: str = Field(pattern="^(ADMIN|SPV|SPG)$")
     tugas: list[str] = Field(default_factory=list)
     area: str | None = Field(default=None, max_length=120)
+    areas: list[str] = Field(default_factory=list, max_length=200)   # kode kab/kota yang dicentang
+
+
+def _areas(db: Session, kodes: list[str]) -> list[dict]:
+    """Kode kab/kota → [{kode, nama}] (urut sesuai master). Kode yang tidak dikenal ditolak."""
+    kodes = list(dict.fromkeys(k for k in kodes if k))
+    if not kodes:
+        return []
+    found = {k.kode: k for k in db.scalars(select(Kabupaten).where(Kabupaten.kode.in_(kodes)))}
+    bad = [k for k in kodes if k not in found]
+    if bad:
+        raise ApiError(422, "VALIDATION_ERROR", f"Kabupaten/kota tidak dikenal: {', '.join(bad[:3])}")
+    return [{"kode": k, "nama": short_kab(found[k].nama)} for k in sorted(kodes)]
+
+
+def _area_text(areas: list[dict]) -> str | None:
+    names = [a["nama"] for a in areas]
+    if not names:
+        return None
+    t = ", ".join(names)
+    return t if len(t) <= 120 else ", ".join(names[:3]) + f" +{len(names) - 3} lainnya"
+
+
+def _add_kab(db: Session, u: User, k: Kabupaten) -> Coverage | None:
+    items = active_items(u)
+    if any(c.level == "KAB" and c.kode == k.kode for c in items):
+        return None
+    for c in items:  # kecamatan di dalamnya digantikan cakupan kab/kota
+        if c.level == "KEC" and c.kode.startswith(k.kode + "."):
+            c.until = now()
+    cov = Coverage(spv_id=u.id, level="KAB", kode=k.kode, label=f"{short_kab(k.nama)} (seluruh)", since=now())
+    db.add(cov); u.coverage.append(cov)
+    return cov
 
 
 @router.post("")
@@ -73,16 +108,22 @@ def create_user(body: UserIn, me: User = Depends(require("ADMIN")), db: Session 
     uname = body.username.strip().lower()
     if not USERNAME.match(uname):
         raise ApiError(422, "VALIDATION_ERROR", "Username 3–40 karakter: huruf kecil, angka, titik, minus, garis bawah")
-    if db.scalar(select(User).where(User.username == uname)):
-        raise ApiError(409, "DUPLICATE", "Username sudah dipakai")
+    old = db.scalar(select(User).where(User.username == uname))
+    if old:
+        raise ApiError(409, "DUPLICATE", "Username ini milik akun yang sudah dihapus – pulihkan akun itu atau pakai username lain"
+                       if old.deleted_at else "Username sudah dipakai")
     tg = _tugas(body.tugas)
     if body.role == "SPG" and not tg:
         raise ApiError(422, "VALIDATION_ERROR", "SPG harus punya minimal satu tugas")
+    areas = _areas(db, body.areas)
     u = User(username=uname, name=title_case(body.name), password_hash=hash_password(body.password), role=body.role,
-             tugas=tg if body.role == "SPG" else [], area=body.area)
+             tugas=tg if body.role == "SPG" else [], area=_area_text(areas) or body.area, areas=areas, coverage=[])
     db.add(u); db.flush()
-    audit(db, me, "CREATE", "user", u.id, {"username": uname, "role": body.role, "tugas": tg})
-    db.commit(); db.refresh(u)
+    if body.role == "SPV":  # supervisor: kab/kota yang dicentang langsung menjadi wilayah persetujuannya
+        for a in areas:
+            _add_kab(db, u, db.get(Kabupaten, a["kode"]))
+    audit(db, me, "CREATE", "user", u.id, {"username": uname, "role": body.role, "tugas": tg, "areas": [a["kode"] for a in areas]})
+    db.commit(); invalidate_cache(); db.refresh(u)
     return ok(user_out(u))
 
 
@@ -92,14 +133,25 @@ class UserPatch(BaseModel):
     area: str | None = Field(default=None, max_length=120)
     active: bool | None = None
     password: str | None = Field(default=None, min_length=8, max_length=200)
+    areas: list[str] | None = Field(default=None, max_length=200)
 
 
 @router.patch("/{uid}")
 def patch_user(uid: str, body: UserPatch, me: User = Depends(require("ADMIN")), db: Session = Depends(get_db)):
     u = db.get(User, uid, options=[selectinload(User.coverage)])
-    if not u:
+    if not u or u.deleted_at:
         raise ApiError(404, "NOT_FOUND", "Akun tidak ditemukan")
     changes: dict = {}
+    if body.areas is not None:
+        u.areas = _areas(db, body.areas); u.area = _area_text(u.areas); changes["areas"] = [a["kode"] for a in u.areas]
+        if u.role == "SPV":  # samakan wilayah persetujuan tingkat kab/kota dengan centang
+            want = {a["kode"] for a in u.areas}
+            for c in active_items(u):
+                if c.level == "KAB" and c.kode not in want:
+                    c.until = now()
+            for a in u.areas:
+                _add_kab(db, u, db.get(Kabupaten, a["kode"]))
+            invalidate_cache()
     if body.name is not None:
         u.name = title_case(body.name); changes["name"] = u.name
     if body.area is not None:
@@ -136,12 +188,13 @@ def add_coverage(uid: str, body: CoverageIn, me: User = Depends(require("ADMIN")
         k = db.get(Kabupaten, body.kode)
         if not k:
             raise ApiError(404, "NOT_FOUND", "Kabupaten/kota tidak dikenal")
-        if any(c.level == "KAB" and c.kode == k.kode for c in items):
+        if not _add_kab(db, u, k):
             raise ApiError(409, "DUPLICATE", "Kab/kota ini sudah termasuk wilayahnya")
-        for c in items:  # kecamatan di dalamnya digantikan cakupan kab/kota
-            if c.level == "KEC" and c.kode.startswith(k.kode + "."):
-                c.until = now()
-        label = f"{short_kab(k.nama)} (seluruh)"
+        if not any(a["kode"] == k.kode for a in (u.areas or [])):
+            u.areas = sorted([*(u.areas or []), {"kode": k.kode, "nama": short_kab(k.nama)}], key=lambda a: a["kode"]); u.area = _area_text(u.areas)
+        audit(db, me, "ADD_COVERAGE", "user", u.id, {"level": "KAB", "kode": k.kode})
+        db.commit(); invalidate_cache(); db.refresh(u)
+        return ok(user_out(u))
     else:
         c = db.get(Kecamatan, body.kode)
         if not c:
@@ -165,4 +218,40 @@ def remove_coverage(uid: str, cid: str, me: User = Depends(require("ADMIN")), db
     audit(db, me, "REMOVE_COVERAGE", "user", uid, {"kode": c.kode})
     db.commit(); invalidate_cache()
     u = db.get(User, uid, options=[selectinload(User.coverage)])
+    return ok(user_out(u))
+
+
+@router.delete("/{uid}")
+def delete_user(uid: str, me: User = Depends(require("ADMIN")), db: Session = Depends(get_db)):
+    """Hapus akun SPG/supervisor/admin. Akun diarsipkan (bukan dibuang): tidak bisa masuk, hilang dari daftar,
+    wilayah supervisornya dilepas – tetapi laporan, persetujuan, dan riwayatnya tetap utuh. Bisa dipulihkan."""
+    from ..models import RefreshToken, Report
+    from sqlalchemy import func, update
+    u = db.get(User, uid, options=[selectinload(User.coverage)])
+    if not u or u.deleted_at:
+        raise ApiError(404, "NOT_FOUND", "Akun tidak ditemukan")
+    if u.id == me.id:
+        raise ApiError(422, "VALIDATION_ERROR", "Tidak bisa menghapus akun sendiri")
+    t = now()
+    u.deleted_at, u.active, u.deactivated_at, u.token_version = t, False, t, u.token_version + 1
+    db.execute(update(RefreshToken).where(RefreshToken.user_id == u.id, RefreshToken.revoked_at.is_(None)).values(revoked_at=t))
+    released = [c.label for c in active_items(u)]
+    for c in active_items(u):
+        c.until = t
+    n_rep = db.scalar(select(func.count()).select_from(Report).where(Report.spg_id == u.id)) or 0
+    n_open = db.scalar(select(func.count()).select_from(Report).where(Report.spg_id == u.id, Report.status.in_(("DRAFT", "REVISION")))) or 0
+    audit(db, me, "DELETE_USER", "user", u.id, {"username": u.username, "name": u.name, "role": u.role, "reports": n_rep, "released": released})
+    db.commit(); invalidate_cache()
+    return ok({**user_out(u), "reports": n_rep, "openReports": n_open, "released": released})
+
+
+@router.post("/{uid}/restore")
+def restore_user(uid: str, me: User = Depends(require("ADMIN")), db: Session = Depends(get_db)):
+    """Pulihkan akun yang dihapus (aktif lagi dengan password lama). Wilayah supervisor perlu dipasang ulang."""
+    u = db.get(User, uid, options=[selectinload(User.coverage)])
+    if not u or not u.deleted_at:
+        raise ApiError(404, "NOT_FOUND", "Akun yang dihapus tidak ditemukan")
+    u.deleted_at, u.active, u.deactivated_at = None, True, None
+    audit(db, me, "RESTORE_USER", "user", u.id, {"username": u.username})
+    db.commit(); invalidate_cache(); db.refresh(u)
     return ok(user_out(u))

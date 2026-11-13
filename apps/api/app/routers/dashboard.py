@@ -15,8 +15,9 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 
 def _f(type: str = Query("GROSIR", pattern="^(GROSIR|HORECA|REGULER)$"), days: int = Query(30, ge=1, le=366), spg: str = "", spv: str = "",
-       prov: str = "", kab: str = "", kec: str = "", tipe: str = "") -> Filters:
-    return Filters(type, days, spg, spv, prov, kab, kec, tipe)
+       prov: str = "", kab: str = "", kec: str = "", tipe: str = "", produk: str = Query("", max_length=60),
+       minat: str = Query("", pattern="^(|beli|tidak)$")) -> Filters:
+    return Filters(type, days, spg, spv, prov, kab, kec, tipe, produk, minat)
 
 
 @router.get("")

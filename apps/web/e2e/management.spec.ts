@@ -35,6 +35,21 @@ test('admin: semua halaman tampil tanpa error, data contoh mengisi ketiga dashbo
     });
     expect(ratio, `kotak ke-${i + 1} harus tetap terbaca saat di-hover`).toBeGreaterThan(3);
   }
+  // HORECA: kartu awareness & umur, kinerja SPG memakai "Pembeli", filter produk & minat beli
+  await page.getByRole('button', { name: 'HORECA', exact: true }).click();
+  await expect(page.getByText('Awareness Tanda Tambah', { exact: true })).toBeVisible();
+  await expect(page.getByText(/^Umur terbanyak · /)).toBeVisible();
+  await expect(page.getByText('Responden difoto')).toHaveCount(0);
+  await expect(page.getByText(/^Kinerja SPG · HORECA/)).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Pembeli', exact: true })).toBeVisible();   // bukan lagi "Kontak"
+  await expect(page.getByRole('columnheader', { name: /Kontak/ })).toHaveCount(0);
+  await expect(page.getByRole('cell', { name: /^\d[\d.,]* bks$/ }).first()).toBeVisible();        // angka diberi satuan
+  await page.getByLabel('Produk Tanda Tambah').selectOption({ label: 'TT Guava' });
+  await expect(page.locator('[data-filter-note]')).toContainText('TT Guava');
+  await page.getByLabel('Minat beli').selectOption('tidak');
+  await expect(page.locator('[data-filter-note]')).toContainText('tidak membeli');
+  await page.getByRole('button', { name: 'Hapus filter' }).click();
+  await expect(page.locator('[data-filter-note]')).toHaveCount(0);
   await page.getByRole('button', { name: /Kab\. Banyumas|Kab\. Cilacap|Kab\. Purbalingga|Kab\. Banjarnegara/ }).first().click();  // drill-down wilayah
   await expect(page.getByLabel('Kecamatan')).toBeEnabled();
   const spv = await makeUser('SPV', 'Rudi Hartono');
@@ -42,7 +57,7 @@ test('admin: semua halaman tampil tanpa error, data contoh mengisi ketiga dashbo
   const block = page.locator(`[data-spv="${spv.username}"]`);
   await block.getByLabel(/Cari kecamatan/).fill('Sokaraja'); await page.getByRole('button', { name: /^Sokaraja/ }).first().click();
   await expect(block.getByText('Kec. Sokaraja · Kab. Banyumas')).toBeVisible();
-  for (const p of ['/review', '/settings', '/wilayah', '/audit']) { await page.goto(p); await expect(page.locator('h1')).toBeVisible(); }
+  for (const p of ['/review', '/activity', '/settings', '/wilayah', '/audit']) { await page.goto(p); await expect(page.locator('h1')).toBeVisible(); }
   await adminApi('/admin/samples', 'DELETE');
   expect(errors).toEqual([]);
 });
@@ -102,5 +117,31 @@ test('supervisor menghapus satu isian salah dari laporan SPG; jejaknya tetap ter
   await page.locator('[data-kind=isian]').click();
   await expect(page.locator('[data-activity]')).toContainText('Outlet diisi dua kali');
   await expect(page.locator('[data-activity]')).toContainText('Isian Ganda');
+  expect(errors).toEqual([]);
+});
+
+test('admin membuat supervisor dengan checklist kab/kota, lalu menghapus dan memulihkan akun', async ({ page }) => {
+  const errors: string[] = []; page.on('pageerror', (e) => errors.push(e.message));
+  const uname = `e2espv${Date.now().toString(36)}`;
+  await login(page, ADMIN.username, ADMIN.password); await expect(page).toHaveURL(/dashboard/); await page.goto('/users');
+  await page.getByLabel('Nama lengkap').fill('Wati Checklist'); await page.getByLabel('Username').fill(uname); await page.getByLabel('Password awal').fill('Rahasia123');
+  await page.getByLabel('Peran').selectOption('SPV');
+  const list = page.locator('[data-kab-checklist="new"]');
+  await list.getByLabel('Cari kab/kota').fill('banyumas');
+  await list.locator('label', { has: page.locator('input[data-kab="33.02"]') }).click();
+  await expect(list.getByRole('button', { name: 'Hapus Kab. Banyumas' })).toBeVisible();   // terpilih
+  await page.getByRole('button', { name: 'Buat akun' }).click();
+  await expect(page.getByText('Akun Wati Checklist dibuat')).toBeVisible();
+  const block = page.locator(`[data-spv="${uname}"]`);
+  await expect(block.getByText('Kab. Banyumas (seluruh)')).toBeVisible();               // langsung jadi wilayah persetujuan
+  await block.locator(`[data-del-user="${uname}"]`).click();
+  await page.getByRole('dialog', { name: 'Hapus akun Wati Checklist?' }).getByRole('button', { name: 'Hapus akun' }).click();
+  await expect(page.getByText(/Akun Wati Checklist dihapus/)).toBeVisible();
+  await expect(block).toHaveCount(0);
+  await page.getByRole('button', { name: 'Tampilkan' }).click();
+  const del = page.locator('[data-deleted-users]'); await expect(del).toContainText('Wati Checklist');
+  await del.locator('div', { hasText: 'Wati Checklist' }).getByRole('button', { name: 'Pulihkan' }).first().click();
+  await expect(page.getByText(/Akun Wati Checklist dipulihkan/)).toBeVisible();
+  await expect(page.locator(`[data-spv="${uname}"]`)).toBeVisible();
   expect(errors).toEqual([]);
 });

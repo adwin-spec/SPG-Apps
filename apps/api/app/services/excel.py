@@ -158,7 +158,8 @@ def _analysis(wb: Workbook, panels: list[dict]) -> None:
             rows = p.get("rows") or p.get("steps") or []
             total = sum(x["n"] for x in rows) or 1
             ws.cell(row=head, column=1, value="Kategori"); ws.cell(row=head, column=2, value="Jumlah")
-            ws.cell(row=head, column=2, value="Persen" if p.get("unit") == "%" else "Jumlah")
+            u = (p.get("unit") or "").strip()
+            ws.cell(row=head, column=2, value="Persen" if u == "%" else f"Jumlah ({u})" if u else "Jumlah")
             ws.cell(row=head, column=3, value="% dari tahap pertama" if kind == "funnel" else None if p.get("unit") == "%" else "Persentase")
             base = (rows[0]["n"] if rows else 0) or 1
             for i, x in enumerate(rows):
@@ -187,7 +188,7 @@ def _analysis(wb: Workbook, panels: list[dict]) -> None:
         elif kind == "table":
             cols = p["columns"]
             for j, c in enumerate(cols):
-                ws.cell(row=head, column=1 + j, value=c["label"])
+                ws.cell(row=head, column=1 + j, value=c["label"] + (f" ({c['unit']})" if c.get("unit") else ""))
             for i, row in enumerate(p["rows"]):
                 for j, v in enumerate(row):
                     ws.cell(row=head + 1 + i, column=1 + j, value=v["text"] if isinstance(v, dict) else v)
@@ -227,6 +228,7 @@ def _trend(wb: Workbook, panels: list[dict], tiles_daily: dict[str, list]) -> No
 def build_xlsx(db: Session, me: User, f: Filters) -> bytes:
     F = FORMS[f.type]
     variants = app_settings(db)["variants"]
+    variants = [f.produk] if f.produk in variants else variants  # filter produk: kolom varian lain tidak relevan
     reports, _ = load_approved(db, me, f)
     ss, ents = scope(reports, f)
     ss = sorted(ss, key=lambda s: (s.get("date") or "", s.get("startedAt") or ""))
@@ -237,7 +239,8 @@ def build_xlsx(db: Session, me: User, f: Filters) -> bytes:
     dash = build(db, me, f)
     rows = [["Kategori", TYPES[f.type]], ["Periode", f"{f.days} hari terakhir"], ["Diunduh", _wib(datetime.now(UTC))],
             ["Diunduh oleh", me.name], ["Filter wilayah", _region(db, f)],
-            ["Filter tipe toko", f.tipe or "semua"], ["Filter SPG", f.spg or "semua"], ["Laporan disetujui", len(ss)], ["", ""]]
+            ["Filter tipe toko", f.tipe or "semua"], ["Filter SPG", f.spg or "semua"],
+            ["Filter produk", f.produk or "semua varian"], ["Filter minat beli", {"beli": "membeli (≥ 1 bks)", "tidak": "tidak membeli (0 bks)"}.get(f.minat, "semua")], ["Laporan disetujui", len(ss)], ["", ""]]
     rows += [[t["k"], t["v"] + (f"  ({t['d']})" if t["d"] else "")] for t in dash["tiles"]]
     _sheet(wb, "Ringkasan", ["Keterangan", "Nilai"], rows)
     _analysis(wb, dash["panels"])

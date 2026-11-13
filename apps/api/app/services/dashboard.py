@@ -89,8 +89,11 @@ def bars(title: str, sub: str, rows: list, span: int = 4, pct: bool = False, ton
 
 
 def table(title: str, sub: str, columns: list[str], rows: list[list], span: int = 12, empty: str = "Belum ada data") -> dict:
-    return {"kind": "table", "title": title, "sub": sub, "span": span, "empty": empty,
-            "columns": [{"label": c.lstrip("#"), "num": c.startswith("#")} for c in columns], "rows": rows}
+    """Kolom: "#" di depan = angka (rata kanan); "|satuan" di belakang = satuan yang ditampilkan di samping angka, mis. "#Bungkus|bks"."""
+    def col(c: str) -> dict:
+        label, _, unit = c.lstrip("#").partition("|")
+        return {"label": label, "num": c.startswith("#"), **({"unit": unit} if unit else {})}
+    return {"kind": "table", "title": title, "sub": sub, "span": span, "empty": empty, "columns": [col(c) for c in columns], "rows": rows}
 
 
 def gallery(title: str, sub: str, items: list[dict], span: int = 12) -> dict:
@@ -116,8 +119,11 @@ def kec_name(x) -> str:
 
 
 class Filters:
-    def __init__(self, type: str = "GROSIR", days: int = 30, spg: str = "", spv: str = "", prov: str = "", kab: str = "", kec: str = "", tipe: str = ""):
+    def __init__(self, type: str = "GROSIR", days: int = 30, spg: str = "", spv: str = "", prov: str = "", kab: str = "", kec: str = "", tipe: str = "",
+                 produk: str = "", minat: str = ""):
         self.type, self.days, self.spg, self.spv, self.prov, self.kab, self.kec, self.tipe = type, days, spg, spv, prov, kab, kec, tipe
+        self.produk = produk  # varian Tanda Tambah: angka bungkus/pembeli hanya untuk varian ini
+        self.minat = minat    # "beli" = membeli ≥ 1 bks · "tidak" = 0 bks (tidak minat beli)
 
     @property
     def loc_on(self) -> bool:
@@ -173,15 +179,32 @@ def scope(reports: list[dict], f: Filters) -> tuple[list[dict], list[dict]]:
     """Grosir & Reguler: filter wilayah/tipe berlaku per pembeli/outlet. HORECA: filter wilayah pada lokasi venue."""
     if f.type == "HORECA":
         ss = [s for s in reports if f.match_loc(loc_of(s, "HORECA"))]
-        return ss, [{**e, "_s": s} for s in ss for e in s.get("entries") or []]
+        return produk_minat(ss, [{**e, "_s": s} for s in ss for e in s.get("entries") or []], f)
     el = FORMS[f.type]["entry_location"]
     keep = lambda e: f.match_loc(e.get(el)) and f.match_tipe(e)
     ents = [{**e, "_s": s} for s in reports for e in s.get("entries") or [] if keep(e)]
     ss = [s for s in reports if any(keep(e) for e in s.get("entries") or [])] if (f.loc_on or f.tipe) else reports
+    return produk_minat(ss, ents, f)
+
+
+def produk_minat(ss: list[dict], ents: list[dict], f: Filters) -> tuple[list[dict], list[dict]]:
+    """Filter produk: pembelian (& stok Reguler) dihitung hanya untuk varian terpilih.
+    Filter minat beli: hanya pembeli/responden/outlet yang membeli (≥ 1 bks) atau yang tidak (0 bks)."""
+    if f.produk:
+        def one(e: dict) -> dict:
+            x = {**e, "beli": {f.produk: int((e.get("beli") or {}).get(f.produk) or 0)} if isinstance(e.get("beli"), dict) else e.get("beli")}
+            if isinstance(e.get("stok"), dict):
+                x["stok"] = {f.produk: e["stok"].get(f.produk)} if f.produk in e["stok"] else {}
+            return x
+        ents = [one(e) for e in ents]
+    if f.minat in ("beli", "tidak"):
+        ents = [e for e in ents if (sum_variants(e.get("beli")) > 0) == (f.minat == "beli")]
+        keep = {id(e["_s"]) for e in ents}
+        ss = [s for s in ss if id(s) in keep]
     return ss, ents
 
 
-def geo_table(ents: list[dict], key: str, title: str, buy_word: str, f: Filters) -> dict:
+def geo_table(ents: list[dict], key: str, title: str, buy_word: str, f: Filters, n_word: str = "Ditemui") -> dict:
     by_kec = bool(f.kab)
     m: dict = {}
     for e in ents:
@@ -201,7 +224,7 @@ def geo_table(ents: list[dict], key: str, title: str, buy_word: str, f: Filters)
             for r in sorted(m.values(), key=lambda r: -r["n"])[:25]]
     return table(f"{title} per {'kecamatan' if by_kec else 'kabupaten/kota'}",
                  "Klik baris untuk menyaring kecamatan itu" if by_kec else "Klik baris untuk melihat rincian kecamatannya",
-                 ["Kecamatan" if by_kec else "Kabupaten/kota", "Kab/kota" if by_kec else "Provinsi", "#Kontak", "#" + buy_word, "#Konversi", "#Bungkus"], rows)
+                 ["Kecamatan" if by_kec else "Kabupaten/kota", "Kab/kota" if by_kec else "Provinsi", "#" + n_word, "#" + buy_word, "#Konversi", "#Bungkus|bks"], rows)
 
 
 def photo_items(ents: list[dict], field: str, cap) -> list[dict]:
@@ -246,6 +269,10 @@ class Axis:
 packs = lambda e: sum_variants(e.get("beli"))
 
 
+def varian_word(variants: list[str]) -> str:
+    return f"varian {variants[0]}" if len(variants) == 1 else "semua varian"
+
+
 # ───────────────────────────── panel per kategori ─────────────────────────────
 
 
@@ -259,16 +286,16 @@ def grosir(ss: list[dict], ents: list[dict], variants: list[str], brand: str, X:
         tile("Laporan grosir", fmt(len(ss)), f"{len({s['header'].get('grosir') for s in ss})} grosir", X.spark(X.daily(ss, date=lambda s: s.get("date")))),
         tile("Pembeli ditemui", fmt(len(ents)), f"{len(ret)} toko · {len(kon)} konsumen", X.spark(d_kontak)),
         tile(f"Membeli {brand}", pct(len(buyers), len(ents)), f"{len(buyers)} dari {len(ents)} pembeli"),
-        tile("Bungkus terjual", fmt(sum(r[1] for r in by_var)), "semua varian", X.spark(d_bks)),
+        tile("Bungkus terjual", fmt(sum(r[1] for r in by_var)) + " bks", varian_word(variants), X.spark(d_bks)),
         tile("Toko yang sudah jual TT", pct(len([e for e in ret if e.get("statusTT") == "JUAL"]), len(ret)), "status sebelum ditawari"),
         tile("Belum tahu TT", pct(len([e for e in ents if e.get("statusTT") == "BELUM"]), len(ents)), "peluang pengenalan"),
     ]
     p = [
-        trend("Bungkus terjual per hari", "Semua varian", X.days, d_bks, span=8, unit="bks"),
+        trend("Bungkus terjual per hari", varian_word(variants).capitalize(), X.days, d_bks, span=8, unit="bks"),
         bars("Persentase membeli menurut status awal", f"% pembeli yang membeli {brand} setelah ditawari", rate_by(ents, lambda e: labelOf_status(e)), unit="%", tone="tt"),
         segments("Status TT di toko (retail)", "Sebelum ditawari SPG hari ini", count(ret, "statusTT", O["statusRetail"]), span=4),
         segments("Status TT di konsumen", "Sebelum ditawari SPG hari ini", count(kon, "statusTT", O["statusKonsumen"]), span=4),
-        bars("Penjualan per varian", "Bungkus dibeli pembeli di grosir", by_var),
+        bars("Penjualan per varian", "Bungkus dibeli pembeli di grosir", by_var, unit=" bks"),
         bars("Tahu TT dari mana", "Pembeli yang sudah tahu TT", count(ents, "tahuDari"), pct=True),
         bars("Alasan membeli", "", count(ents, "alasanBeli"), pct=True, tone="tt"),
         bars("Alasan tidak membeli", "", count(ents, "alasanTidak"), pct=True, tone="comp"),
@@ -282,7 +309,7 @@ def grosir(ss: list[dict], ents: list[dict], variants: list[str], brand: str, X:
             if e.get("hargaGrosir"): r["g"].append(e["hargaGrosir"])
             if e.get("hargaEceran"): r["c"].append(e["hargaEceran"])
     p.append(table("Merek kompetitor yang sering dibeli / dihisap", "Diisi bebas oleh SPG · harga rata-rata yang dilaporkan",
-                   ["Merek", "#Disebut", "#Harga grosir", "#Harga eceran"],
+                   ["Merek", "#Disebut|kali", "#Harga grosir", "#Harga eceran"],
                    [[k, r["n"], rp(avg(r["g"])), rp(avg(r["c"]))] for k, r in sorted(t2.items(), key=lambda kv: -kv[1]["n"])[:12]], span=6))
     promos = [{**x, "grosir": s["header"].get("grosir")} for s in ss for x in ((s.get("sections") or {}).get("promos") or {}).get("items", [])]
     no_promo = len([s for s in ss if ((s.get("sections") or {}).get("promos") or {}).get("none")])
@@ -291,7 +318,7 @@ def grosir(ss: list[dict], ents: list[dict], variants: list[str], brand: str, X:
     for s in ss:
         for x in ((s.get("sections") or {}).get("promotors") or {}).get("items", []):
             pm[x.get("merek")] += int(x.get("jumlah") or 0)
-    p.append(bars("Promotor kompetitor", "Total orang terlihat", sorted(pm.items(), key=lambda kv: -kv[1]), span=12, tone="comp"))
+    p.append(bars("Promotor kompetitor", "Total orang terlihat", sorted(pm.items(), key=lambda kv: -kv[1]), span=12, tone="comp", unit=" orang"))
     p.append(tipe_table(ret, "tipeToko", O["tipeToko"], "toko (retail)", "Toko ditemui", "Membeli", "statusTT"))
     rates = rate_by(ret, lambda e: e.get("tipeToko"))
     top_var = max(by_var, key=lambda r: r[1]) if by_var else None
@@ -307,16 +334,21 @@ def grosir(ss: list[dict], ents: list[dict], variants: list[str], brand: str, X:
 def horeca(ss: list[dict], ents: list[dict], variants: list[str], brand: str, X: Axis) -> tuple[list, list]:
     tried = [e for e in ents if e.get("sampel") and e.get("sampel") != "Tidak mencoba"]
     bought = [e for e in tried if packs(e) > 0]
-    photo = [e for e in ents if isinstance(e.get("foto"), dict)]
     by_var = [(v, sum(int((e.get("beli") or {}).get(v) or 0) for e in ents), "tt") for v in variants]
     d_resp, d_bks = X.daily(ents), X.daily(ents, packs)
+    known = [e for e in ents if e.get("statusTT")]
+    aware = [e for e in known if e.get("statusTT") != "BELUM"]
+    ages = count(ents, "usia", O["usia"]); n_age = sum(n for _, n in ages)
+    top_age = max(ages, key=lambda r: r[1]) if n_age else None
     tiles = [
-        tile("Venue disurvei", fmt(len(ss)), f"{len({str(s['header'].get('venue')).lower() for s in ss})} venue berbeda", X.spark(X.daily(ss, date=lambda s: s.get("date")))),
-        tile("Responden 18+", fmt(len(ents)), f"{pct(len([e for e in ents if e.get('statusTT') == 'BELUM']), len(ents))} belum tahu TT", X.spark(d_resp)),
-        tile("Mencoba sampel", pct(len(tried), len(ents)), f"{len(tried)} responden"),
-        tile("Membeli setelah mencoba", pct(len(bought), len(tried)), "konversi trial → beli"),
-        tile("Bungkus terjual", fmt(sum(r[1] for r in by_var)), "semua varian", X.spark(d_bks)),
-        tile("Responden difoto", pct(len(photo), len(ents)), f"{len([e for e in ents if e.get('fotoSetuju') == 'TIDAK'])} tidak bersedia"),
+        tile("Venue disurvei", fmt(len(ss)), f"{len({str(s['header'].get('venue')).lower() for s in ss})} venue berbeda · {fmt(len(ents))} responden",
+             X.spark(X.daily(ss, date=lambda s: s.get("date")))),
+        tile(f"Umur terbanyak · {top_age[0]} th" if top_age else "Umur responden", pct(top_age[1], n_age) if top_age else "–",
+             " · ".join(f"{a} th {pct(n, n_age)}" for a, n in ages if n and a != top_age[0]) if top_age else "belum ada data", X.spark(d_resp)),
+        tile(f"Awareness {brand}", pct(len(aware), len(known)), f"{fmt(len(aware))} dari {fmt(len(known))} responden sudah tahu"),
+        tile("Mencoba sampel", pct(len(tried), len(ents)), f"{fmt(len(tried))} responden"),
+        tile("Membeli setelah mencoba", pct(len(bought), len(tried)), f"{fmt(len(bought))} pembeli · konversi trial → beli"),
+        tile("Bungkus terjual", fmt(sum(r[1] for r in by_var)) + " bks", varian_word(variants), X.spark(d_bks)),
     ]
     p = [
         trend("Responden per hari", "Perokok dewasa yang disurvei", X.days, d_resp, span=8, unit="orang"),
@@ -324,12 +356,12 @@ def horeca(ss: list[dict], ents: list[dict], variants: list[str], brand: str, X:
         segments("Status Tanda Tambah", "Dari belum tahu sampai pengguna lama", count(ents, "statusTT", O["statusHoreca"]), span=8),
         segments("Kesan kekuatan rasa", "Setelah mencoba", count(tried, "kekuatan", O["kekuatan"]), span=4),
         bars("Kesan asap", "Setelah mencoba", count(tried, "asap", O["asap"]), pct=True, span=4),
-        bars("Penjualan per varian", "Bungkus dibeli responden", by_var),
+        bars("Penjualan per varian", "Bungkus dibeli responden", by_var, unit=" bks"),
         bars("Sampel yang dicoba", "", count(tried, "sampel"), pct=True, tone="tt"),
         bars("Alasan membeli", "", count(ents, "alasanBeli"), pct=True, tone="tt"),
         bars("Alasan tidak membeli", "", count(ents, "alasanTidak"), pct=True, tone="comp"),
         bars("Rokok yang biasa dihisap", "Diisi bebas oleh SPG", count(ents, lambda e: title_case(e["rokokBiasa"]) if e.get("rokokBiasa") else None), pct=True, tone="comp"),
-        segments("Usia responden", "", count(ents, "usia", O["usia"]), span=4),
+        segments("Usia responden", "Persentase per kelompok umur", [(f"{a} th", n) for a, n in ages], span=4),
         bars("Tempat biasa beli rokok", "", count(ents, "tempatBeli"), pct=True),
         bars("Jenis venue", f"{fmt(sum(int((s.get('closing') or {}).get('korek') or 0) for s in ss))} korek diberikan", count([s["header"] for s in ss], "jenisVenue"), pct=True),
         observed(ss, brand, "Merek paling banyak dihisap di venue", 8),
@@ -340,7 +372,8 @@ def horeca(ss: list[dict], ents: list[dict], variants: list[str], brand: str, X:
     ins = [
         f"{pct(len(bought), len(tried))} responden yang mencoba sampel langsung membeli." if tried else None,
         f"Alasan utama tidak membeli setelah mencoba: {no_buy[0][0].lower()}." if no_buy else None,
-        f"{pct(len(photo), len(ents))} responden bersedia difoto bersama SPG." if ents else None,
+        f"Awareness {brand} {pct(len(aware), len(known))}: {pct(len(known) - len(aware), len(known))} responden belum kenal – peluang pengenalan." if known else None,
+        f"Responden terbanyak berumur {top_age[0]} tahun ({pct(top_age[1], n_age)})." if top_age else None,
     ]
     return tiles, p, [x for x in ins if x]
 
@@ -365,7 +398,7 @@ def reguler(ss: list[dict], ents: list[dict], variants: list[str], brand: str, X
         tile("Kunjungan outlet", fmt(len(ents)), f"{len({str(e.get('namaOutlet')).lower() for e in ents})} outlet berbeda · {len(ss)} rute", X.spark(d_visit)),
         tile("Outlet jual TT", pct(len(jual), len(ents)), "distribusi numerik"),
         tile("Strike rate order", pct(len(buyers), len(ents)), f"{len(buyers)} outlet order"),
-        tile("Bungkus diorder", fmt(sum(r[1] for r in by_var)), "semua varian", X.spark(d_bks)),
+        tile("Bungkus diorder", fmt(sum(r[1] for r in by_var)) + " bks", varian_word(variants), X.spark(d_bks)),
         tile("Share of shelf", pct(f_tt, f_all), f"facing TT {fmt(f_tt)} dari {fmt(f_all)}"),
         tile("Stok kosong (OOS)", pct(kosong, ada + kosong), f"harga rata-rata {rp(avg(prices))}"),
     ]
@@ -379,17 +412,17 @@ def reguler(ss: list[dict], ents: list[dict], variants: list[str], brand: str, X
     def diff(p):
         return "–" if not (p and t) else ("+" if t - p > 0 else "−") + rp(abs(t - p))
     p = [
-        trend("Bungkus diorder per hari", "Semua varian", X.days, d_bks, span=8, unit="bks"),
+        trend("Bungkus diorder per hari", varian_word(variants).capitalize(), X.days, d_bks, span=8, unit="bks"),
         funnel("Dari kunjungan ke order", "Outlet yang dikunjungi", [("Kunjungan", len(ents)), ("Outlet jual TT", len(jual)), ("Jual TT & stok semua varian ada", len(complete)),
                                                                      ("…dan order hari itu", len([e for e in complete if packs(e) > 0]))]),
         stack("Ketersediaan stok per varian", "Outlet yang menjual TT", [("ADA", "Ada", "ink"), ("KOSONG", "Kosong", "tt"), ("TIDAK", "Tidak jual", "muted")],
               [(v, c) for v, c in st], span=4),
         segments("Status TT di outlet", "Semua kunjungan", count(ents, "statusOutlet", O["statusOutlet"]), span=4),
-        bars("Order per varian", "Bungkus dipesan outlet", by_var),
+        bars("Order per varian", "Bungkus dipesan outlet", by_var, unit=" bks"),
         bars("POSM Tanda Tambah", "", count(ents, "posm"), pct=True),
         bars("Alasan tidak order", "", count(ents, "alasanTidak"), pct=True, tone="comp"),
         bars("Promo kompetitor di outlet", "", count(ents, "promoKomp"), pct=True, tone="comp", span=6),
-        table("Kompetitor terlaris di outlet", f"{brand} rata-rata {rp(t)} · + berarti {brand} lebih mahal", ["Merek", "#Outlet", "#Harga eceran", "#Selisih harga TT"],
+        table("Kompetitor terlaris di outlet", f"{brand} rata-rata {rp(t)} · + berarti {brand} lebih mahal", ["Merek", "#Outlet|outlet", "#Harga eceran", "#Selisih harga TT"],
               [[k, r["n"], rp(avg(r["p"])), diff(avg(r["p"]))] for k, r in sorted(km.items(), key=lambda kv: -kv[1]["n"])[:10]], span=6),
         tipe_table(ents, "tipeOutlet", O["tipeOutlet"], "outlet", "Kunjungan", "Order", "statusOutlet", sos=True),
         gallery("Foto rak / display terbaru", "", photo_items(ents, "fotoDisplay", lambda e: f"{e.get('namaOutlet')} · {e['_s']['_spg']} · {str(e.get('at'))[:10]}")),
@@ -413,7 +446,7 @@ def observed(ss: list[dict], brand: str, title: str, span: int) -> dict:
         for t in (s.get("closing") or {}).get("terlaris") or []:
             m[t["merek"]] += float(t.get("batang") or 0)
     bk = brand.lower()
-    return bars(title, "Pengamatan SPG, jumlah batang", [(k, int(n), "tt" if bk in k.lower() else "comp") for k, n in sorted(m.items(), key=lambda kv: -kv[1])], span=span)
+    return bars(title, "Pengamatan SPG, jumlah batang", [(k, int(n), "tt" if bk in k.lower() else "comp") for k, n in sorted(m.items(), key=lambda kv: -kv[1])], span=span, unit=" btg")
 
 
 def tipe_table(items: list[dict], key: str, order: list, word: str, n_label: str, buy_label: str, status_key: str, sos: bool = False) -> dict:
@@ -425,10 +458,17 @@ def tipe_table(items: list[dict], key: str, order: list, word: str, n_label: str
         p = sum_variants(e.get("beli"))
         if p: r["buy"] += 1; r["bks"] += p
         r["ft"] += float(e.get("facingTT") or 0); r["fa"] += float(e.get("facingTotal") or 0)
-    cols = ["Tipe", "#" + n_label, "#Sudah jual TT", "#" + buy_label, "#Konversi", "#Bungkus"] + (["#Share of shelf"] if sos else [])
+    cols = ["Tipe", "#" + n_label, "#Sudah jual TT", "#" + buy_label, "#Konversi", "#Bungkus|bks"] + (["#Share of shelf"] if sos else [])
     rows = [[{"text": t, "tipe": t}, r["n"], pct(r["jual"], r["n"]), r["buy"], pct(r["buy"], r["n"]), fmt(r["bks"])] + ([pct(r["ft"], r["fa"])] if sos else [])
             for t in order if (r := m.get(t))]
     return table(f"Per tipe {word}", "Klik tipe untuk menyaring seluruh dashboard", cols, rows)
+
+
+SPG_COLS = {  # (yang ditemui, yang membeli, satuan per laporan)
+    "GROSIR": ("Pembeli ditemui", "Membeli", "orang"),
+    "HORECA": ("Responden", "Pembeli", "orang"),
+    "REGULER": ("Kunjungan outlet", "Order", "outlet"),
+}
 
 
 def spg_table(ss: list[dict], ents: list[dict], t: str, brand: str) -> dict:
@@ -441,10 +481,12 @@ def spg_table(ss: list[dict], ents: list[dict], t: str, brand: str) -> dict:
             r["k"] += 1
             p = sum_variants(e.get("beli"))
             if p: r["b"] += 1; r["bks"] += p
-    w = "Order" if t == "REGULER" else "Membeli"
-    return table(f"Kinerja SPG · {TYPES[t]}", f"Kontak = {FORMS[t]['entry_word']}; konversi = kontak yang {w.lower()} {brand}. SPG dengan beberapa tugas muncul di tiap kategori.",
-                 ["SPG", "#Laporan", "#Kontak", "#Kontak / laporan", "#" + w, "#Konversi", "#Bungkus"],
-                 [[n, r["lap"], r["k"], f"{r['k'] / r['lap']:.1f}".replace(".", ","), r["b"], pct(r["b"], r["k"]), fmt(r["bks"])]
+    met, buy, unit = SPG_COLS[t]
+    one = lambda v: f"{v:.1f}".replace(".", ",")
+    return table(f"Kinerja SPG · {TYPES[t]}",
+                 f"{buy} = {met.lower()} yang membeli {brand} (≥ 1 bks); konversi = {buy.lower()} ÷ {met.lower()}. SPG dengan beberapa tugas muncul di tiap kategori.",
+                 ["SPG", "#Laporan", "#" + met, "#" + buy, f"#{buy} / laporan|{unit}", "#Konversi", "#Bungkus|bks", f"#Bungkus / {buy.lower()}|bks"],
+                 [[n, r["lap"], r["k"], r["b"], one(r["b"] / r["lap"]), pct(r["b"], r["k"]), fmt(r["bks"]), one(r["bks"] / r["b"]) if r["b"] else "–"]
                   for n, r in sorted(per.items(), key=lambda kv: -kv[1]["bks"])])
 
 
@@ -522,19 +564,21 @@ def build(db: Session, me: User, f: Filters) -> dict:
 
 def _build(db: Session, me: User, f: Filters) -> dict:
     s = app_settings(db)
-    brand, variants = s["brand"], s["variants"]
+    brand, all_variants = s["brand"], s["variants"]
+    variants = [f.produk] if f.produk in all_variants else all_variants
     reports, trunc = load_approved(db, me, f)
     ss, ents = scope(reports, f)
-    spg_names = sorted({r["_spg"] for r in reports} | {u.name for u in db.scalars(select(User).where(User.role == "SPG")) if f.type in (u.tugas or [])})
+    spg_names = sorted({r["_spg"] for r in reports} | {u.name for u in db.scalars(select(User).where(User.role == "SPG", User.deleted_at.is_(None))) if f.type in (u.tugas or [])})
     head = {"title": "Dashboard " + ("Survei HORECA" if f.type == "HORECA" else "SPG " + TYPES[f.type]), "reports": len(ss), "truncated": trunc,
             "spgOptions": spg_names, "tipeOptions": O["tipeToko"] if f.type == "GROSIR" else O["tipeOutlet"] if f.type == "REGULER" else [],
-            "coverage": [c.label for c in active_items(me)] if me.role == "SPV" else None}
+            "coverage": [c.label for c in active_items(me)] if me.role == "SPV" else None, "produkOptions": all_variants}
     if not ss:
         return {**head, "tiles": [], "insights": [], "panels": [spv_recap(db, me, f.days)] if me.role == "ADMIN" else []}
     tiles, panels, insights = {"GROSIR": grosir, "HORECA": horeca, "REGULER": reguler}[f.type](ss, ents, variants, brand, Axis(f.days))
     panels.insert(1, map_panel(ss, ents, f.type))
     el = FORMS[f.type]["entry_location"]
-    panels.append(geo_table(ents, el, {"GROSIR": "Pembeli", "HORECA": "Domisili responden", "REGULER": "Kunjungan outlet"}[f.type], "Order" if f.type == "REGULER" else "Membeli", f))
+    panels.append(geo_table(ents, el, {"GROSIR": "Pembeli", "HORECA": "Domisili responden", "REGULER": "Kunjungan outlet"}[f.type], "Order" if f.type == "REGULER" else "Membeli", f,
+                            SPG_COLS[f.type][0]))
     panels.append(spg_table(ss, ents, f.type, brand))
     if me.role == "ADMIN":
         panels.append(spv_recap(db, me, f.days))

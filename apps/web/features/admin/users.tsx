@@ -1,7 +1,7 @@
 'use client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { MapPinned, RotateCcw, Trash2, X } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { type AuthUser, type ReportType, type Role, ROLE_LABEL, TYPE_LABEL, TYPES } from '@/lib/types';
@@ -16,6 +16,7 @@ import { Field, Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
 import { indexKec, searchKec, shortKab } from '@/features/field/engine';
 import { selectCls, useWilayah } from './hooks';
+import { KabChecklist } from './kab-checklist';
 
 export function UsersView() {
   const { user } = useAuth(); const toast = useToast(); const qc = useQueryClient();
@@ -35,19 +36,35 @@ export function UsersView() {
             <td><div className="flex flex-wrap gap-1">{TYPES.map((t) => { const on = u.tugas.includes(t);
               return admin ? <button key={t} aria-pressed={on} onClick={() => call(() => api(`/users/${u.id}`, { method: 'PATCH', body: { tugas: on ? u.tugas.filter((x) => x !== t) : [...u.tugas, t] } }), 'Tugas diperbarui')}
                 className={cn('h-7 rounded-full border px-2.5 text-xs font-bold', on ? 'border-ink bg-ink text-white' : 'border-ink/40 bg-white/70')}>{TYPE_LABEL[t]}</button> : on && <Badge key={t}>{TYPE_LABEL[t]}</Badge>; })}</div></td>
-            <td>{u.area ?? '–'}</td><td>{u.active ? <Badge tone="good">Aktif</Badge> : <Badge tone="critical">Nonaktif</Badge>}</td>
+            <td><AreaCell u={u} admin={admin} call={call} /></td><td>{u.active ? <Badge tone="good">Aktif</Badge> : <Badge tone="critical">Nonaktif</Badge>}</td>
             {admin && <td><RowActions u={u} call={call} /></td>}</tr>)}</tbody></GlassTable></Panel>
       {admin && <Panel><PanelHeader title={`Supervisor & wilayah (${spvs.length})`} subtitle="Wilayah bisa seluruh kab/kota atau per kecamatan. Wilayah yang dilepas tetap tercatat dalam riwayat, jadi persetujuan lama tetap sah." />
         <PanelBody className="grid gap-3">{spvs.map((u) => <SpvBlock key={u.id} u={u} call={call} />)}{!spvs.length && <p className="text-sm text-ink-muted">Belum ada supervisor. Buat akun dengan peran Supervisor di atas.</p>}</PanelBody></Panel>}
-      {admin && <Panel><PanelHeader title={`Admin pusat (${admins.length})`} /><PanelBody className="grid gap-2">{admins.map((u) => <div key={u.id} className="flex items-center justify-between text-sm"><span>{u.name} <span className="text-ink-muted">({u.username})</span></span>{u.id !== user?.id && <RowActions u={u} call={call} />}</div>)}</PanelBody></Panel>}
+      {admin && <Panel><PanelHeader title={`Admin pusat (${admins.length})`} /><PanelBody className="grid gap-2">{admins.map((u) => <div key={u.id} className="flex flex-wrap items-center justify-between gap-2 text-sm"><span>{u.name} <span className="text-ink-muted">({u.username})</span></span>{u.id !== user?.id && <RowActions u={u} call={call} />}</div>)}</PanelBody></Panel>}
+      {admin && <DeletedUsers call={call} />}
     </div></PageContainer>;
 }
 
 function RowActions({ u, call }: { u: AuthUser; call: (fn: () => Promise<unknown>, m: string) => void }) {
-  const [open, setOpen] = useState(false); const [pw, setPw] = useState('');
-  return <div className="flex gap-1.5">
+  const [open, setOpen] = useState(false); const [pw, setPw] = useState(''); const [del, setDel] = useState(false); const [busy, setBusy] = useState(false);
+  const toast = useToast(); const qc = useQueryClient();
+  const remove = async () => {
+    setBusy(true);
+    try {
+      const r = await api<{ reports: number; openReports: number; released: string[] }>(`/users/${u.id}`, { method: 'DELETE' });
+      toast('success', `Akun ${u.name} dihapus.${r.reports ? ` ${r.reports} laporannya tetap tersimpan.` : ''}${r.released.length ? ` Wilayah dilepas: ${r.released.join(', ')}.` : ''}`);
+      setDel(false); qc.invalidateQueries({ queryKey: ['users'] }); qc.invalidateQueries({ queryKey: ['dash'] });
+    } catch (e) { toast('error', e instanceof ApiError ? e.message : 'Gagal menghapus'); } finally { setBusy(false); }
+  };
+  return <div className="flex flex-wrap gap-1.5">
     <Button size="sm" variant="secondary" onClick={() => { setPw(''); setOpen(true); }}>Reset password</Button>
     <Button size="sm" variant="ghost" className={u.active ? 'text-critical-text' : ''} onClick={() => call(() => api(`/users/${u.id}`, { method: 'PATCH', body: { active: !u.active } }), u.active ? 'Dinonaktifkan' : 'Diaktifkan')}>{u.active ? 'Nonaktifkan' : 'Aktifkan'}</Button>
+    <Button size="sm" variant="ghost" className="text-critical-text" data-del-user={u.username} onClick={() => setDel(true)}><Trash2 className="h-3.5 w-3.5" />Hapus</Button>
+    <GlassModal open={del} onOpenChange={setDel} size="sm" title={`Hapus akun ${u.name}?`}
+      description={`${ROLE_LABEL[u.role]} ini tidak bisa masuk lagi dan hilang dari daftar.${u.role === 'SPV' ? ' Wilayah persetujuannya dilepas – laporan di wilayah itu ditangani supervisor lain atau admin pusat.' : ''} Laporan, persetujuan, dan riwayatnya tetap tersimpan. Akun bisa dipulihkan dari bagian "Akun dihapus".`}
+      footer={<><Button variant="ghost" onClick={() => setDel(false)}>Batal</Button><Button variant="danger" loading={busy} onClick={remove}><Trash2 className="h-4 w-4" />Hapus akun</Button></>}>
+      <p className="text-sm text-ink-secondary">Kalau hanya ingin menghentikan sementara (mis. cuti), pakai <b>Nonaktifkan</b>.</p>
+    </GlassModal>
     <GlassModal open={open} onOpenChange={setOpen} size="sm" title={`Reset password ${u.name}`} description="Sesi login lama orang ini otomatis berakhir. Sampaikan password baru secara langsung."
       footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Batal</Button><Button disabled={pw.length < 8} onClick={() => { call(() => api(`/users/${u.id}`, { method: 'PATCH', body: { password: pw } }), 'Password direset'); setOpen(false); }}>Simpan password</Button></>}>
       <Field label="Password baru" htmlFor={`pw-${u.id}`} hint="Minimal 8 karakter"><Input id={`pw-${u.id}`} type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} /></Field>
@@ -56,10 +73,10 @@ function RowActions({ u, call }: { u: AuthUser; call: (fn: () => Promise<unknown
 
 function NewUser({ onDone }: { onDone: () => void }) {
   const toast = useToast();
-  const [f, setF] = useState({ username: '', name: '', password: '', role: 'SPG' as Role, tugas: [] as ReportType[], area: '' }); const [busy, setBusy] = useState(false);
+  const [f, setF] = useState({ username: '', name: '', password: '', role: 'SPG' as Role, tugas: [] as ReportType[], areas: [] as string[] }); const [busy, setBusy] = useState(false);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true);
-    try { await api('/users', { method: 'POST', body: { ...f, area: f.area || null } }); toast('success', `Akun ${f.name} dibuat`); setF({ username: '', name: '', password: '', role: f.role, tugas: [], area: '' }); onDone(); }
+    try { await api('/users', { method: 'POST', body: f }); toast('success', `Akun ${f.name} dibuat`); setF({ username: '', name: '', password: '', role: f.role, tugas: [], areas: [] }); onDone(); }
     catch (er) { toast('error', er instanceof ApiError ? er.message : 'Gagal'); } finally { setBusy(false); }
   };
   return <Panel><PanelHeader title="Buat akun" subtitle="Berikan username dan password ke orangnya secara langsung. Password bisa direset kapan saja." />
@@ -70,7 +87,9 @@ function NewUser({ onDone }: { onDone: () => void }) {
       <Field label="Peran" htmlFor="nu-role"><select id="nu-role" className={cn(selectCls, 'w-full')} value={f.role} onChange={(e) => setF({ ...f, role: e.target.value as Role })}>{(['SPG', 'SPV', 'ADMIN'] as Role[]).map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}</select></Field>
       {f.role === 'SPG' && <div><div className="mb-1 text-xs font-medium text-ink-secondary">Tugas</div><div className="flex flex-wrap gap-1.5">{TYPES.map((t) => <label key={t} className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-sm">
         <input type="checkbox" name="nu-tugas" value={t} checked={f.tugas.includes(t)} onChange={(e) => setF({ ...f, tugas: e.target.checked ? [...f.tugas, t] : f.tugas.filter((x) => x !== t) })} />{TYPE_LABEL[t]}</label>)}</div></div>}
-      <Field label="Area (keterangan)" htmlFor="nu-area"><Input id="nu-area" value={f.area} onChange={(e) => setF({ ...f, area: e.target.value })} /></Field>
+      {f.role !== 'ADMIN' && <div className="md:col-span-3"><div className="mb-1 text-xs font-medium text-ink-secondary">Area kab/kota <span className="font-normal text-ink-muted">
+        {f.role === 'SPV' ? '· yang dicentang langsung menjadi wilayah persetujuan supervisor ini (bisa ditambah per kecamatan nanti)' : '· area kerja SPG (boleh lebih dari satu)'}</span></div>
+        <KabChecklist id="new" value={f.areas} onChange={(areas) => setF({ ...f, areas })} /></div>}
       <div className="md:col-span-3"><Button type="submit" loading={busy}>Buat akun</Button></div>
     </form></PanelBody></Panel>;
 }
@@ -93,4 +112,29 @@ function SpvBlock({ u, call }: { u: AuthUser; call: (fn: () => Promise<unknown>,
     {!!res.length && <div className="max-h-56 overflow-y-auto rounded-md border border-line">{res.map((c) => <button key={c.kode} className="block w-full border-t border-line px-3 py-1.5 text-left text-sm first:border-t-0 hover:bg-black/[.05]" onClick={() => { add('KEC', c.kode); setTerm(''); }}>
       <b>{c.nama}</b> <span className="text-xs text-ink-muted">{shortKab(c.kab)} · {c.prov}</span></button>)}</div>}
   </div>;
+}
+
+function AreaCell({ u, admin, call }: { u: AuthUser; admin: boolean; call: (fn: () => Promise<unknown>, m: string) => void }) {
+  const [open, setOpen] = useState(false); const [v, setV] = useState<string[]>([]);
+  const names = (u.areas ?? []).map((a) => a.nama);
+  return <div className="flex max-w-[20rem] flex-wrap items-center gap-1">
+    {names.length ? names.slice(0, 3).map((n) => <Badge key={n}>{n}</Badge>) : <span className="text-ink-muted">{u.area ?? '–'}</span>}
+    {names.length > 3 && <span className="text-xs text-ink-muted">+{names.length - 3}</span>}
+    {admin && <button className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-semibold underline underline-offset-2 hover:bg-black/[.04]" data-edit-area={u.username}
+      onClick={() => { setV((u.areas ?? []).map((a) => a.kode)); setOpen(true); }}><MapPinned className="h-3 w-3" />Ubah</button>}
+    <GlassModal open={open} onOpenChange={setOpen} size="md" title={`Area ${u.name}`} description="Centang kabupaten/kota tempat SPG ini bertugas."
+      footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Batal</Button><Button onClick={() => { call(() => api(`/users/${u.id}`, { method: 'PATCH', body: { areas: v } }), 'Area diperbarui'); setOpen(false); }}>Simpan area</Button></>}>
+      <KabChecklist id={u.username} value={v} onChange={setV} compact /></GlassModal></div>;
+}
+
+function DeletedUsers({ call }: { call: (fn: () => Promise<unknown>, m: string) => void }) {
+  const [show, setShow] = useState(false);
+  const q = useQuery({ queryKey: ['users', 'deleted'], queryFn: () => api<AuthUser[]>('/users', { query: { deleted: 1 } }), enabled: show });
+  return <Panel><PanelHeader title="Akun dihapus" subtitle="Akun yang dihapus tidak bisa masuk. Laporan & riwayatnya tetap ada. Pulihkan bila terhapus tidak sengaja."
+    actions={<Button size="sm" variant="secondary" onClick={() => setShow(!show)} aria-expanded={show}>{show ? 'Sembunyikan' : 'Tampilkan'}</Button>} />
+    {show && <PanelBody>{q.isLoading ? <p className="text-sm text-ink-muted">Memuat…</p> : !q.data?.length ? <p className="text-sm text-ink-muted">Tidak ada akun yang dihapus.</p> :
+      <div className="grid gap-2" data-deleted-users>{q.data.map((u) => <div key={u.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2 text-sm last:border-b-0">
+        <span><b>{u.name}</b> <span className="text-ink-muted">({u.username}) · {ROLE_LABEL[u.role]}</span></span>
+        <Button size="sm" variant="secondary" onClick={() => call(() => api(`/users/${u.id}/restore`, { method: 'POST' }), `Akun ${u.name} dipulihkan${u.role === 'SPV' ? ' – pasang lagi wilayahnya' : ''}`)}><RotateCcw className="h-3.5 w-3.5" />Pulihkan</Button></div>)}</div>}</PanelBody>}
+  </Panel>;
 }

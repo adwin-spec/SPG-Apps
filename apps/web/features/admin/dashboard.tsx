@@ -28,7 +28,7 @@ import { PointsMap } from './map';
 
 type Cell = string | number | { text: string; geo?: string; tipe?: string };
 interface Panel { kind: 'bars' | 'table' | 'gallery' | 'trend' | 'segments' | 'funnel' | 'stack' | 'map'; title: string; sub: string; span: number; [k: string]: any }
-interface Dash { title: string; reports: number; truncated: boolean; spgOptions: string[]; tipeOptions: string[]; coverage: string[] | null; tiles: { k: string; v: string; d: string; spark?: number[] }[]; panels: Panel[]; insights: string[] }
+interface Dash { title: string; reports: number; truncated: boolean; spgOptions: string[]; tipeOptions: string[]; produkOptions?: string[]; coverage: string[] | null; tiles: { k: string; v: string; d: string; spark?: number[] }[]; panels: Panel[]; insights: string[] }
 /** Perubahan 7 hari terakhir dibanding 7 hari sebelumnya, dari grafik mini 14 hari. */
 const deltaOf = (spark?: number[]) => { if (!spark || spark.length < 14) return null; const a = spark.slice(7).reduce((x, y) => x + y, 0), b = spark.slice(0, 7).reduce((x, y) => x + y, 0); return b ? { pct: Math.round(((a - b) / b) * 100), label: 'vs 7 hari sebelumnya' } : null; };
 const BG: Record<ReportType, 'grosir' | 'horeca' | 'reguler'> = { GROSIR: 'grosir', HORECA: 'horeca', REGULER: 'reguler' };
@@ -38,7 +38,7 @@ const TYPE_TAG: Record<ReportType, string> = { GROSIR: 'SPG Grosir', HORECA: 'Su
 
 export function DashboardView() {
   const { user } = useAuth(); const toast = useToast();
-  const [f, setF] = useState({ type: 'GROSIR' as ReportType, days: '30', spg: '', spv: '', prov: '', kab: '', kec: '', tipe: '' });
+  const [f, setF] = useState({ type: 'GROSIR' as ReportType, days: '30', spg: '', spv: '', prov: '', kab: '', kec: '', tipe: '', produk: '', minat: '' });
   const [busy, setBusy] = useState('');
   const set = (p: Partial<typeof f>) => setF((x) => ({ ...x, ...p }));
   const q = useQuery({ queryKey: ['dash', f], queryFn: () => api<Dash>('/dashboard', { query: f }), placeholderData: (prev) => prev });
@@ -47,7 +47,7 @@ export function DashboardView() {
   const provs = [...new Map((wil.data ?? []).map((k) => [k.provKode, k.provinsi])).entries()].sort((a, b) => a[1].localeCompare(b[1]));
   const kabs = (wil.data ?? []).filter((k) => !f.prov || k.provKode === f.prov);
   const kecs = f.kab ? wil.data?.find((k) => k.kode === f.kab)?.kecamatan ?? [] : [];
-  const d = q.data; const locOn = f.prov || f.kab || f.kec || f.tipe;
+  const d = q.data; const locOn = f.prov || f.kab || f.kec || f.tipe || f.produk || f.minat;
   const onCell = (c: Cell) => { if (typeof c === 'object' && c.geo) { if (f.kab) set({ kec: c.geo }); else set({ kab: c.geo, prov: c.geo.slice(0, 2) }); } else if (typeof c === 'object' && c.tipe) set({ tipe: c.tipe }); };
   const dl = async (key: string, path: string, query: Record<string, string>) => {
     setBusy(key);
@@ -75,12 +75,24 @@ export function DashboardView() {
       <select aria-label="Kabupaten/kota" className={selectCls} value={f.kab} onChange={(e) => set({ kab: e.target.value, kec: '', prov: e.target.value ? e.target.value.slice(0, 2) : f.prov })}><option value="">Semua kab/kota</option>{kabs.map((k) => <option key={k.kode} value={k.kode}>{shortKab(k.nama)}</option>)}</select>
       <select aria-label="Kecamatan" className={selectCls} value={f.kec} disabled={!f.kab} onChange={(e) => set({ kec: e.target.value })}><option value="">{f.kab ? 'Semua kecamatan' : 'Kecamatan (pilih kab/kota)'}</option>{kecs.map((c) => <option key={c.kode} value={c.kode}>{c.nama}</option>)}</select>
       {!!d?.tipeOptions.length && <select aria-label="Tipe toko" className={selectCls} value={f.tipe} onChange={(e) => set({ tipe: e.target.value })}><option value="">{f.type === 'GROSIR' ? 'Semua pembeli' : 'Semua tipe outlet'}</option>{d.tipeOptions.map((t) => <option key={t}>{t}</option>)}</select>}
-      {locOn && <GlassButton variant="ghost" size="sm" onClick={() => set({ prov: '', kab: '', kec: '', tipe: '' })}>Hapus filter wilayah</GlassButton>}
+      <select aria-label="Produk Tanda Tambah" className={cn(selectCls, f.produk && 'border-ink bg-white font-semibold')} value={f.produk} onChange={(e) => set({ produk: e.target.value })}>
+        <option value="">Semua produk TT</option>{(d?.produkOptions ?? []).map((v) => <option key={v} value={v}>TT {v}</option>)}</select>
+      <select aria-label="Minat beli" className={cn(selectCls, f.minat && 'border-ink bg-white font-semibold')} value={f.minat} onChange={(e) => set({ minat: e.target.value })}>
+        <option value="">{f.type === 'REGULER' ? 'Semua (order & tidak)' : 'Semua minat beli'}</option>
+        <option value="beli">{f.type === 'REGULER' ? 'Order (≥ 1 bks)' : 'Minat beli (≥ 1 bks)'}</option>
+        <option value="tidak">{f.type === 'REGULER' ? 'Tidak order (0 bks)' : 'Tidak minat beli (0 bks)'}</option></select>
+      {locOn && <GlassButton variant="ghost" size="sm" onClick={() => set({ prov: '', kab: '', kec: '', tipe: '', produk: '', minat: '' })}>Hapus filter</GlassButton>}
+      {(f.produk || f.minat) && <p className="w-full px-1 text-xs text-ink-muted" data-filter-note>
+        {f.produk && <>Angka bungkus & pembeli hanya untuk <b>TT {f.produk}</b>. </>}
+        {f.minat === 'beli' && <>Hanya {f.type === 'HORECA' ? 'responden' : f.type === 'GROSIR' ? 'pembeli' : 'outlet'} yang membeli ≥ 1 bks. </>}
+        {f.minat === 'tidak' && <>Hanya {f.type === 'HORECA' ? 'responden' : f.type === 'GROSIR' ? 'pembeli' : 'outlet'} yang tidak membeli (0 bks). </>}</p>}
     </GlassContainer>
 
     {q.error && <ErrorBox error={q.error instanceof ApiError ? q.error : new Error('Gagal memuat dashboard')} />}
     {q.isLoading && <div className="grid gap-4"><Skeleton className="h-28" /><Skeleton className="h-72" /></div>}
-    <div className={cn('transition-opacity duration-200', q.isFetching && !q.isLoading && 'opacity-60')}>
+    {/* Garis proses di atas saat data baru dihitung: angka lama tetap tampil (tidak berkedip/kosong) sampai yang baru siap. */}
+    <div className={cn('pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 origin-left bg-ink transition-opacity duration-300', q.isFetching && !q.isLoading ? 'tt-progress opacity-100' : 'opacity-0')} aria-hidden />
+    <div className={cn('transition-opacity duration-200', q.isFetching && !q.isLoading && 'opacity-60')} aria-busy={q.isFetching}>
       {d && !d.tiles.length && <GlassContainer className="mb-5"><EmptyState title="Wawasan Anda akan muncul di sini" hint={<>Belum ada laporan yang disetujui untuk filter ini. Setujui laporan di <Link className="font-semibold underline underline-offset-4" href="/review">Persetujuan</Link>{user?.role === 'ADMIN' && <>, atau muat data contoh di <Link className="font-semibold underline underline-offset-4" href="/settings">Pengaturan</Link></>}.</>} /></GlassContainer>}
       {d && !!d.tiles.length && <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">{d.tiles.map((t, i) =>
         <KpiCard key={t.k} label={t.k} value={t.v} detail={t.d} featured={i === 0} delta={deltaOf(t.spark)} spark={t.spark ? <Sparkline values={t.spark} dark={i === 0} /> : null} />)}</div>}
@@ -114,11 +126,13 @@ function PanelView({ p, onCell, onKec }: { p: Panel; onCell: (c: Cell) => void; 
 }
 
 function Table({ p, onCell }: { p: Panel; onCell: (c: Cell) => void }) {
-  const rows = (p.rows ?? []) as Cell[][]; const cols = p.columns as { label: string; num: boolean }[];
+  const rows = (p.rows ?? []) as Cell[][]; const cols = p.columns as { label: string; num: boolean; unit?: string }[];
+  /** Angka diberi satuan (bks, orang, outlet …) kecuali sudah berupa persen, rupiah, atau kosong. */
+  const withUnit = (v: string | number, unit?: string) => { const t = typeof v === 'number' ? fmtNum(v) : v; return unit && t !== '–' && !/%$|^Rp/.test(t) ? `${t} ${unit}` : t; };
   if (!rows.length) return <EmptyState compact title={p.empty ?? 'Belum ada data'} />;
   return <GlassTable plain maxHeight="28rem"><thead><tr>{cols.map((c) => <th key={c.label} className={c.num ? 'r' : ''}>{c.label}</th>)}</tr></thead>
     <tbody>{rows.map((r, i) => <tr key={i}>{r.map((c, j) => <td key={j} className={cols[j]?.num ? 'r' : ''}>
-      {typeof c === 'object' && c ? <button className="text-left font-semibold underline decoration-ink/25 underline-offset-4 hover:decoration-ink" onClick={() => onCell(c)}>{c.text}</button> : typeof c === 'number' ? fmtNum(c) : c}</td>)}</tr>)}</tbody></GlassTable>;
+      {typeof c === 'object' && c ? <button className="text-left font-semibold underline decoration-ink/25 underline-offset-4 hover:decoration-ink" onClick={() => onCell(c)}>{c.text}</button> : withUnit(c as string | number, cols[j]?.unit)}</td>)}</tr>)}</tbody></GlassTable>;
 }
 function Gallery({ items }: { items?: { photo: any; cap: string }[] }) {
   if (!items?.length) return <EmptyState compact title="Belum ada foto" />;
